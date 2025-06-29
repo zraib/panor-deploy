@@ -1,0 +1,71 @@
+.hotspot {
+    width: 60px;
+    height: 60px;
+    cursor: pointer;
+    position: relative;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .hotspot.visible {
+        opacity: 1;
+        transform: scale(1);
+    }
+    
+    .hotspot.visible:hover {
+        transform: scale(1.1);
+    }
+    
+    .arrow {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at center,
+                rgba(0, 255, 136, 0.9) 0%,
+                rgba(0, 255, 136, 0.6) 40%,
+                rgba(0, 255, 136, 0) 70%);
+        border-radius: 50%;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .arrow::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-left: 12px solid transparent;
+        border-right: 12px solid transparent;
+        border-bottom: 20px solid rgba(255, 255, 255, 0.9);
+        transform: translate(-50%, -60%) rotate(0deg);
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    }
+    
+    .distance {
+        position: absolute;
+        bottom: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: #00ff88;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    
+    .hotspot.visible:hover .distance {
+        opacity: 1;
+    }
+    
+    @media (max-width: 768px) {
+        .hotspot {
+            width: 50px;
+            height: 50px;
+        }
+    }

@@ -1,0 +1,53 @@
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Dependencies
+node_modules/
+
+# Generated files
+public/config.json
+
+# Cache
+.cache/
+.eslintcache
+
+# Logs
+logs/
+*.log
+
+# Coverage reports
+coverage/
+
+# Environment variables
+.env*
+!.env.example
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Package files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Python virtual environments
+venv/
+.venv/
+env/
+.env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Marzipano assets
+public/images/

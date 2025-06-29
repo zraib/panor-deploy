@@ -1,0 +1,19 @@
+{
+  "*.{js,jsx,ts,tsx}": [
+    "eslint --fix",
+    "prettier --write"
+  ],
+  "*.{json,md,yml,yaml}": [
+    "prettier --write"
+  ],
+  "*.py": [
+    "python -m black --line-length 88",
+    "python -m isort --profile black"
+  ],
+  "package.json": [
+    "prettier --write"
+  ],
+  "*.{css,scss,sass}": [
+    "prettier --write"
+  ]
+}
