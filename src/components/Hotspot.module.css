@@ -1,6 +1,6 @@
 .hotspot {
-    width: 60px;
-    height: 60px;
+    width: 80px;
+    height: 80px;
     cursor: pointer;
     position: relative;
     opacity: 0;
@@ -21,12 +21,27 @@
         position: absolute;
         width: 100%;
         height: 100%;
-        background: radial-gradient(circle at center,
-                rgba(0, 255, 136, 0.9) 0%,
-                rgba(0, 255, 136, 0.6) 40%,
-                rgba(0, 255, 136, 0) 70%);
+        /* Faded white circle with elliptical shape for 3D illusion */
+        background: rgba(255, 255, 255, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        /* Create elliptical shape for 3D perspective effect */
         border-radius: 50%;
-        animation: pulse 2s ease-in-out infinite;
+        transform: perspective(200px) rotateX(25deg) scaleY(0.7);
+        transition: all 0.3s ease;
+        /* Add subtle inner shadow for depth */
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .hotspot:hover .arrow {
+        /* Solid white on hover */
+        background: rgba(255, 255, 255, 0.9);
+        border: 2px solid rgba(255, 255, 255, 1);
+        /* Maintain 3D effect on hover with enhanced glow */
+        transform: perspective(200px) rotateX(25deg) scaleY(0.7);
+        box-shadow: 
+            inset 0 2px 4px rgba(0, 0, 0, 0.1),
+            0 4px 12px rgba(255, 255, 255, 0.4),
+            0 0 20px rgba(255, 255, 255, 0.2);
     }
     
     .arrow::before {
@@ -38,9 +53,20 @@
         height: 0;
         border-left: 12px solid transparent;
         border-right: 12px solid transparent;
-        border-bottom: 20px solid rgba(255, 255, 255, 0.9);
-        transform: translate(-50%, -60%) rotate(0deg);
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        border-bottom: 20px solid rgba(0, 0, 0, 0.6);
+        /* Create arrowhead shape with notched back */
+        clip-path: polygon(50% 0%, 0% 100%, 35% 85%, 50% 90%, 65% 85%, 100% 100%);
+        transform: translate(-50%, -60%);
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+        /* Hide arrow by default */
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 1;
+    }
+    
+    .hotspot:hover .arrow::before {
+        /* Show arrow on hover */
+        opacity: 1;
     }
     
     .distance {
@@ -49,7 +75,7 @@
         left: 50%;
         transform: translateX(-50%);
         background: rgba(0, 0, 0, 0.8);
-        color: #00ff88;
+    color: white;
         padding: 4px 8px;
         border-radius: 4px;
         font-size: 12px;
@@ -65,7 +91,13 @@
     
     @media (max-width: 768px) {
         .hotspot {
-            width: 50px;
-            height: 50px;
+            width: 70px;
+            height: 70px;
         }
+        
+        .arrow::before {
+             border-left: 10px solid transparent;
+             border-right: 10px solid transparent;
+             border-bottom: 16px solid rgba(0, 0, 0, 0.6);
+         }
     }

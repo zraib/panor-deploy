@@ -161,17 +161,19 @@ export default function MiniMap({
                   />
                 )}
 
-                {/* Direction arrow */}
-                <line
-                  x1={scene.position.x}
-                  y1={scene.position.y}
-                  x2={arrowEndX}
-                  y2={arrowEndY}
-                  stroke="white"
-                  strokeWidth={isCurrentScene ? '0.8' : '0.4'}
-                  opacity={isCurrentScene ? 1 : 0.6}
-                  markerEnd={isCurrentScene ? 'url(#arrowhead-current)' : 'url(#arrowhead)'}
-                />
+                {/* Direction arrow - only show for current scene */}
+                {isCurrentScene && (
+                  <line
+                    x1={scene.position.x}
+                    y1={scene.position.y}
+                    x2={arrowEndX}
+                    y2={arrowEndY}
+                    stroke="white"
+                    strokeWidth="0.8"
+                    opacity={1}
+                    markerEnd="url(#arrowhead-current)"
+                  />
+                )}
 
                 {/* Scene point */}
                 <circle
