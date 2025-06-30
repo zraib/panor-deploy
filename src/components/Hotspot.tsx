@@ -9,7 +9,7 @@ interface HotspotProps {
   element: HTMLElement;
   data: LinkHotspot;
   visible: boolean;
-  onNavigate: (_sceneId: string) => void;
+  onNavigate: (_sceneId: string, _sourceHotspotYaw: number) => void;
 }
 
 export default function Hotspot({ element, data, visible, onNavigate }: HotspotProps) {
@@ -25,7 +25,7 @@ export default function Hotspot({ element, data, visible, onNavigate }: HotspotP
 
     const handleClick = (e: React.MouseEvent) => {
       e.stopPropagation();
-      onNavigate(data.target);
+      onNavigate(data.target, data.yaw);
     };
 
     // Render hotspot content using createRoot
