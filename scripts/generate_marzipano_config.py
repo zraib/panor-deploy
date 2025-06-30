@@ -155,7 +155,7 @@ def analyze_floor_distribution(panoramas):
     
     return panoramas
 
-def find_connected_panoramas(panoramas, max_distance=10.0, max_connections=6):
+def find_connected_panoramas(panoramas, max_distance=10.0, max_connections=20):
     """Find connections between panoramas on the same floor"""
     connections = {}
     

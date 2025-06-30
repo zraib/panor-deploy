@@ -117,13 +117,13 @@ logs/
 *.backup
 
 # Package manager lock files (optional - uncomment if you want to ignore them)
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Panorama specific
 # Uncomment the line below if you don't want to track the CSV data file
-# /public/data/pano-poses.csv
+/public/data/pano-poses.csv
 
 # Ignore all contents of the /public/images directory except .gitkeep
 /public/images/*
