@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import styles from './Hotspot.module.css';
 import { LinkHotspot } from '@/types/scenes';
@@ -12,7 +12,46 @@ interface HotspotProps {
   onNavigate: (_sceneId: string, _sourceHotspotYaw: number) => void;
 }
 
-export default function Hotspot({ element, data, visible, onNavigate }: HotspotProps) {
+// This is the actual React component that will be rendered.
+// It contains the state and the JSX for the hotspot.
+export function HotspotComponent({
+  visible,
+  data,
+  onNavigate,
+  style,
+}: {
+  visible: boolean;
+  data: LinkHotspot;
+  onNavigate: (_sceneId: string, _sourceHotspotYaw: number) => void;
+  style: React.CSSProperties;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onNavigate(data.target, data.yaw);
+  };
+
+  return (
+    <div
+      className={`${styles.hotspot} ${visible || isHovered ? styles.visible : ''}`}
+      onClick={handleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={style}
+      data-testid="hotspot"
+    >
+      <div className={styles.arrow}></div>
+    </div>
+  );
+}
+
+export default function Hotspot({
+  element,
+  data,
+  visible,
+  onNavigate,
+}: HotspotProps) {
   const rootRef = useRef<Root | null>(null);
   const isInitializedRef = useRef(false);
 
@@ -25,18 +64,50 @@ export default function Hotspot({ element, data, visible, onNavigate }: HotspotP
       isInitializedRef.current = true;
     }
 
-    const handleClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onNavigate(data.target, data.yaw);
-    };
+    // Calculate perspective effects based on distance
+    const distance = data.distance || 5; // Default distance if not provided
+    const minDistance = 1;
+    const maxDistance = 20;
+
+    // Scale factor: closer = very large (1.5), farther = much smaller (0.2)
+    const scaleFactor = Math.max(
+      0.2,
+      Math.min(
+        1.5,
+        1.5 - ((distance - minDistance) / (maxDistance - minDistance)) * 1
+      )
+    );
+
+    // Oval factor: closer = more circular (0.9), farther = more oval/flat (0.3) to simulate floor perspective
+    const ovalFactor = Math.max(
+      0.3,
+      Math.min(
+        0.9,
+        0.9 - ((distance - minDistance) / (maxDistance - minDistance)) * 0.6
+      )
+    );
+
+    // Perspective rotation: farther objects appear more tilted to simulate lying flat on floor
+    const perspectiveRotation = Math.min(
+      65,
+      45 + ((distance - minDistance) / (maxDistance - minDistance)) * 20
+    );
+
+    const hotspotStyle = {
+      '--scale-factor': scaleFactor,
+      '--oval-factor': ovalFactor,
+      '--perspective-rotation': `${perspectiveRotation}deg`,
+    } as React.CSSProperties;
 
     // Render hotspot content using createRoot
     if (rootRef.current) {
       rootRef.current.render(
-        <div className={`${styles.hotspot} ${visible ? styles.visible : ''}`} onClick={handleClick}>
-          <div className={styles.arrow}></div>
-          <div className={styles.distance}>{data.distance}m</div>
-        </div>
+        <HotspotComponent
+          visible={visible}
+          data={data}
+          onNavigate={onNavigate}
+          style={hotspotStyle}
+        />
       );
     }
   }, [element, data, visible, onNavigate]);
