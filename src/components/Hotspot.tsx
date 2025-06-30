@@ -14,13 +14,15 @@ interface HotspotProps {
 
 export default function Hotspot({ element, data, visible, onNavigate }: HotspotProps) {
   const rootRef = useRef<Root | null>(null);
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
     if (!element) return;
 
-    // Create root if it doesn't exist
-    if (!rootRef.current) {
+    // Create root only once
+    if (!rootRef.current && !isInitializedRef.current) {
       rootRef.current = createRoot(element);
+      isInitializedRef.current = true;
     }
 
     const handleClick = (e: React.MouseEvent) => {
@@ -29,24 +31,26 @@ export default function Hotspot({ element, data, visible, onNavigate }: HotspotP
     };
 
     // Render hotspot content using createRoot
-    rootRef.current.render(
-      <div className={`${styles.hotspot} ${visible ? styles.visible : ''}`} onClick={handleClick}>
-        <div className={styles.arrow}></div>
-        <div className={styles.distance}>{data.distance}m</div>
-      </div>
-    );
+    if (rootRef.current) {
+      rootRef.current.render(
+        <div className={`${styles.hotspot} ${visible ? styles.visible : ''}`} onClick={handleClick}>
+          <div className={styles.arrow}></div>
+          <div className={styles.distance}>{data.distance}m</div>
+        </div>
+      );
+    }
+  }, [element, data, visible, onNavigate]);
 
-    // Cleanup
+  // Cleanup only on unmount
+  useEffect(() => {
     return () => {
       if (rootRef.current) {
-        // Give React time to unmount before destroying the root
-        setTimeout(() => {
-          rootRef.current?.unmount();
-          rootRef.current = null;
-        }, 0);
+        rootRef.current.unmount();
+        rootRef.current = null;
+        isInitializedRef.current = false;
       }
     };
-  }, [element, data, visible, onNavigate]);
+  }, []);
 
   return null;
 }

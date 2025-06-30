@@ -9,7 +9,11 @@ import LoadingScreen from './LoadingScreen';
 import TransitionOverlay from './TransitionOverlay';
 import Hotspot from './Hotspot';
 import { checkWebGLSupport, createRipple } from '@/lib/panoramaUtils';
-import { ConfigData, SceneInfo as SceneInfoType, LinkHotspot } from '@/types/scenes';
+import {
+  ConfigData,
+  SceneInfo as SceneInfoType,
+  LinkHotspot,
+} from '@/types/scenes';
 
 // Using types imported from @/types/scenes.ts
 
@@ -29,25 +33,28 @@ export default function PanoramaViewer() {
   const marzipanoRef = useRef<boolean>(false);
 
   // Clear hotspots for a scene
-  const clearHotspotsForScene = useCallback((sceneInfo: SceneInfoType): void => {
-    if (!sceneInfo.scene) return;
+  const clearHotspotsForScene = useCallback(
+    (sceneInfo: SceneInfoType): void => {
+      if (!sceneInfo.scene) return;
 
-    try {
-      const hotspotContainer = sceneInfo.scene.hotspotContainer();
+      try {
+        const hotspotContainer = sceneInfo.scene.hotspotContainer();
 
-      // Destroy all hotspots
-      const hotspots = hotspotContainer.listHotspots();
-      hotspots.forEach((hotspot: any) => {
-        hotspotContainer.destroyHotspot(hotspot);
-      });
+        // Destroy all hotspots
+        const hotspots = hotspotContainer.listHotspots();
+        hotspots.forEach((hotspot: any) => {
+          hotspotContainer.destroyHotspot(hotspot);
+        });
 
-      // Clear our references
-      sceneInfo.hotspotElements = [];
-    } catch (err) {
-      // Ignore errors during cleanup
-      sceneInfo.hotspotElements = [];
-    }
-  }, []);
+        // Clear our references
+        sceneInfo.hotspotElements = [];
+      } catch (err) {
+        // Ignore errors during cleanup
+        sceneInfo.hotspotElements = [];
+      }
+    },
+    []
+  );
 
   // Create hotspots for a scene
   const createHotspotsForScene = useCallback(
@@ -88,7 +95,9 @@ export default function PanoramaViewer() {
 
     try {
       // Create source
-      const source = Marzipano.ImageUrlSource.fromString(`/images/${sceneInfo.data.id}-pano.jpg`);
+      const source = Marzipano.ImageUrlSource.fromString(
+        `/images/${sceneInfo.data.id}-pano.jpg`
+      );
 
       // Create geometry with lower resolution for better performance
       const geometry = new Marzipano.EquirectGeometry([
@@ -99,8 +108,14 @@ export default function PanoramaViewer() {
       ]);
 
       // Create view with more conservative limits
-      const limiter = Marzipano.RectilinearView.limit.traditional(2048, (100 * Math.PI) / 180);
-      const view = new Marzipano.RectilinearView(sceneInfo.data.initialViewParameters, limiter);
+      const limiter = Marzipano.RectilinearView.limit.traditional(
+        2048,
+        (100 * Math.PI) / 180
+      );
+      const view = new Marzipano.RectilinearView(
+        sceneInfo.data.initialViewParameters,
+        limiter
+      );
 
       // Create scene
       const scene = viewer.createScene({
@@ -125,15 +140,22 @@ export default function PanoramaViewer() {
       if (!sceneInfo) return;
 
       // Get current loaded scene count
-      const loadedCount = Object.values(scenesRef.current).filter(s => s.loaded).length;
+      const loadedCount = Object.values(scenesRef.current).filter(
+        s => s.loaded
+      ).length;
 
       // Only preload if we haven't loaded too many scenes
       if (loadedCount < 10) {
         // Preload connected scenes
-        const connections = sceneInfo.data.linkHotspots.map(h => h.target).slice(0, 2); // Only preload first 2 connections
+        const connections = sceneInfo.data.linkHotspots
+          .map(h => h.target)
+          .slice(0, 2); // Only preload first 2 connections
 
         for (const targetId of connections) {
-          if (scenesRef.current[targetId] && !scenesRef.current[targetId].loaded) {
+          if (
+            scenesRef.current[targetId] &&
+            !scenesRef.current[targetId].loaded
+          ) {
             try {
               await loadScene(targetId);
             } catch (err) {
@@ -164,26 +186,45 @@ export default function PanoramaViewer() {
         clearHotspotsForScene(scenesRef.current[currentScene]);
       }
 
-      // Switch scene
-      sceneInfo.scene.switchTo();
+      // Switch scene with smooth transition
+      sceneInfo.scene.switchTo({
+        transitionDuration: 0, // Disable Marzipano's built-in transition since we handle it
+      });
       setCurrentScene(sceneId);
 
       // Create hotspots for this scene
       createHotspotsForScene(sceneInfo);
 
-      // Hide hotspots initially if not initial load
+      // Show hotspots after a brief delay for better UX
       if (!isInitial) {
         setHotspotsVisible(false);
+        // Auto-show hotspots after transition completes
+        setTimeout(() => {
+          setHotspotsVisible(true);
+          // Auto-hide after 5 seconds
+          if (hotspotTimeoutRef.current) {
+            clearTimeout(hotspotTimeoutRef.current);
+          }
+          hotspotTimeoutRef.current = setTimeout(() => {
+            setHotspotsVisible(false);
+          }, 5000);
+        }, 500);
       }
 
-      // Preload adjacent scenes in background
+      // Preload adjacent scenes in background (reduced delay)
       setTimeout(() => {
         preloadAdjacentScenes(sceneId).catch(err => {
           console.error('Error preloading adjacent scenes:', err);
         });
-      }, 1000);
+      }, 500);
     },
-    [currentScene, loadScene, clearHotspotsForScene, createHotspotsForScene, preloadAdjacentScenes]
+    [
+      currentScene,
+      loadScene,
+      clearHotspotsForScene,
+      createHotspotsForScene,
+      preloadAdjacentScenes,
+    ]
   );
 
   // Initialize viewer
@@ -255,16 +296,34 @@ export default function PanoramaViewer() {
 
   // Navigate to scene
   const navigateToScene = useCallback(
-    (sceneId: string): void => {
+    async (sceneId: string, sourceHotspotYaw?: number): Promise<void> => {
+      if (transitioning || sceneId === currentScene) return;
+
       setTransitioning(true);
-      setTimeout(() => {
-        switchScene(sceneId).catch(err => {
-          console.error('Error switching scene:', err);
-        });
-        setTimeout(() => setTransitioning(false), 100);
-      }, 300);
+
+      try {
+        // Preload the target scene during transition
+        const sceneInfo = scenesRef.current[sceneId];
+        if (sceneInfo && !sceneInfo.loaded) {
+          await loadScene(sceneId);
+        }
+
+        // Wait for zoom-in animation to complete
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        // Switch scene at the peak of the transition
+        await switchScene(sceneId);
+
+        // Wait for zoom-out animation to complete
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        setTransitioning(false);
+      } catch (err) {
+        console.error('Error navigating to scene:', err);
+        setTransitioning(false);
+      }
     },
-    [switchScene]
+    [switchScene, transitioning, currentScene, loadScene]
   );
 
   // Toggle hotspots
@@ -343,13 +402,17 @@ export default function PanoramaViewer() {
 
   return (
     <>
-      <Script src="/assets/js/marzipano.js" strategy="afterInteractive" onLoad={handleMarzipanoLoad} />
+      <Script
+        src='/assets/js/marzipano.js'
+        strategy='afterInteractive'
+        onLoad={handleMarzipanoLoad}
+      />
 
       {isLoading && <LoadingScreen />}
 
       <div
         ref={panoRef}
-        id="pano"
+        id='pano'
         style={{
           position: 'absolute',
           width: '100%',
@@ -357,13 +420,36 @@ export default function PanoramaViewer() {
           cursor: 'grab',
         }}
         onClick={handlePanoClick}
-        onMouseDown={e => ((e.currentTarget as HTMLElement).style.cursor = 'grabbing')}
-        onMouseUp={e => ((e.currentTarget as HTMLElement).style.cursor = 'grab')}
+        onMouseDown={e =>
+          ((e.currentTarget as HTMLElement).style.cursor = 'grabbing')
+        }
+        onMouseUp={e =>
+          ((e.currentTarget as HTMLElement).style.cursor = 'grab')
+        }
       />
 
       <TransitionOverlay active={transitioning} />
 
-      {showTapHint && <div className="tap-hint show">Tap anywhere to show navigation</div>}
+      {transitioning && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: '500',
+            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+            zIndex: 1600,
+            pointerEvents: 'none',
+          }}
+        ></div>
+      )}
+
+      {showTapHint && (
+        <div className='tap-hint show'>Tap anywhere to show navigation</div>
+      )}
 
       {config && currentScene && scenesRef.current[currentScene] && (
         <>
@@ -375,7 +461,9 @@ export default function PanoramaViewer() {
 
           <SceneInfo
             scene={scenesRef.current[currentScene]?.data}
-            connections={scenesRef.current[currentScene]?.data.linkHotspots.length || 0}
+            connections={
+              scenesRef.current[currentScene]?.data.linkHotspots.length || 0
+            }
           />
 
           <MiniMap
@@ -386,24 +474,27 @@ export default function PanoramaViewer() {
           />
 
           {/* Render hotspots */}
-          {scenesRef.current[currentScene]?.hotspotElements?.map((element, index) => {
-            const hotspotData = scenesRef.current[currentScene]?.data?.linkHotspots[index];
-            if (!hotspotData) return null;
+          {scenesRef.current[currentScene]?.hotspotElements?.map(
+            (element, index) => {
+              const hotspotData =
+                scenesRef.current[currentScene]?.data?.linkHotspots[index];
+              if (!hotspotData) return null;
 
-            return (
-              <Hotspot
-                key={`${currentScene}-${index}-${hotspotData.target}`}
-                element={element}
-                data={hotspotData}
-                visible={hotspotsVisible}
-                onNavigate={navigateToScene}
-              />
-            );
-          })}
+              return (
+                <Hotspot
+                  key={`${currentScene}-${index}-${hotspotData.target}`}
+                  element={element}
+                  data={hotspotData}
+                  visible={hotspotsVisible}
+                  onNavigate={navigateToScene}
+                />
+              );
+            }
+          )}
         </>
       )}
 
-      <div id="controls-hint">
+      <div id='controls-hint'>
         <div>🖱️ Drag to look around • Click to show paths</div>
         <div>📍 Click on arrows to navigate</div>
       </div>

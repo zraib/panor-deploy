@@ -7,14 +7,16 @@ interface TransitionOverlayProps {
   active: boolean;
 }
 
-export default function TransitionOverlay({ active }: TransitionOverlayProps): ReactElement {
+export default function TransitionOverlay({
+  active,
+}: TransitionOverlayProps): ReactElement {
   const [phase, setPhase] = useState<'idle' | 'zoom-in' | 'zoom-out'>('idle');
 
   useEffect(() => {
     if (active) {
       // Start with zoom-in effect
       setPhase('zoom-in');
-      
+
       // After zoom-in completes, switch to zoom-out
       const timer = setTimeout(() => {
         setPhase('zoom-out');
