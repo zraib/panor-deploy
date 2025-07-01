@@ -139,6 +139,9 @@ export default function PanoramaViewer() {
       );
 
       // Create scene
+      if (!viewer) {
+        throw new Error('Viewer not initialized');
+      }
       const scene = viewer.createScene({
         source: source,
         geometry: geometry,
@@ -431,7 +434,7 @@ export default function PanoramaViewer() {
       if ((e.target as HTMLElement).closest('.hotspot')) return;
 
       // Show touch ripple effect
-      createRipple(e.clientX, e.clientY);
+      createRipple(e.clientX, e.clientY, panoRef.current);
 
       // Toggle hotspots
       toggleHotspots();
