@@ -133,6 +133,12 @@ export default function MiniMap({
           </pattern>
           <rect x={minX} y={minY} width={width} height={height} fill="url(#grid)" />
 
+          {/* X and Y axes for orientation debugging */}
+          <line x1={minX} y1={0} x2={maxX} y2={0} stroke="white" strokeWidth="0.2" />
+          <line x1={0} y1={minY} x2={0} y2={maxY} stroke="white" strokeWidth="0.2" />
+          <text x={maxX - 2} y={-1} fill="white" fontSize="2" textAnchor="end">X</text>
+          <text x={1} y={minY + 2} fill="white" fontSize="2">Y</text>
+
           {/* Scene points and direction indicators */}
           {sameFloorScenes.map(scene => {
             const isCurrentScene = scene.id === currentScene.id;

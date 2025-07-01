@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "build": "cross-env NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "next start",
     "lint": "next lint",
     "generate-config": "node -e \"const { execSync } = require('child_process'); const fs = require('fs'); const os = require('os'); try { const pythonCmd = os.platform() === 'win32' ? 'python' : 'python3'; console.log('Generating panorama configuration...'); execSync(`${pythonCmd} scripts/generate_marzipano_config.py`, { stdio: 'inherit' }); if (fs.existsSync('config.json')) { fs.renameSync('config.json', 'public/config.json'); console.log('Configuration generated successfully at public/config.json'); } else { throw new Error('config.json was not generated'); } } catch (error) { console.error('Error generating config:', error.message); process.exit(1); }\"",
@@ -36,6 +36,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "eslint-config-prettier": "^9.0.0",

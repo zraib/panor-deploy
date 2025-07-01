@@ -39,7 +39,7 @@ export function HotspotComponent({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={style}
-      data-testid="hotspot"
+      data-testid='hotspot'
     >
       <div className={styles.arrow}></div>
     </div>

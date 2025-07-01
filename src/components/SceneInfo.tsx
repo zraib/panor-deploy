@@ -7,9 +7,10 @@ import { SceneData } from '@/types/scenes';
 interface SceneInfoProps {
   scene: SceneData | null;
   connections: number;
+  direction: number;
 }
 
-export default function SceneInfo({ scene, connections }: SceneInfoProps): ReactElement | null {
+export default function SceneInfo({ scene, connections, direction }: SceneInfoProps): ReactElement | null {
   if (!scene) return null;
 
   return (
@@ -32,6 +33,10 @@ export default function SceneInfo({ scene, connections }: SceneInfoProps): React
       <p>
         <span className={styles.label}>Connections:</span>
         <span>{connections} paths</span>
+      </p>
+      <p>
+        <span className={styles.label}>Direction:</span>
+        <span>{direction.toFixed(2)}°</span>
       </p>
     </div>
   );

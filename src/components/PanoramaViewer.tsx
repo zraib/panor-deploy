@@ -17,6 +17,16 @@ import {
 
 // Using types imported from @/types/scenes.ts
 
+// Utility to convert yaw/pitch to 2D screen coordinates
+function yawPitchToScreen(yaw: number, pitch: number, width: number, height: number, fov: number) {
+  // Equirectangular projection: center is (width/2, height/2)
+  // Yaw: 0 is center, positive is right; Pitch: 0 is center, positive is up
+  // fov in radians
+  const x = width / 2 + (width / fov) * yaw;
+  const y = height / 2 - (height / fov) * pitch;
+  return { x, y };
+}
+
 export default function PanoramaViewer() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +35,8 @@ export default function PanoramaViewer() {
   const [hotspotsVisible, setHotspotsVisible] = useState<boolean>(false);
   const [transitioning, setTransitioning] = useState<boolean>(false);
   const [showTapHint, setShowTapHint] = useState<boolean>(false);
+  const [viewerSize, setViewerSize] = useState({ width: 0, height: 0 });
+  const [arrowStyle, setArrowStyle] = useState<{ transform?: string }>({});
 
   const viewerRef = useRef<any>(null);
   const scenesRef = useRef<Record<string, SceneInfoType>>({});
@@ -186,6 +198,9 @@ export default function PanoramaViewer() {
         clearHotspotsForScene(scenesRef.current[currentScene]);
       }
 
+      // Reset arrow rotation before switching scenes
+      setArrowStyle({ transform: 'rotate(0deg)' });
+
       // Switch scene with smooth transition
       sceneInfo.scene.switchTo({
         transitionDuration: 0, // Disable Marzipano's built-in transition since we handle it
@@ -278,8 +293,14 @@ export default function PanoramaViewer() {
 
       // Load and display first scene
       if (configData.scenes.length > 0) {
-        await loadScene(configData.scenes[0].id);
-        switchScene(configData.scenes[0].id, true);
+        const firstScene = configData.scenes[0];
+        await loadScene(firstScene.id);
+        switchScene(firstScene.id, true);
+
+        // Set initial arrow rotation from config
+        const initialYaw = firstScene.initialViewParameters.yaw;
+        const initialRotation = initialYaw * (180 / Math.PI);
+        setArrowStyle({ transform: `rotate(${initialRotation}deg)` });
       }
 
       setIsLoading(false);
@@ -379,6 +400,43 @@ export default function PanoramaViewer() {
     initializeViewer();
   };
 
+  useEffect(() => {
+    function updateSize() {
+      if (panoRef.current) {
+        setViewerSize({
+          width: panoRef.current.offsetWidth,
+          height: panoRef.current.offsetHeight,
+        });
+      }
+    }
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  // Update arrow rotation on view change
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || isLoading) return;
+
+    const updateArrowRotation = () => {
+      const yaw = viewer.view().yaw();
+      const rotation = yaw * (180 / Math.PI); // Convert radians to degrees
+      console.log('Updating arrow rotation:', { yaw, rotation });
+      setArrowStyle({
+        transform: `rotate(${rotation}deg)`,
+      });
+    };
+
+    viewer.addEventListener('viewChange', updateArrowRotation);
+
+    return () => {
+      if (viewer) {
+        viewer.removeEventListener('viewChange', updateArrowRotation);
+      }
+    };
+  }, [isLoading]);
+
   // Cleanup on unmount
   useEffect(() => {
     // Store reference to scenes for cleanup function
@@ -399,6 +457,8 @@ export default function PanoramaViewer() {
   if (error) {
     return <LoadingScreen error={error} />;
   }
+
+
 
   return (
     <>
@@ -428,6 +488,10 @@ export default function PanoramaViewer() {
         }
       />
 
+      {/* Compass arrow */}
+      <div className='compass-arrow-container' style={arrowStyle}>
+        <div className='compass-arrow'></div>
+      </div>
       <TransitionOverlay active={transitioning} />
 
       {transitioning && (
@@ -464,6 +528,7 @@ export default function PanoramaViewer() {
             connections={
               scenesRef.current[currentScene]?.data.linkHotspots.length || 0
             }
+            direction={arrowStyle.transform ? parseFloat(arrowStyle.transform.replace('rotate(', '').replace('deg)', '')) : 0}
           />
 
           <MiniMap
@@ -514,6 +579,30 @@ export default function PanoramaViewer() {
           transition: opacity 0.5s;
           pointer-events: none;
           z-index: 1000;
+        }
+
+        .compass-arrow-container {
+            position: absolute;
+            top: 20px; 
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1300;
+            transition: transform 0.2s linear;
+        }
+
+        .compass-arrow {
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 30px solid red;
+            transform: translateY(-5px);
         }
 
         .tap-hint.show {

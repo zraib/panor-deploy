@@ -9,8 +9,8 @@ import numpy as np
 from pathlib import Path
 import math
 
-# Camera height offset (positive 1.2 seems to work better than negative)
-CAMERA_TO_GROUND_OFFSET = 1.2
+# Camera height offset (positive 1.7 seems to work better than negative)
+CAMERA_TO_GROUND_OFFSET = 1.7
 
 def quaternion_to_rotation_matrix(w, x, y, z):
     """Convert quaternion to 3x3 rotation matrix"""
