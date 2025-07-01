@@ -40,6 +40,7 @@ export interface Scene {
   id: string;
   name: string;
   floor: number;
+  northOffset: number;
   position: Position;
   orientation: Orientation;
   levels: TileLevel[];

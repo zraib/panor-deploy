@@ -15,6 +15,10 @@ declare namespace Marzipano {
   interface Viewer {
     createScene(options: SceneOptions): Scene;
     destroy(): void;
+    view(): RectilinearView;
+    lookTo(params: { yaw: number; pitch: number; fov: number }, options?: { transitionDuration: number }): void;
+    addEventListener?(event: string, callback: () => void): void;
+    removeEventListener?(event: string, callback: () => void): void;
   }
 
   interface SceneOptions {
@@ -25,7 +29,17 @@ declare namespace Marzipano {
   }
 
   interface Scene {
-    switchTo(): void;
+    switchTo(options?: { transitionDuration?: number }): void;
+    hotspotContainer(): HotspotContainer;
+  }
+
+  interface HotspotContainer {
+    createHotspot(element: HTMLElement, coords: { yaw: number; pitch: number }): Hotspot;
+    destroyHotspot(hotspot: Hotspot): void;
+  }
+
+  interface Hotspot {
+    destroy(): void;
   }
 
   interface ImageUrlSource {
@@ -37,12 +51,12 @@ declare namespace Marzipano {
     function fromString(_url: string): ImageUrlSource;
   }
 
-  interface EquirectGeometry {
-    new (_levels: Array<{ width: number }>): EquirectGeometry;
+  class EquirectGeometry {
+    constructor(_levels: Array<{ width: number }>);
   }
 
-  interface RectilinearView {
-    new (_params: { yaw: number; pitch: number; fov: number }, _limiter?: any): RectilinearView;
+  class RectilinearView {
+    constructor(_params: { yaw: number; pitch: number; fov: number }, _limiter?: any);
     setYaw(_yaw: number): void;
     setPitch(_pitch: number): void;
     setFov(_fov: number): void;

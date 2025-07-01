@@ -45,6 +45,7 @@ export default function PanoramaViewer() {
   const [arrowStyle, setArrowStyle] = useState<{ transform?: string }>({});
   const [currentYaw, setCurrentYaw] = useState<number>(0);
   const [rotationAngle, setRotationAngle] = useState<number>(-90);
+  const [currentViewParams, setCurrentViewParams] = useState<{ yaw: number; pitch: number; fov: number } | null>(null);
 
   const viewerRef = useRef<Marzipano.Viewer | null>(null);
   const scenesRef = useRef<Record<string, SceneInfoType>>({});
@@ -190,7 +191,7 @@ export default function PanoramaViewer() {
 
   // Switch scene
   const switchScene = useCallback(
-    async (sceneId: string, isInitial: boolean = false): Promise<void> => {
+    async (sceneId: string, isInitial: boolean = false, preserveViewDirection: boolean = false): Promise<void> => {
       const sceneInfo = scenesRef.current[sceneId];
       if (!sceneInfo || !viewerRef.current) return;
 
@@ -200,6 +201,28 @@ export default function PanoramaViewer() {
       }
 
       if (!sceneInfo.scene) return;
+
+      // Use tracked view direction if preserving and available
+      let currentView = null;
+      if (preserveViewDirection && !isInitial && currentViewParams) {
+        // Apply north offset correction when preserving view direction
+        const currentSceneData = currentScene ? scenesRef.current[currentScene]?.data : null;
+        const targetSceneData = sceneInfo.data;
+        
+        if (currentSceneData && targetSceneData) {
+          // Calculate the difference in north offsets between scenes
+          const northOffsetDiff = (targetSceneData.northOffset || 0) - (currentSceneData.northOffset || 0);
+          // Convert to radians and apply to yaw
+          const adjustedYaw = currentViewParams.yaw + (northOffsetDiff * Math.PI / 180);
+          
+          currentView = {
+            ...currentViewParams,
+            yaw: adjustedYaw
+          };
+        } else {
+          currentView = currentViewParams;
+        }
+      }
 
       // Clear existing hotspots before switching
       if (currentScene && scenesRef.current[currentScene]) {
@@ -211,8 +234,9 @@ export default function PanoramaViewer() {
         transitionDuration: 0, // We handle transitions separately
       });
 
-      // Set view to initial parameters for the new scene
-      viewerRef.current.lookTo(sceneInfo.data.initialViewParameters, {
+      // Set view - either preserved direction or initial parameters
+      const viewParams = currentView || sceneInfo.data.initialViewParameters;
+      viewerRef.current.lookTo(viewParams, {
         transitionDuration: 0, // Apply instantly
       });
 
@@ -250,6 +274,7 @@ export default function PanoramaViewer() {
       clearHotspotsForScene,
       createHotspotsForScene,
       preloadAdjacentScenes,
+      currentViewParams,
     ]
   );
 
@@ -292,6 +317,33 @@ export default function PanoramaViewer() {
       const viewer = new Marzipano.Viewer(panoRef.current, viewerOpts);
       viewerRef.current = viewer;
 
+      // Add view change listener to track current viewing direction
+      const updateViewParams = () => {
+        try {
+          if (viewer) {
+            const view = viewer.view();
+            setCurrentViewParams({
+              yaw: view.yaw(),
+              pitch: view.pitch(),
+              fov: view.fov()
+            });
+          }
+        } catch (err) {
+          // Silently ignore errors during view tracking
+        }
+      };
+
+      // Listen for view changes
+      if (viewer.addEventListener) {
+        viewer.addEventListener('viewChange', updateViewParams);
+      }
+      
+      // Also update on mouse/touch interactions
+      if (panoRef.current) {
+        panoRef.current.addEventListener('mouseup', updateViewParams);
+        panoRef.current.addEventListener('touchend', updateViewParams);
+      }
+
       // Initialize scenes object (but don't create them yet)
       configData.scenes.forEach(sceneData => {
         scenesRef.current[sceneData.id] = {
@@ -306,7 +358,7 @@ export default function PanoramaViewer() {
       if (configData.scenes.length > 0) {
         const firstScene = configData.scenes[0];
         await loadScene(firstScene.id);
-        switchScene(firstScene.id, true);
+        switchScene(firstScene.id, true, false);
       }
 
       setIsLoading(false);
@@ -338,8 +390,8 @@ export default function PanoramaViewer() {
         // Wait for zoom-in animation to complete
         await new Promise(resolve => setTimeout(resolve, 150));
 
-        // Switch scene at the peak of the transition
-        await switchScene(sceneId);
+        // Switch scene at the peak of the transition, preserving view direction
+        await switchScene(sceneId, false, true);
 
         // Wait for zoom-out animation to complete
         await new Promise(resolve => setTimeout(resolve, 150));
@@ -427,18 +479,26 @@ export default function PanoramaViewer() {
 
     const updateArrowRotation = () => {
       const yaw = viewer.view().yaw();
-      const rotation = yaw * (180 / Math.PI); // Convert radians to degrees
-      console.log('Updating arrow rotation:', { yaw, rotation });
+      let rotation = yaw * (180 / Math.PI); // Convert radians to degrees
+      
+      // Apply north offset correction for compass arrow
+      if (currentScene && scenesRef.current[currentScene]?.data?.northOffset) {
+        rotation += scenesRef.current[currentScene].data.northOffset;
+      }
+      
+      console.log('Updating arrow rotation:', { yaw, rotation, northOffset: currentScene ? scenesRef.current[currentScene]?.data?.northOffset : 0 });
       setCurrentYaw(yaw);
       setArrowStyle({
         transform: `rotate(${rotation}deg)`,
       });
     };
 
-    viewer.addEventListener('viewChange', updateArrowRotation);
+    if (viewer.addEventListener) {
+      viewer.addEventListener('viewChange', updateArrowRotation);
+    }
 
     return () => {
-      if (viewer) {
+      if (viewer && viewer.removeEventListener) {
         viewer.removeEventListener('viewChange', updateArrowRotation);
       }
     };
