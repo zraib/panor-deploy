@@ -10,6 +10,7 @@ interface SceneInfoProps {
   direction: number;
   rotationAngle: number;
   onRotationChange: (angle: number) => void;
+  currentYaw?: number; // Raw yaw from viewer
 }
 
 export default function SceneInfo({
@@ -18,6 +19,7 @@ export default function SceneInfo({
   direction,
   rotationAngle,
   onRotationChange,
+  currentYaw = 0,
 }: SceneInfoProps): ReactElement | null {
   if (!scene) return null;
 
@@ -43,8 +45,24 @@ export default function SceneInfo({
         <span>{connections} paths</span>
       </p>
       <p>
-        <span className={styles.label}>Direction:</span>
-        <span>{direction.toFixed(2)}°</span>
+        <span className={styles.label}>Compass Arrow:</span>
+        <span>{direction.toFixed(1)}°</span>
+      </p>
+      <p>
+        <span className={styles.label}>Minimap Pointer:</span>
+        <span>
+          {(
+            ((currentYaw * 180) / Math.PI - (scene?.northOffset || 0) + 360) % 360
+          ).toFixed(1)}°
+        </span>
+      </p>
+      <p>
+        <span className={styles.label}>Raw Yaw:</span>
+        <span>{((currentYaw * 180) / Math.PI).toFixed(1)}°</span>
+      </p>
+      <p>
+        <span className={styles.label}>North Offset:</span>
+        <span>{(scene?.northOffset || 0).toFixed(1)}°</span>
       </p>
       <div className={styles.rotationControl}>
         <span className={styles.label}>Map Rotation:</span>

@@ -43,6 +43,7 @@ export default function PanoramaViewer() {
   const [showTapHint, setShowTapHint] = useState<boolean>(false);
   const [viewerSize, setViewerSize] = useState({ width: 0, height: 0 });
   const [arrowStyle, setArrowStyle] = useState<{ transform?: string }>({});
+  const [currentYaw, setCurrentYaw] = useState<number>(0);
   const [rotationAngle, setRotationAngle] = useState<number>(-90);
 
   const viewerRef = useRef<Marzipano.Viewer | null>(null);
@@ -428,6 +429,7 @@ export default function PanoramaViewer() {
       const yaw = viewer.view().yaw();
       const rotation = yaw * (180 / Math.PI); // Convert radians to degrees
       console.log('Updating arrow rotation:', { yaw, rotation });
+      setCurrentYaw(yaw);
       setArrowStyle({
         transform: `rotate(${rotation}deg)`,
       });
@@ -542,6 +544,7 @@ export default function PanoramaViewer() {
             }
             rotationAngle={rotationAngle}
             onRotationChange={setRotationAngle}
+            currentYaw={currentYaw}
           />
 
           <MiniMap
