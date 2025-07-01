@@ -52,8 +52,10 @@ export default function SceneInfo({
         <span className={styles.label}>Minimap Pointer:</span>
         <span>
           {(
-            ((currentYaw * 180) / Math.PI - (scene?.northOffset || 0) + 360) % 360
-          ).toFixed(1)}°
+            ((currentYaw * 180) / Math.PI - (scene?.northOffset || 0) + 360) %
+            360
+          ).toFixed(1)}
+          °
         </span>
       </p>
       <p>

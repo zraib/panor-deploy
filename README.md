@@ -1,6 +1,7 @@
 # Panorama Viewer Application
 
-A modern, interactive panorama viewer built with Next.js and Marzipano, designed for immersive 360° panoramic experiences with seamless navigation between connected scenes.
+A modern, interactive panorama viewer built with Next.js and Marzipano, designed for immersive 360°
+panoramic experiences with seamless navigation between connected scenes.
 
 ## 🚀 Quick Start
 
@@ -33,12 +34,14 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 ### Platform-Specific Setup
 
 #### Windows
+
 ```bash
 # Install Python from python.org or Microsoft Store
 python -m pip install numpy
 ```
 
 #### macOS
+
 ```bash
 # Using Homebrew
 brew install python
@@ -46,6 +49,7 @@ python3 -m pip install numpy
 ```
 
 #### Linux
+
 ```bash
 # Ubuntu/Debian
 sudo apt update
@@ -56,16 +60,19 @@ python3 -m pip install numpy
 ## 🛠️ Available Scripts
 
 ### Development
+
 - `npm run dev` - Start development server
 - `npm run dev:config` - Generate config and start dev server
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 
 ### Configuration
+
 - `npm run generate-config` - Generate panorama configuration from CSV data
 - `npm run test:config` - Test configuration generation
 
 ### Testing
+
 - `npm run test` - Run JavaScript/TypeScript tests
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage report
@@ -73,12 +80,14 @@ python3 -m pip install numpy
 - `npm run test:all` - Run all tests (JS + Python)
 
 ### Code Quality
+
 - `npm run lint` - Run ESLint
 - `npm run type-check` - Run TypeScript type checking
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting
 
 ### Utilities
+
 - `npm run clean` - Clean build artifacts and generated files
 
 ## 📁 Project Structure
@@ -233,6 +242,7 @@ npm run export
 Common issues and solutions:
 
 ### Configuration Generation Fails
+
 ```bash
 # Check Python installation
 python --version
@@ -243,11 +253,13 @@ pip install numpy
 ```
 
 ### Images Not Loading
+
 - Verify images are in `public/images/`
 - Check file naming matches CSV data
 - Ensure proper file permissions
 
 ### Performance Issues
+
 - Reduce image file sizes
 - Limit number of concurrent panoramas
 - Check browser console for errors
