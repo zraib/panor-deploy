@@ -7,7 +7,7 @@
     "build": "cross-env NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-config": "node -e \"const { execSync } = require('child_process'); const fs = require('fs'); const os = require('os'); try { const pythonCmd = os.platform() === 'win32' ? 'python' : 'python3'; console.log('Generating panorama configuration...'); execSync(`${pythonCmd} scripts/generate_marzipano_config.py`, { stdio: 'inherit' }); if (fs.existsSync('config.json')) { fs.renameSync('config.json', 'public/config.json'); console.log('Configuration generated successfully at public/config.json'); } else { throw new Error('config.json was not generated'); } console.log('Calculating north offsets...'); execSync(`${pythonCmd} scripts/calculate_north_offsets.py`, { stdio: 'inherit' }); console.log('North offsets calculated and applied successfully'); } catch (error) { console.error('Error in configuration process:', error.message); process.exit(1); }\"",
+    "generate-config": "node scripts/generate-config.js",
     "dev:config": "npm run generate-config && npm run dev",
     "test:config": "node -e \"const { execSync } = require('child_process'); const os = require('os'); try { const pythonCmd = os.platform() === 'win32' ? 'python' : 'python3'; console.log('Testing configuration generation...'); execSync(`${pythonCmd} scripts/generate_marzipano_config.py --test`, { stdio: 'inherit' }); console.log('Configuration test completed successfully'); } catch (error) { console.error('Configuration test failed:', error.message); process.exit(1); }\"",
     "clean": "rimraf .next out public/config.json",
