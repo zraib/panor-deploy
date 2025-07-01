@@ -7,12 +7,16 @@ interface LoadingScreenProps {
   error?: string | null;
 }
 
-export default function LoadingScreen({ error }: LoadingScreenProps): ReactElement {
+export default function LoadingScreen({
+  error,
+}: LoadingScreenProps): ReactElement {
   if (error) {
     return (
       <div className={styles.container}>
         <div className={styles.error}>
-          <div className={styles.errorTitle}>Failed to initialize panorama viewer</div>
+          <div className={styles.errorTitle}>
+            Failed to initialize panorama viewer
+          </div>
           <div className={styles.errorMessage}>{error}</div>
 
           {error.includes('WebGL') && (
@@ -24,13 +28,20 @@ export default function LoadingScreen({ error }: LoadingScreenProps): ReactEleme
                 <li>Try a different browser (Chrome, Firefox, Edge)</li>
                 <li>
                   Check if WebGL is enabled at{' '}
-                  <a href="https://get.webgl.org/" target="_blank" rel="noopener noreferrer">
+                  <a
+                    href='https://get.webgl.org/'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                  >
                     get.webgl.org
                   </a>
                 </li>
               </ul>
               <div className={styles.browserInfo}>
-                Browser: {typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown'}
+                Browser:{' '}
+                {typeof navigator !== 'undefined'
+                  ? navigator.userAgent
+                  : 'Unknown'}
               </div>
             </div>
           )}

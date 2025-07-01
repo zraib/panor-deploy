@@ -1,13 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef, ReactElement, Fragment } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { SceneData } from '@/types/scenes';
+import styles from './MiniMap.module.css';
 
 interface MiniMapProps {
   scenes: SceneData[];
-  currentScene: SceneData | null;
-  viewer: any; // Marzipano viewer instance
-  onSelectScene?: (id: string) => void;
+  currentScene: SceneData;
+  viewer: any; // Marzipano viewer
+  onSelectScene: (sceneId: string) => void;
+  rotationAngle: number;
+}
+
+interface Position {
+  x: number;
+  y: number;
 }
 
 export default function MiniMap({
@@ -15,199 +22,338 @@ export default function MiniMap({
   currentScene,
   viewer,
   onSelectScene,
-}: MiniMapProps): ReactElement {
+  rotationAngle,
+}: MiniMapProps) {
+  const [isMinimized, setIsMinimized] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({ x: 20, y: 20 }); // Bottom-right by default
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [currentYaw, setCurrentYaw] = useState(0);
+  const [mapBounds, setMapBounds] = useState({
+    minX: 0,
+    maxX: 0,
+    minY: 0,
+    maxY: 0,
+  });
 
-  // Update current yaw when view changes
+  const miniMapRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<Position>({ x: 0, y: 0 });
+
+  // Calculate map bounds from actual scene positions for true top-down 2D view
   useEffect(() => {
-    if (!viewer || !currentScene) return;
+    const currentFloorScenes = scenes.filter(
+      scene => scene.floor === currentScene.floor
+    );
+    if (currentFloorScenes.length === 0) return;
+
+    // Use actual X,Y coordinates for true spatial representation
+    const positions = currentFloorScenes.map(scene => ({
+      x: scene.position.x,
+      y: scene.position.y, // Using Y coordinate for north-south positioning
+    }));
+
+    const minX = Math.min(...positions.map(p => p.x));
+    const maxX = Math.max(...positions.map(p => p.x));
+    const minY = Math.min(...positions.map(p => p.y));
+    const maxY = Math.max(...positions.map(p => p.y));
+
+    // Add padding to prevent hotspots from being too close to edges
+    const paddingX = Math.max((maxX - minX) * 0.2, 1); // 20% padding for better spacing
+    const paddingY = Math.max((maxY - minY) * 0.2, 1);
+
+    setMapBounds({
+      minX: minX - paddingX,
+      maxX: maxX + paddingX,
+      minY: minY - paddingY,
+      maxY: maxY + paddingY,
+    });
+  }, [scenes, currentScene.floor]);
+
+  // Update current yaw from viewer
+  useEffect(() => {
+    if (!viewer) return;
 
     const updateYaw = () => {
-      try {
-        const view = viewer.view();
-        const yaw = view.yaw();
-        setCurrentYaw((yaw * 180) / Math.PI); // Convert to degrees for SVG
-      } catch (e) {
-        // If view is not ready, use initial yaw
-        setCurrentYaw((currentScene.initialViewParameters.yaw * 180) / Math.PI);
-      }
+      const yaw = viewer.view().yaw();
+      setCurrentYaw(yaw);
     };
 
-    // Initial update
-    updateYaw();
+    viewer.addEventListener('viewChange', updateYaw);
+    updateYaw(); // Initial update
 
-    // Set up listener for view changes
-    try {
-      const view = viewer.view();
-      view.addEventListener('change', updateYaw);
+    return () => {
+      if (viewer) {
+        viewer.removeEventListener('viewChange', updateYaw);
+      }
+    };
+  }, [viewer]);
 
-      return () => {
-        view.removeEventListener('change', updateYaw);
+  // Rotation function to correct minimap orientation
+  const rotatePoint = useCallback(
+    (
+      x: number,
+      y: number,
+      centerX: number,
+      centerY: number,
+      angleDegrees: number
+    ) => {
+      const angle = (angleDegrees * Math.PI) / 180;
+      const dx = x - centerX;
+      const dy = y - centerY;
+
+      const rotatedX = dx * Math.cos(angle) - dy * Math.sin(angle);
+      const rotatedY = dx * Math.sin(angle) + dy * Math.cos(angle);
+
+      return {
+        x: centerX + rotatedX,
+        y: centerY + rotatedY,
       };
-    } catch (e) {
-      // Handle case where view might not be ready
-      return undefined;
+    },
+    []
+  );
+
+  // Convert actual scene position to 2D map coordinates for top-down view
+  const positionToMapCoords = useCallback(
+    (sceneId: string) => {
+      const scene = scenes.find(s => s.id === sceneId);
+      if (!scene) return { x: 50, y: 50 };
+
+      const mapWidth = mapBounds.maxX - mapBounds.minX;
+      const mapHeight = mapBounds.maxY - mapBounds.minY;
+
+      if (mapWidth === 0 || mapHeight === 0) return { x: 50, y: 50 };
+
+      // Use actual X,Y coordinates for true spatial positioning
+      const sceneX = scene.position.x;
+      const sceneY = scene.position.y;
+
+      // Normalize coordinates to 0-1 range
+      const normalizedX = (sceneX - mapBounds.minX) / mapWidth;
+      const normalizedY = (sceneY - mapBounds.minY) / mapHeight;
+
+      // Convert to percentage coordinates
+      // For top-down view: X = left-right, Y = top-bottom (flipped)
+      let x = normalizedX * 100;
+      let y = (1 - normalizedY) * 100; // Flip Y axis for proper top-down orientation
+
+      // Apply rotational correction to align with viewer coordinate system
+      const rotated = rotatePoint(x, y, 50, 50, rotationAngle);
+      x = rotated.x;
+      y = rotated.y;
+
+      // Clamp to valid range with some margin
+      return {
+        x: Math.max(5, Math.min(95, x)),
+        y: Math.max(5, Math.min(95, y)),
+      };
+    },
+    [mapBounds, scenes, rotatePoint, rotationAngle]
+  );
+
+  // Get current floor scenes
+  const currentFloorScenes = scenes.filter(
+    scene => scene.floor === currentScene.floor
+  );
+
+  // Handle mouse down for dragging
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (
+        e.target !== e.currentTarget &&
+        !(e.target as HTMLElement).classList.contains('minimap-header')
+      ) {
+        return; // Don't start drag if clicking on hotspots or other elements
+      }
+
+      setIsDragging(true);
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
+      setDragOffset({ x: e.clientX - position.x, y: e.clientY - position.y });
+      e.preventDefault();
+    },
+    [position]
+  );
+
+  // Handle mouse move for dragging
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+
+      const newX = e.clientX - dragOffset.x;
+      const newY = e.clientY - dragOffset.y;
+
+      // Keep within viewport bounds
+      const maxX = window.innerWidth - (isHovered ? 300 : 200);
+      const maxY = window.innerHeight - (isHovered ? 300 : 200);
+
+      setPosition({
+        x: Math.max(20, Math.min(newX, maxX)),
+        y: Math.max(20, Math.min(newY, maxY)),
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
     }
-  }, [viewer, currentScene]);
 
-  if (!currentScene) return <Fragment />;
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset, isHovered]);
 
-  // Filter scenes on same floor
-  const sameFloorScenes = scenes.filter(s => s.floor === currentScene.floor);
+  // Handle hotspot click
+  const handleHotspotClick = useCallback(
+    (sceneId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      onSelectScene(sceneId);
+    },
+    [onSelectScene]
+  );
 
-  // Calculate bounds
-  const positions = sameFloorScenes.map(s => ({
-    x: s.position.x,
-    y: s.position.y,
-  }));
+  // Handle minimize toggle
+  const toggleMinimize = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setIsMinimized(!isMinimized);
+    },
+    [isMinimized]
+  );
 
-  const minX = Math.min(...positions.map(p => p.x)) - 5;
-  const maxX = Math.max(...positions.map(p => p.x)) + 5;
-  const minY = Math.min(...positions.map(p => p.y)) - 5;
-  const maxY = Math.max(...positions.map(p => p.y)) + 5;
-
-  const width = maxX - minX;
-  const height = maxY - minY;
+  const mapSize = isHovered ? 300 : window.innerWidth <= 768 ? 150 : 200;
+  const currentSceneCoords = positionToMapCoords(currentScene.id);
 
   return (
     <div
-      className="fixed bottom-5 right-5 z-[1000] transition-all duration-300 ease-in-out"
+      ref={miniMapRef}
+      className={`${styles.minimap} ${isDragging ? styles.dragging : ''} ${isMinimized ? styles.minimized : ''}`}
       style={{
-        width: isHovered ? '220px' : '200px',
-        height: isHovered ? '220px' : '200px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+        position: 'fixed',
+        right: `${position.x}px`,
+        bottom: `${position.y}px`,
+        width: isMinimized ? '60px' : `${mapSize}px`,
+        height: isMinimized ? '60px' : `${mapSize}px`,
+        background: 'rgba(0, 0, 0, 0.8)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        borderRadius: '12px',
+        border: '2px solid rgba(255, 255, 255, 0.2)',
+        zIndex: 1400,
+        cursor: isDragging ? 'grabbing' : 'grab',
+        transition: isHovered
+          ? 'width 0.3s ease, height 0.3s ease'
+          : 'width 0.3s ease, height 0.3s ease, transform 0.2s ease',
+        transform: isHovered ? 'scale(1.05)' : 'scale(1)',
       }}
+      onMouseDown={handleMouseDown}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Header with minimize button */}
       <div
-        className={`
-      bg-black/80 backdrop-blur-[10px] p-3 rounded-xl
-      transition-all duration-300 ease-in-out w-full h-full
-      ${isHovered ? 'scale-110' : 'scale-100'}
-    `}
+        className={styles.minimapHeader}
+        style={{
+          borderBottom: isMinimized
+            ? 'none'
+            : '1px solid rgba(255, 255, 255, 0.1)',
+        }}
       >
-        <svg
-          width="100%"
-          height="100%"
-          viewBox={`${minX} ${minY} ${width} ${height}`}
-          className="rounded-lg bg-gray-800/50"
-          preserveAspectRatio="xMidYMid meet"
+        {!isMinimized && <span>Floor {currentScene.floor}</span>}
+        <button
+          onClick={toggleMinimize}
+          className={styles.minimizeButton}
+          aria-label={isMinimized ? 'Expand minimap' : 'Minimize minimap'}
         >
-          {/* Background gradient */}
-          <defs>
-            <radialGradient id="bgGradient">
-              <stop offset="0%" stopColor="#374151" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="#111827" stopOpacity="0.8" />
-            </radialGradient>
+          {isMinimized ? '📍' : '−'}
+        </button>
+      </div>
 
-            {/* Arrow markers with better styling */}
-            <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-              <polygon points="0 0, 8 3, 0 6" fill="white" opacity="0.7" />
-            </marker>
-            <marker
-              id="arrowhead-current"
-              markerWidth="10"
-              markerHeight="8"
-              refX="9"
-              refY="4"
-              orient="auto"
-            >
-              <polygon points="0 0, 10 4, 0 8" fill="white" opacity="1" />
-            </marker>
-          </defs>
+      {!isMinimized && (
+        <div className={styles.minimapContent}>
+          {/* Map background grid */}
+          <div className={styles.mapGrid} />
 
-          {/* Background fill */}
-          <rect x={minX} y={minY} width={width} height={height} fill="url(#bgGradient)" />
-
-          {/* Grid pattern for better visual reference */}
-          <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-            <path
-              d="M 10 0 L 0 0 0 10"
-              fill="none"
-              stroke="#374151"
-              strokeWidth="0.1"
-              opacity="0.3"
-            />
-          </pattern>
-          <rect x={minX} y={minY} width={width} height={height} fill="url(#grid)" />
-
-          {/* X and Y axes for orientation debugging */}
-          <line x1={minX} y1={0} x2={maxX} y2={0} stroke="white" strokeWidth="0.2" />
-          <line x1={0} y1={minY} x2={0} y2={maxY} stroke="white" strokeWidth="0.2" />
-          <text x={maxX - 2} y={-1} fill="white" fontSize="2" textAnchor="end">X</text>
-          <text x={1} y={minY + 2} fill="white" fontSize="2">Y</text>
-
-          {/* Scene points and direction indicators */}
-          {sameFloorScenes.map(scene => {
+          {/* Scene hotspots */}
+          {currentFloorScenes.map(scene => {
+            const coords = positionToMapCoords(scene.id);
             const isCurrentScene = scene.id === currentScene.id;
-            const yawRadians =
-              ((isCurrentScene ? currentYaw : scene.initialViewParameters.yaw) * Math.PI) / 180;
-            const arrowLength = isCurrentScene ? 5 : 3;
-
-            // Calculate arrow end position
-            // Note: In SVG, positive Y goes down, so we adjust the calculation
-            const arrowEndX = scene.position.x + Math.sin(yawRadians) * arrowLength;
-            const arrowEndY = scene.position.y - Math.cos(yawRadians) * arrowLength;
 
             return (
-              <g key={scene.id} className="transition-all duration-200">
-                {/* Glow effect for current scene */}
-                {isCurrentScene && (
-                  <circle
-                    cx={scene.position.x}
-                    cy={scene.position.y}
-                    r={4}
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="0.5"
-                    opacity="0.4"
-                    className="animate-pulse"
-                  />
-                )}
-
-                {/* Direction arrow - only show for current scene */}
-                {isCurrentScene && (
-                  <line
-                    x1={scene.position.x}
-                    y1={scene.position.y}
-                    x2={arrowEndX}
-                    y2={arrowEndY}
-                    stroke="white"
-                    strokeWidth="0.8"
-                    opacity={1}
-                    markerEnd="url(#arrowhead-current)"
-                  />
-                )}
-
-                {/* Scene point */}
-                <circle
-                  cx={scene.position.x}
-                  cy={scene.position.y}
-                  r={isCurrentScene ? 2.5 : 1.2}
-                  fill="white"
-                  fillOpacity={isCurrentScene ? 1 : 0.7}
-                  stroke="white"
-                  strokeOpacity={isCurrentScene ? 1 : 0.5}
-                  strokeWidth={isCurrentScene ? '0.5' : '0.2'}
-                  className="cursor-pointer transition-all duration-200 hover:fill-opacity-100"
-                  onClick={() => onSelectScene && onSelectScene(scene.id)}
-                >
-                  <title>{`Scene ${scene.id}`}</title>
-                </circle>
-              </g>
+              <div
+                key={scene.id}
+                onClick={e => handleHotspotClick(scene.id, e)}
+                className={`${styles.sceneHotspot} ${isCurrentScene ? styles.current : styles.other}`}
+                style={{
+                  left: `${coords.x}%`,
+                  top: `${coords.y}%`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                title={scene.name}
+                tabIndex={0}
+                role='button'
+                aria-label={`Navigate to ${scene.name}`}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleHotspotClick(scene.id, e as any);
+                  }
+                }}
+              />
             );
           })}
-        </svg>
 
-        {/* Floor indicator */}
-        <div className="flex items-center justify-center mt-2">
-          <span className="text-xs font-medium text-gray-400 bg-gray-800/50 px-2 py-1 rounded">
-            Floor {currentScene.floor}
-          </span>
+          {/* Compass/Direction indicator */}
+          {/* Compass/Direction indicator */}
+          <div
+            className={styles.directionIndicator}
+            style={{
+              left: `${currentSceneCoords.x}%`,
+              top: `${currentSceneCoords.y}%`,
+              transform: `translate(-50%, -50%) rotate(${((currentYaw * 180) / Math.PI + (currentScene.northOffset || 0) - rotationAngle + 360) % 360}deg)`,
+            }}
+          >
+            {/* Direction arrow */}
+            <div className={styles.directionArrow} />
+          </div>
+
+          {/* Connection lines between linked scenes */}
+          {currentScene.linkHotspots.map((hotspot, index) => {
+            const targetScene = currentFloorScenes.find(
+              s => s.id === hotspot.target
+            );
+            if (!targetScene) return null;
+
+            const startCoords = currentSceneCoords;
+            const endCoords = positionToMapCoords(targetScene.id);
+
+            const deltaX = endCoords.x - startCoords.x;
+            const deltaY = endCoords.y - startCoords.y;
+            const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+
+            return (
+              <div
+                key={`connection-${index}`}
+                className={styles.connectionLine}
+                style={{
+                  left: `${startCoords.x}%`,
+                  top: `${startCoords.y}%`,
+                  width: `${length}%`,
+                  transform: `rotate(${angle}deg)`,
+                }}
+              />
+            );
+          })}
+
+          {/* Compass rose in corner */}
+          <div className={styles.compassRose}>N</div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

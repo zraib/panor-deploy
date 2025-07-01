@@ -284,6 +284,7 @@ def generate_config(csv_file, output_file='public/config.json', coordinate_mode=
             'id': pano['id'],
             'name': f"Panorama {pano['id']}",
             'floor': pano['floor'],
+            'northOffset': 0, # Default north offset
             'position': {
                 'x': pano['pano_pos_x'],
                 'y': pano['pano_pos_y'],

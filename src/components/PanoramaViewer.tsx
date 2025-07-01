@@ -18,7 +18,13 @@ import {
 // Using types imported from @/types/scenes.ts
 
 // Utility to convert yaw/pitch to 2D screen coordinates
-function yawPitchToScreen(yaw: number, pitch: number, width: number, height: number, fov: number) {
+function yawPitchToScreen(
+  yaw: number,
+  pitch: number,
+  width: number,
+  height: number,
+  fov: number
+) {
   // Equirectangular projection: center is (width/2, height/2)
   // Yaw: 0 is center, positive is right; Pitch: 0 is center, positive is up
   // fov in radians
@@ -37,8 +43,9 @@ export default function PanoramaViewer() {
   const [showTapHint, setShowTapHint] = useState<boolean>(false);
   const [viewerSize, setViewerSize] = useState({ width: 0, height: 0 });
   const [arrowStyle, setArrowStyle] = useState<{ transform?: string }>({});
+  const [rotationAngle, setRotationAngle] = useState<number>(-90);
 
-  const viewerRef = useRef<any>(null);
+  const viewerRef = useRef<Marzipano.Viewer | null>(null);
   const scenesRef = useRef<Record<string, SceneInfoType>>({});
   const panoRef = useRef<HTMLDivElement>(null);
   const hotspotTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -54,7 +61,7 @@ export default function PanoramaViewer() {
 
         // Destroy all hotspots
         const hotspots = hotspotContainer.listHotspots();
-        hotspots.forEach((hotspot: any) => {
+        hotspots.forEach((hotspot: Marzipano.Hotspot) => {
           hotspotContainer.destroyHotspot(hotspot);
         });
 
@@ -103,7 +110,7 @@ export default function PanoramaViewer() {
     if (!sceneInfo || sceneInfo.loaded) return;
 
     const viewer = viewerRef.current;
-    const Marzipano = (window as any).Marzipano;
+    const { Marzipano } = window;
 
     try {
       // Create source
@@ -198,13 +205,16 @@ export default function PanoramaViewer() {
         clearHotspotsForScene(scenesRef.current[currentScene]);
       }
 
-      // Reset arrow rotation before switching scenes
-      setArrowStyle({ transform: 'rotate(0deg)' });
-
-      // Switch scene with smooth transition
+      // Switch scene
       sceneInfo.scene.switchTo({
-        transitionDuration: 0, // Disable Marzipano's built-in transition since we handle it
+        transitionDuration: 0, // We handle transitions separately
       });
+
+      // Set view to initial parameters for the new scene
+      viewerRef.current.lookTo(sceneInfo.data.initialViewParameters, {
+        transitionDuration: 0, // Apply instantly
+      });
+
       setCurrentScene(sceneId);
 
       // Create hotspots for this scene
@@ -296,11 +306,6 @@ export default function PanoramaViewer() {
         const firstScene = configData.scenes[0];
         await loadScene(firstScene.id);
         switchScene(firstScene.id, true);
-
-        // Set initial arrow rotation from config
-        const initialYaw = firstScene.initialViewParameters.yaw;
-        const initialRotation = initialYaw * (180 / Math.PI);
-        setArrowStyle({ transform: `rotate(${initialRotation}deg)` });
       }
 
       setIsLoading(false);
@@ -458,8 +463,6 @@ export default function PanoramaViewer() {
     return <LoadingScreen error={error} />;
   }
 
-
-
   return (
     <>
       <Script
@@ -528,7 +531,17 @@ export default function PanoramaViewer() {
             connections={
               scenesRef.current[currentScene]?.data.linkHotspots.length || 0
             }
-            direction={arrowStyle.transform ? parseFloat(arrowStyle.transform.replace('rotate(', '').replace('deg)', '')) : 0}
+            direction={
+              arrowStyle.transform
+                ? parseFloat(
+                    arrowStyle.transform
+                      .replace('rotate(', '')
+                      .replace('deg)', '')
+                  )
+                : 0
+            }
+            rotationAngle={rotationAngle}
+            onRotationChange={setRotationAngle}
           />
 
           <MiniMap
@@ -536,6 +549,7 @@ export default function PanoramaViewer() {
             currentScene={scenesRef.current[currentScene]?.data}
             viewer={viewerRef.current}
             onSelectScene={navigateToScene}
+            rotationAngle={rotationAngle}
           />
 
           {/* Render hotspots */}
@@ -582,27 +596,27 @@ export default function PanoramaViewer() {
         }
 
         .compass-arrow-container {
-            position: absolute;
-            top: 20px; 
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            background: rgba(0,0,0,0.5);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1300;
-            transition: transform 0.2s linear;
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          width: 60px;
+          height: 60px;
+          background: rgba(0, 0, 0, 0.5);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1300;
+          transition: transform 0.2s linear;
         }
 
         .compass-arrow {
-            width: 0;
-            height: 0;
-            border-left: 15px solid transparent;
-            border-right: 15px solid transparent;
-            border-bottom: 30px solid red;
-            transform: translateY(-5px);
+          width: 0;
+          height: 0;
+          border-left: 15px solid transparent;
+          border-right: 15px solid transparent;
+          border-bottom: 30px solid red;
+          transform: translateY(-5px);
         }
 
         .tap-hint.show {
