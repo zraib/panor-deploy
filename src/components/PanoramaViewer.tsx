@@ -6,7 +6,7 @@ import FloorSelector from './FloorSelector';
 import SceneInfo from './SceneInfo';
 import MiniMap from './MiniMap';
 import LoadingScreen from './LoadingScreen';
-import TransitionOverlay from './TransitionOverlay';
+
 import Hotspot from './Hotspot';
 import { checkWebGLSupport, createRipple } from '@/lib/panoramaUtils';
 import {
@@ -39,13 +39,17 @@ export default function PanoramaViewer() {
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [currentScene, setCurrentScene] = useState<string | null>(null);
   const [hotspotsVisible, setHotspotsVisible] = useState<boolean>(false);
-  const [transitioning, setTransitioning] = useState<boolean>(false);
+
   const [showTapHint, setShowTapHint] = useState<boolean>(false);
   const [viewerSize, setViewerSize] = useState({ width: 0, height: 0 });
   const [arrowStyle, setArrowStyle] = useState<{ transform?: string }>({});
   const [currentYaw, setCurrentYaw] = useState<number>(0);
   const [rotationAngle, setRotationAngle] = useState<number>(-90);
-  const [currentViewParams, setCurrentViewParams] = useState<{ yaw: number; pitch: number; fov: number } | null>(null);
+  const [currentViewParams, setCurrentViewParams] = useState<{
+    yaw: number;
+    pitch: number;
+    fov: number;
+  } | null>(null);
 
   const viewerRef = useRef<Marzipano.Viewer | null>(null);
   const scenesRef = useRef<Record<string, SceneInfoType>>({});
@@ -157,34 +161,31 @@ export default function PanoramaViewer() {
     }
   }, []);
 
-  // Preload adjacent scenes
+  // Preload adjacent scenes more aggressively
   const preloadAdjacentScenes = useCallback(
     async (sceneId: string): Promise<void> => {
       const sceneInfo = scenesRef.current[sceneId];
       if (!sceneInfo) return;
 
-      // Get current loaded scene count
-      const loadedCount = Object.values(scenesRef.current).filter(
-        s => s.loaded
-      ).length;
+      // Preload all connected scenes immediately
+      const connections = sceneInfo.data.linkHotspots.map(h => h.target);
 
-      // Only preload if we haven't loaded too many scenes
-      if (loadedCount < 10) {
-        // Preload connected scenes
-        const connections = sceneInfo.data.linkHotspots
-          .map(h => h.target)
-          .slice(0, 2); // Only preload first 2 connections
+      // Create image elements to preload in background
+      connections.forEach(targetId => {
+        const img = new Image();
+        img.src = `/images/${targetId}-pano.jpg`;
+      });
 
-        for (const targetId of connections) {
-          if (
-            scenesRef.current[targetId] &&
-            !scenesRef.current[targetId].loaded
-          ) {
-            try {
-              await loadScene(targetId);
-            } catch (err) {
-              console.error(`Failed to preload scene ${targetId}:`, err);
-            }
+      // Also load the scenes properly in Marzipano
+      for (const targetId of connections) {
+        if (
+          scenesRef.current[targetId] &&
+          !scenesRef.current[targetId].loaded
+        ) {
+          try {
+            await loadScene(targetId);
+          } catch (err) {
+            console.error(`Failed to preload scene ${targetId}:`, err);
           }
         }
       }
@@ -194,7 +195,11 @@ export default function PanoramaViewer() {
 
   // Switch scene
   const switchScene = useCallback(
-    async (sceneId: string, isInitial: boolean = false, preserveViewDirection: boolean = false): Promise<void> => {
+    async (
+      sceneId: string,
+      isInitial: boolean = false,
+      preserveViewDirection: boolean = false
+    ): Promise<void> => {
       const sceneInfo = scenesRef.current[sceneId];
       if (!sceneInfo || !viewerRef.current) return;
 
@@ -209,18 +214,23 @@ export default function PanoramaViewer() {
       let currentView = null;
       if (preserveViewDirection && !isInitial && currentViewParams) {
         // Apply north offset correction when preserving view direction
-        const currentSceneData = currentScene ? scenesRef.current[currentScene]?.data : null;
+        const currentSceneData = currentScene
+          ? scenesRef.current[currentScene]?.data
+          : null;
         const targetSceneData = sceneInfo.data;
-        
+
         if (currentSceneData && targetSceneData) {
           // Calculate the difference in north offsets between scenes
-          const northOffsetDiff = (targetSceneData.northOffset || 0) - (currentSceneData.northOffset || 0);
+          const northOffsetDiff =
+            (targetSceneData.northOffset || 0) -
+            (currentSceneData.northOffset || 0);
           // Convert to radians and apply to yaw
-          const adjustedYaw = currentViewParams.yaw + (northOffsetDiff * Math.PI / 180);
-          
+          const adjustedYaw =
+            currentViewParams.yaw + (northOffsetDiff * Math.PI) / 180;
+
           currentView = {
             ...currentViewParams,
-            yaw: adjustedYaw
+            yaw: adjustedYaw,
           };
         } else {
           currentView = currentViewParams;
@@ -328,7 +338,7 @@ export default function PanoramaViewer() {
             setCurrentViewParams({
               yaw: view.yaw(),
               pitch: view.pitch(),
-              fov: view.fov()
+              fov: view.fov(),
             });
           }
         } catch (err) {
@@ -340,7 +350,7 @@ export default function PanoramaViewer() {
       if (viewer.addEventListener) {
         viewer.addEventListener('viewChange', updateViewParams);
       }
-      
+
       // Also update on mouse/touch interactions
       if (panoRef.current) {
         panoRef.current.addEventListener('mouseup', updateViewParams);
@@ -379,33 +389,31 @@ export default function PanoramaViewer() {
   // Navigate to scene
   const navigateToScene = useCallback(
     async (sceneId: string, sourceHotspotYaw?: number): Promise<void> => {
-      if (transitioning || sceneId === currentScene) return;
+      if (sceneId === currentScene) return;
 
-      setTransitioning(true);
+      // First ensure the target scene is fully loaded
+      const sceneInfo = scenesRef.current[sceneId];
+      if (sceneInfo) {
+        // Create image element to force preload
+        const img = new Image();
+        img.src = `/images/${sceneId}-pano.jpg`;
 
-      try {
-        // Preload the target scene during transition
-        const sceneInfo = scenesRef.current[sceneId];
-        if (sceneInfo && !sceneInfo.loaded) {
+        // Wait for image to load
+        await new Promise<void>(resolve => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve(); // Continue even if error
+        });
+
+        // Load scene in Marzipano if not already loaded
+        if (!sceneInfo.loaded) {
           await loadScene(sceneId);
         }
-
-        // Wait for zoom-in animation to complete
-        await new Promise(resolve => setTimeout(resolve, 150));
-
-        // Switch scene at the peak of the transition, preserving view direction
-        await switchScene(sceneId, false, true);
-
-        // Wait for zoom-out animation to complete
-        await new Promise(resolve => setTimeout(resolve, 150));
-
-        setTransitioning(false);
-      } catch (err) {
-        console.error('Error navigating to scene:', err);
-        setTransitioning(false);
       }
+
+      // Switch scene directly
+      await switchScene(sceneId, false, true);
     },
-    [switchScene, transitioning, currentScene, loadScene]
+    [switchScene, currentScene, loadScene]
   );
 
   // Toggle hotspots
@@ -475,8 +483,6 @@ export default function PanoramaViewer() {
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-
-
   // Update arrow rotation on view change
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -485,12 +491,12 @@ export default function PanoramaViewer() {
     const updateArrowRotation = () => {
       const yaw = viewer.view().yaw();
       let rotation = yaw * (180 / Math.PI); // Convert radians to degrees
-      
+
       // Apply north offset correction for compass arrow
       if (currentScene && scenesRef.current[currentScene]?.data?.northOffset) {
         rotation += scenesRef.current[currentScene].data.northOffset;
       }
-      
+
       setCurrentYaw(yaw);
       setArrowStyle({
         transform: `rotate(${rotation}deg)`,
@@ -557,25 +563,20 @@ export default function PanoramaViewer() {
         }
       />
 
-
-      <TransitionOverlay active={transitioning} />
-
-      {transitioning && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            color: 'white',
-            fontSize: '14px',
-            fontWeight: '500',
-            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
-            zIndex: 1600,
-            pointerEvents: 'none',
-          }}
-        ></div>
-      )}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          color: 'white',
+          fontSize: '14px',
+          fontWeight: '500',
+          textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+          zIndex: 1600,
+          pointerEvents: 'none',
+        }}
+      />
 
       {showTapHint && (
         <div className='tap-hint show'>Tap anywhere to show navigation</div>

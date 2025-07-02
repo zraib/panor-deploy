@@ -31,13 +31,8 @@ export default function SceneInfo({
         <span>{scene.name}</span>
       </p>
       <p>
-        <span className={styles.label}>Floor:</span>
-        <span>Level {scene.floor}</span>
-      </p>
-
-      <p>
-        <span className={styles.label}>Compass Arrow:</span>
-        <span>{direction.toFixed(1)}°</span>
+        <span className={styles.label}>Connections:</span>
+        <span>{connections}</span>
       </p>
     </div>
   );
