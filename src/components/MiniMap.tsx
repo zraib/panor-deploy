@@ -327,7 +327,7 @@ export default function MiniMap({
 
   // Handle wheel for zooming with improved pan adjustment
   const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
+    (e: WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
       
@@ -351,6 +351,18 @@ export default function MiniMap({
     },
     [zoomLevel]
   );
+
+  // Add wheel event listener manually to control passive option
+  useEffect(() => {
+    const contentEl = contentRef.current;
+    if (contentEl) {
+      const handleWheelEvent = (e: WheelEvent) => handleWheel(e);
+      contentEl.addEventListener('wheel', handleWheelEvent, { passive: false });
+      return () => {
+        contentEl.removeEventListener('wheel', handleWheelEvent);
+      };
+    }
+  }, [handleWheel]);
 
   // Handle hotspot click
   const handleHotspotClick = useCallback(
@@ -445,7 +457,6 @@ export default function MiniMap({
           ref={contentRef}
           className={`${styles.minimapContent} minimap-content`}
           onDoubleClick={handleDoubleClick}
-          onWheel={handleWheel}
           style={{
             cursor: isPanning ? 'grabbing' : 'grab',
           }}
