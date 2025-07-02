@@ -34,50 +34,11 @@ export default function SceneInfo({
         <span className={styles.label}>Floor:</span>
         <span>Level {scene.floor}</span>
       </p>
-      <p>
-        <span className={styles.label}>Position:</span>
-        <span>
-          ({scene.position.x.toFixed(1)}, {scene.position.y.toFixed(1)})
-        </span>
-      </p>
-      <p>
-        <span className={styles.label}>Connections:</span>
-        <span>{connections} paths</span>
-      </p>
+
       <p>
         <span className={styles.label}>Compass Arrow:</span>
         <span>{direction.toFixed(1)}°</span>
       </p>
-      <p>
-        <span className={styles.label}>Minimap Pointer:</span>
-        <span>
-          {(
-            ((currentYaw * 180) / Math.PI - (scene?.northOffset || 0) + 360) %
-            360
-          ).toFixed(1)}
-          °
-        </span>
-      </p>
-      <p>
-        <span className={styles.label}>Raw Yaw:</span>
-        <span>{((currentYaw * 180) / Math.PI).toFixed(1)}°</span>
-      </p>
-      <p>
-        <span className={styles.label}>North Offset:</span>
-        <span>{(scene?.northOffset || 0).toFixed(1)}°</span>
-      </p>
-      <div className={styles.rotationControl}>
-        <span className={styles.label}>Map Rotation:</span>
-        <input
-          type='range'
-          min='-180'
-          max='180'
-          value={rotationAngle}
-          onChange={e => onRotationChange(parseInt(e.target.value, 10))}
-          className={styles.slider}
-        />
-        <span>{rotationAngle}°</span>
-      </div>
     </div>
   );
 }

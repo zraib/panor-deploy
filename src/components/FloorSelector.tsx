@@ -16,51 +16,69 @@ export default function FloorSelector({
   onFloorChange,
 }: FloorSelectorProps): ReactElement {
   const [floors, setFloors] = useState<number[]>([]);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [showButtons, setShowButtons] = useState<boolean>(false);
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Get unique floors
-    const floorValues = scenes.map(s => s.floor);
-    const uniqueFloors = floorValues
-      .filter((value, index, self) => {
-        return self.indexOf(value) === index;
-      })
-      .sort((a, b) => a - b);
+    const uniqueFloors = [...new Set(scenes.map(s => s.floor))].sort(
+      (a, b) => a - b
+    );
     setFloors(uniqueFloors);
   }, [scenes]);
 
+  useEffect(() => {
+    if (hoverTimeout) clearTimeout(hoverTimeout);
+
+    if (isHovered) {
+      const timeout = setTimeout(() => setShowButtons(true), 150);
+      setHoverTimeout(timeout);
+    } else {
+      setShowButtons(false);
+    }
+
+    return () => {
+      if (hoverTimeout) clearTimeout(hoverTimeout);
+    };
+  }, [isHovered]);
+
   const handleFloorClick = useCallback(
     (floor: number) => {
+      // Instantly close the selector for better UX
+      setIsHovered(false);
+      setShowButtons(false);
+      if (hoverTimeout) clearTimeout(hoverTimeout);
+
       const floorScenes = scenes.filter(s => s.floor === floor);
-      if (floorScenes.length === 0) return;
+      if (!floorScenes.length) return;
 
       if (!currentScene) {
         onFloorChange(floorScenes[0].id);
         return;
       }
 
-      // Find closest scene on selected floor to current position
-      let closestScene = floorScenes[0];
-      let minDistance = Infinity;
+      let closest = floorScenes[0];
+      let minDist = Infinity;
 
       floorScenes.forEach(scene => {
         const dx = scene.position.x - currentScene.position.x;
         const dy = scene.position.y - currentScene.position.y;
         const dz = scene.position.z - currentScene.position.z;
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestScene = scene;
+        if (dist < minDist) {
+          minDist = dist;
+          closest = scene;
         }
       });
 
-      onFloorChange(closestScene.id);
+      onFloorChange(closest.id);
     },
-    [scenes, currentScene, onFloorChange]
+    [scenes, currentScene, onFloorChange, hoverTimeout]
   );
 
   const getFloorLabel = (floor: number): string => {
-    if (floor === 0) return 'Ground';
+    if (floor === 0) return 'Ground Floor';
     if (floor > 0) return `Level ${floor}`;
     return `Basement ${Math.abs(floor)}`;
   };
@@ -70,9 +88,25 @@ export default function FloorSelector({
   };
 
   return (
-    <div className={styles.container}>
-      <h3>FLOOR SELECTION</h3>
-      <div className={styles.buttons}>
+    <div
+      className={`${styles.container} ${isHovered ? styles.hovered : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <h3>
+        {isHovered ? (
+          'Select a Floor'
+        ) : (
+          <>
+            Floor:{' '}
+            <span className={styles.currentFloorName}>
+              {currentScene ? getFloorLabel(currentScene.floor) : 'None'}
+              <span className={styles.dropdownIcon} />
+            </span>
+          </>
+        )}
+      </h3>
+      <div className={`${styles.buttons} ${showButtons ? styles.visible : ''}`}>
         {floors.map(floor => (
           <button
             key={floor}

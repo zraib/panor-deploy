@@ -475,6 +475,8 @@ export default function PanoramaViewer() {
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
+
+
   // Update arrow rotation on view change
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -489,7 +491,6 @@ export default function PanoramaViewer() {
         rotation += scenesRef.current[currentScene].data.northOffset;
       }
       
-      console.log('Updating arrow rotation:', { yaw, rotation, northOffset: currentScene ? scenesRef.current[currentScene]?.data?.northOffset : 0 });
       setCurrentYaw(yaw);
       setArrowStyle({
         transform: `rotate(${rotation}deg)`,
@@ -505,7 +506,7 @@ export default function PanoramaViewer() {
         viewer.removeEventListener('viewChange', updateArrowRotation);
       }
     };
-  }, [isLoading]);
+  }, [isLoading, currentScene]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -556,10 +557,7 @@ export default function PanoramaViewer() {
         }
       />
 
-      {/* Compass arrow */}
-      <div className='compass-arrow-container' style={arrowStyle}>
-        <div className='compass-arrow'></div>
-      </div>
+
       <TransitionOverlay active={transitioning} />
 
       {transitioning && (
@@ -585,12 +583,6 @@ export default function PanoramaViewer() {
 
       {config && currentScene && scenesRef.current[currentScene] && (
         <>
-          <FloorSelector
-            scenes={config.scenes}
-            currentScene={scenesRef.current[currentScene]?.data}
-            onFloorChange={navigateToScene}
-          />
-
           <SceneInfo
             scene={scenesRef.current[currentScene]?.data}
             connections={
@@ -608,6 +600,12 @@ export default function PanoramaViewer() {
             rotationAngle={rotationAngle}
             onRotationChange={setRotationAngle}
             currentYaw={currentYaw}
+          />
+
+          <FloorSelector
+            scenes={config.scenes}
+            currentScene={scenesRef.current[currentScene]?.data}
+            onFloorChange={navigateToScene}
           />
 
           <MiniMap
