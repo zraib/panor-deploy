@@ -53,54 +53,91 @@ export default function Hotspot({
   onNavigate,
 }: HotspotProps) {
   const rootRef = useRef<Root | null>(null);
-  const isInitializedRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const isUnmounting = useRef(false);
 
+  // Effect for creating and cleaning up the root
   useEffect(() => {
-    if (!element) return;
-
-    // Create root only once
-    if (!rootRef.current && !isInitializedRef.current) {
-      rootRef.current = createRoot(element);
-      isInitializedRef.current = true;
+    isUnmounting.current = false;
+    
+    if (element) {
+      // Create a unique container inside the element
+      if (!containerRef.current) {
+        containerRef.current = document.createElement('div');
+        containerRef.current.style.width = '100%';
+        containerRef.current.style.height = '100%';
+        element.appendChild(containerRef.current);
+      }
+      
+      // Create root on our container, not the provided element
+      if (!rootRef.current && containerRef.current) {
+        rootRef.current = createRoot(containerRef.current);
+      }
     }
 
-    // Calculate perspective effects based on distance
-    const distance = data.distance || 5; // Default distance if not provided
-    const minDistance = 1;
-    const maxDistance = 20;
+    // Cleanup function
+    return () => {
+      isUnmounting.current = true;
+      
+      // Clean up root
+      if (rootRef.current) {
+        const root = rootRef.current;
+        rootRef.current = null;
+        setTimeout(() => {
+          try {
+            root.unmount();
+          } catch (e) {
+            console.warn('Failed to unmount root:', e);
+          }
+        }, 0);
+      }
+      
+      // Clean up container
+      if (containerRef.current && containerRef.current.parentNode) {
+        containerRef.current.parentNode.removeChild(containerRef.current);
+        containerRef.current = null;
+      }
+    };
+  }, [element]); // Only recreate when element changes
 
-    // Scale factor: closer = very large (1.5), farther = much smaller (0.2)
-    const scaleFactor = Math.max(
-      0.2,
-      Math.min(
-        1.5,
-        1.5 - ((distance - minDistance) / (maxDistance - minDistance)) * 1
-      )
-    );
+  // Effect for rendering the hotspot content
+  useEffect(() => {
+    if (rootRef.current && !isUnmounting.current) {
+      // Calculate perspective effects based on distance
+      const distance = data.distance || 5; // Default distance if not provided
+      const minDistance = 1;
+      const maxDistance = 20;
 
-    // Oval factor: closer = more circular (0.9), farther = more oval/flat (0.3) to simulate floor perspective
-    const ovalFactor = Math.max(
-      0.3,
-      Math.min(
-        0.9,
-        0.9 - ((distance - minDistance) / (maxDistance - minDistance)) * 0.6
-      )
-    );
+      // Scale factor: closer = very large (1.5), farther = much smaller (0.2)
+      const scaleFactor = Math.max(
+        0.2,
+        Math.min(
+          1.5,
+          1.5 - ((distance - minDistance) / (maxDistance - minDistance)) * 1
+        )
+      );
 
-    // Perspective rotation: farther objects appear more tilted to simulate lying flat on floor
-    const perspectiveRotation = Math.min(
-      65,
-      45 + ((distance - minDistance) / (maxDistance - minDistance)) * 20
-    );
+      // Oval factor: closer = more circular (0.9), farther = more oval/flat (0.3) to simulate floor perspective
+      const ovalFactor = Math.max(
+        0.3,
+        Math.min(
+          0.9,
+          0.9 - ((distance - minDistance) / (maxDistance - minDistance)) * 0.6
+        )
+      );
 
-    const hotspotStyle = {
-      '--scale-factor': scaleFactor,
-      '--oval-factor': ovalFactor,
-      '--perspective-rotation': `${perspectiveRotation}deg`,
-    } as React.CSSProperties;
+      // Perspective rotation: farther objects appear more tilted to simulate lying flat on floor
+      const perspectiveRotation = Math.min(
+        65,
+        45 + ((distance - minDistance) / (maxDistance - minDistance)) * 20
+      );
 
-    // Render hotspot content using createRoot
-    if (rootRef.current) {
+      const hotspotStyle = {
+        '--scale-factor': scaleFactor,
+        '--oval-factor': ovalFactor,
+        '--perspective-rotation': `${perspectiveRotation}deg`,
+      } as React.CSSProperties;
+
       rootRef.current.render(
         <HotspotComponent
           visible={visible}
@@ -110,18 +147,7 @@ export default function Hotspot({
         />
       );
     }
-  }, [element, data, visible, onNavigate]);
-
-  // Cleanup only on unmount
-  useEffect(() => {
-    return () => {
-      if (rootRef.current) {
-        rootRef.current.unmount();
-        rootRef.current = null;
-        isInitializedRef.current = false;
-      }
-    };
-  }, []);
+  }, [data, visible, onNavigate]);
 
   return null;
 }
