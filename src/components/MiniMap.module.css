@@ -104,8 +104,8 @@
 
 .directionIndicator {
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 60px;
+  height: 60px;
   pointer-events: none;
   z-index: 15;
   transition: transform 0.1s linear, opacity 0.2s ease;
@@ -116,15 +116,32 @@
 
 .directionArrow {
   position: absolute;
-  top: -12px;
+  top: -30px;
   left: 50%;
   transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 12px solid #ffeb3b;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  width: 60px;
+  height: 60px;
+  /* Create flashlight beam cone using clip-path */
+  background: radial-gradient(ellipse at bottom, 
+    rgba(255, 235, 59, 0.7) 0%, 
+    rgba(255, 235, 59, 0.4) 40%, 
+    rgba(255, 235, 59, 0.2) 70%, 
+    rgba(255, 235, 59, 0.05) 100%);
+  clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+  filter: drop-shadow(0 2px 8px rgba(255, 235, 59, 0.6)) blur(1px);
+  /* Add subtle animation for flashlight effect */
+  animation: flashlightPulse 3s ease-in-out infinite;
+}
+
+@keyframes flashlightPulse {
+  0%, 100% {
+    filter: drop-shadow(0 2px 8px rgba(255, 235, 59, 0.6));
+    opacity: 0.8;
+  }
+  50% {
+    filter: drop-shadow(0 2px 12px rgba(255, 235, 59, 0.8));
+    opacity: 1;
+  }
 }
 
 .connectionLine {
