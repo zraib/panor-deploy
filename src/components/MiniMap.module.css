@@ -17,6 +17,14 @@
   box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
 }
 
+.minimap.panning {
+  cursor: grabbing !important;
+}
+
+.minimap.panning .minimapContent {
+  cursor: grabbing !important;
+}
+
 .minimapHeader {
   display: flex;
   justify-content: space-between;
@@ -35,6 +43,14 @@
   height: calc(100% - 40px);
   overflow: hidden;
   border-radius: 0 0 10px 10px;
+  cursor: grab;
+  /* Improve performance for smooth panning */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.minimapContent:active {
+  cursor: grabbing;
 }
 
 .mapGrid {
@@ -56,6 +72,9 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  /* Improve rendering performance */
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 .sceneHotspot:hover {
@@ -85,24 +104,44 @@
 
 .directionIndicator {
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 60px;
+  height: 60px;
   pointer-events: none;
   z-index: 15;
-  transition: transform 0.1s linear;
+  transition: transform 0.1s linear, opacity 0.2s ease;
+  /* Improve rendering performance */
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 .directionArrow {
   position: absolute;
-  top: -12px;
+  top: -30px;
   left: 50%;
   transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 12px solid #ffeb3b;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  width: 120px;
+  height: 60px;
+  /* Create flashlight beam cone using clip-path */
+  background: radial-gradient(ellipse at bottom, 
+    rgba(255, 235, 59, 0.7) 0%, 
+    rgba(255, 235, 59, 0.4) 40%, 
+    rgba(255, 235, 59, 0.2) 70%, 
+    rgba(255, 235, 59, 0.05) 100%);
+  clip-path: polygon(50% 100%, 15% 0%, 85% 0%);
+  filter: drop-shadow(0 2px 8px rgba(255, 235, 59, 0.6)) blur(1px);
+  /* Add subtle animation for flashlight effect */
+  animation: flashlightPulse 3s ease-in-out infinite;
+}
+
+@keyframes flashlightPulse {
+  0%, 100% {
+    filter: drop-shadow(0 2px 8px rgba(255, 235, 59, 0.6));
+    opacity: 0.8;
+  }
+  50% {
+    filter: drop-shadow(0 2px 12px rgba(255, 235, 59, 0.8));
+    opacity: 1;
+  }
 }
 
 .connectionLine {
@@ -131,6 +170,65 @@
   font-weight: bold;
   border: 1px solid rgba(255, 255, 255, 0.3);
   z-index: 20;
+}
+
+.zoomIndicator {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 20;
+}
+
+.resetIndicator {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 235, 59, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 25;
+  transition: all 0.2s ease;
+}
+
+.resetIndicator:hover {
+  background: rgba(255, 235, 59, 1);
+  transform: scale(1.1);
+}
+
+.scrollHint {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  white-space: nowrap;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 20;
+  transition: opacity 0.3s ease;
+}
+
+.minimap:hover .scrollHint {
+  opacity: 1;
 }
 
 .minimizeButton {
@@ -219,6 +317,11 @@
     width: 10px;
     height: 10px;
   }
+  
+  .zoomIndicator {
+    font-size: 9px;
+    padding: 1px 6px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -230,6 +333,11 @@
   .minimized {
     width: 50px !important;
     height: 50px !important;
+  }
+  
+  .scrollHint {
+    font-size: 9px;
+    padding: 3px 6px;
   }
 }
 
@@ -251,6 +359,21 @@
   }
 }
 
+/* Performance optimizations for smooth interactions */
+.minimap.panning .sceneHotspot,
+.minimap.panning .directionIndicator,
+.minimap.panning .connectionLine {
+  pointer-events: none;
+}
+
+.minimap.dragging,
+.minimap.panning {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .minimap,
@@ -263,6 +386,12 @@
   
   .sceneHotspot.current {
     animation: none;
+  }
+  
+  .minimapContent,
+  .sceneHotspot,
+  .directionIndicator {
+    will-change: auto;
   }
 }
 
