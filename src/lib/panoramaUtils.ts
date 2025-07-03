@@ -24,12 +24,18 @@ export function checkWebGLSupport(): boolean {
 }
 
 // Create ripple effect
-export function createRipple(x: number, y: number): void {
+export function createRipple(
+  x: number,
+  y: number,
+  container?: HTMLElement | null
+): void {
   const ripple = document.createElement('div');
   ripple.classList.add('touch-ripple');
   ripple.style.left = x + 'px';
   ripple.style.top = y + 'px';
-  document.body.appendChild(ripple);
+
+  const parent = container || document.body;
+  parent.appendChild(ripple);
 
   setTimeout(() => {
     ripple.remove();
