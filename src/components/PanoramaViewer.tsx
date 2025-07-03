@@ -134,8 +134,8 @@ export default function PanoramaViewer() {
 
       // Create view with more conservative limits
       const limiter = Marzipano.RectilinearView.limit.traditional(
-        2048,
-        (100 * Math.PI) / 180
+        4096,
+        (120 * Math.PI) / 180
       );
       const view = new Marzipano.RectilinearView(
         sceneInfo.data.initialViewParameters,
