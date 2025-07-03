@@ -242,26 +242,33 @@ export default function PanoramaViewer() {
         clearHotspotsForScene(scenesRef.current[currentScene]);
       }
 
-      // Switch scene
+      // Hide hotspots immediately for clean transition
+      setHotspotsVisible(false);
+
+      // Switch scene with smooth transition
+      const transitionDuration = isInitial ? 0 : 1200; // Longer for smoother effect
+      
       sceneInfo.scene.switchTo({
-        transitionDuration: 0, // We handle transitions separately
+        transitionDuration: transitionDuration,
       });
 
-      // Set view - either preserved direction or initial parameters
-      const viewParams = currentView || sceneInfo.data.initialViewParameters;
-      viewerRef.current.lookTo(viewParams, {
-        transitionDuration: 0, // Apply instantly
-      });
+      // Coordinate view change with slight delay
+      setTimeout(() => {
+        const viewParams = currentView || sceneInfo.data.initialViewParameters;
+        if (viewerRef.current) {
+          viewerRef.current.lookTo(viewParams, {
+            transitionDuration: 0, // Apply instantly without rotation
+          });
+        }
+      }, 0);
 
       setCurrentScene(sceneId);
 
-      // Create hotspots for this scene
+      // Create hotspots but don't show them yet
       createHotspotsForScene(sceneInfo);
 
-      // Show hotspots after a brief delay for better UX
+      // Show hotspots only after transition completes
       if (!isInitial) {
-        setHotspotsVisible(false);
-        // Auto-show hotspots after transition completes
         setTimeout(() => {
           setHotspotsVisible(true);
           // Auto-hide after 5 seconds
@@ -271,15 +278,15 @@ export default function PanoramaViewer() {
           hotspotTimeoutRef.current = setTimeout(() => {
             setHotspotsVisible(false);
           }, 5000);
-        }, 500);
+        }, 1300); // Wait for transition to complete
       }
 
-      // Preload adjacent scenes in background (reduced delay)
+      // Preload adjacent scenes in background after transition
       setTimeout(() => {
         preloadAdjacentScenes(sceneId).catch(err => {
           console.error('Error preloading adjacent scenes:', err);
         });
-      }, 500);
+      }, transitionDuration + 300); // Wait for transition to complete
     },
     [
       currentScene,
