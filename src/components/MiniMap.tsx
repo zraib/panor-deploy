@@ -505,7 +505,7 @@ export default function MiniMap({
             style={{
               left: `${currentSceneCoords.x}%`,
               top: `${currentSceneCoords.y}%`,
-              transform: `translate(-50%, -50%) rotate(${currentYaw * (180 / Math.PI) + rotationAngle}deg)`,
+              transform: `translate(-50%, -50%) rotate(${((currentYaw * 180) / Math.PI - (currentScene.northOffset || 0) + 360) % 360}deg)`,
               visibility: currentSceneCoords.x > -20 && currentSceneCoords.x < 120 && currentSceneCoords.y > -20 && currentSceneCoords.y < 120 ? 'visible' : 'hidden',
               opacity: currentSceneCoords.x > -20 && currentSceneCoords.x < 120 && currentSceneCoords.y > -20 && currentSceneCoords.y < 120 ? 1 : 0,
               transition: 'opacity 0.2s ease',
