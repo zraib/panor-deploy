@@ -11,7 +11,11 @@ export const config = {
   api: {
     bodyParser: false,
     responseLimit: false,
+    // Increase timeout for large uploads (5 minutes)
+    externalResolver: true,
   },
+  // Set maximum execution time
+  maxDuration: 300,
 };
 
 const ensureDirectoryExists = (dirPath: string) => {
@@ -35,13 +39,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Ensure tmp directory exists
+    const tmpDir = path.join(process.cwd(), 'tmp');
+    ensureDirectoryExists(tmpDir);
+    
     const form = new IncomingForm({
-      maxFileSize: 100 * 1024 * 1024, // 100MB per file
-      maxTotalFileSize: 500 * 1024 * 1024, // 500MB total
+      maxFileSize: 200 * 1024 * 1024, // 200MB per file (for large panorama images)
+      maxTotalFileSize: 2 * 1024 * 1024 * 1024, // 2GB total
       maxFields: 1000,
       maxFieldsSize: 20 * 1024 * 1024, // 20MB for fields
       allowEmptyFiles: false,
       minFileSize: 1,
+      // Increase timeout for parsing
+      uploadDir: tmpDir,
+      keepExtensions: true,
+      multiples: true,
     });
     
     const { fields, files } = await new Promise<{ fields: any; files: any }>((resolve, reject) => {
@@ -74,6 +86,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'At least one image file is required' });
     }
 
+    // Check for overwrite flag
+    const allowOverwrite = fields.overwrite && fields.overwrite[0] === 'true';
+    
+    // Check for duplicate file names only if overwrite is not allowed
+    if (!allowOverwrite) {
+      const duplicateFiles: string[] = [];
+      const existingFiles = fs.readdirSync(imagesDir);
+      
+      for (const imageFile of imageFiles) {
+        if (imageFile && imageFile.originalFilename) {
+          if (existingFiles.includes(imageFile.originalFilename)) {
+            duplicateFiles.push(imageFile.originalFilename);
+          }
+        }
+      }
+
+      // If duplicates found, return warning
+      if (duplicateFiles.length > 0) {
+        return res.status(409).json({ 
+          error: 'Duplicate file names detected',
+          duplicates: duplicateFiles,
+          message: `The following files already exist: ${duplicateFiles.join(', ')}. Please rename them or choose different files.`
+        });
+      }
+    }
+
     for (const imageFile of imageFiles) {
       if (imageFile && imageFile.originalFilename) {
         const imageDestPath = path.join(imagesDir, imageFile.originalFilename);
@@ -104,8 +142,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Upload error:', error);
-    res.status(500).json({ error: 'Internal server error during file upload' });
+    
+    // Provide more specific error messages
+    let errorMessage = 'Internal server error during file upload';
+    let statusCode = 500;
+    
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      errorMessage = 'One or more files exceed the maximum size limit of 200MB per file.';
+      statusCode = 413;
+    } else if (error.code === 'LIMIT_FILE_COUNT') {
+      errorMessage = 'Too many files uploaded. Please reduce the number of files.';
+      statusCode = 413;
+    } else if (error.code === 'LIMIT_FIELD_VALUE') {
+      errorMessage = 'Form data is too large. Please reduce file sizes.';
+      statusCode = 413;
+    } else if (error.message && error.message.includes('timeout')) {
+      errorMessage = 'Upload timeout. Please try uploading fewer files at once or reduce file sizes.';
+      statusCode = 408;
+    } else if (error.message && error.message.includes('ENOSPC')) {
+      errorMessage = 'Server storage is full. Please contact administrator.';
+      statusCode = 507;
+    } else if (error.message && error.message.includes('EMFILE')) {
+      errorMessage = 'Too many files being processed. Please try again in a moment.';
+      statusCode = 503;
+    }
+    
+    res.status(statusCode).json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }

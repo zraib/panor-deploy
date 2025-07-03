@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback, MouseEvent } from 'react';
 import Script from 'next/script';
 import FloorSelector from './FloorSelector';
-import SceneInfo from './SceneInfo';
 import MiniMap from './MiniMap';
 import LoadingScreen from './LoadingScreen';
 
@@ -476,6 +475,14 @@ export default function PanoramaViewer() {
     initializeViewer();
   };
 
+  // Check if Marzipano is already loaded on mount
+  useEffect(() => {
+    // If Marzipano is already available (e.g., when navigating back)
+    if ((window as any).Marzipano && !marzipanoRef.current) {
+      handleMarzipanoLoad();
+    }
+  }, []);
+
   useEffect(() => {
     function updateSize() {
       if (panoRef.current) {
@@ -591,25 +598,6 @@ export default function PanoramaViewer() {
 
       {config && currentScene && scenesRef.current[currentScene] && (
         <>
-          <SceneInfo
-            scene={scenesRef.current[currentScene]?.data}
-            connections={
-              scenesRef.current[currentScene]?.data.linkHotspots.length || 0
-            }
-            direction={
-              arrowStyle.transform
-                ? parseFloat(
-                    arrowStyle.transform
-                      .replace('rotate(', '')
-                      .replace('deg)', '')
-                  )
-                : 0
-            }
-            rotationAngle={rotationAngle}
-            onRotationChange={setRotationAngle}
-            currentYaw={currentYaw}
-          />
-
           <FloorSelector
             scenes={config.scenes}
             currentScene={scenesRef.current[currentScene]?.data}
