@@ -28,7 +28,7 @@ export default function SceneInfo({
       <h3>Current Location</h3>
       <p>
         <span className={styles.label}>Scene:</span>
-        <span>{scene.name}</span>
+        <span>{parseInt(scene.id, 10)}</span>
       </p>
       <p>
         <span className={styles.label}>Connections:</span>

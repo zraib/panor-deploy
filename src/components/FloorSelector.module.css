@@ -5,7 +5,7 @@
   width: 220px;
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);  
   color: #fff;
   padding: 14px 16px;
   border-radius: 14px;
@@ -14,6 +14,7 @@
   transition: background 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
   font-family: system-ui, sans-serif;
   overflow: hidden;
+  gap: 10px
 }
 
 .container.hovered {
@@ -26,7 +27,6 @@
   font-size: 15px;
   font-weight: 600;
   opacity: 0.9;
-  padding-bottom: 10px;
   text-align: center;
   display: flex;
   align-items: center;
@@ -41,7 +41,7 @@
   color: #fff;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 10px;
 }
 
 .dropdownIcon {
@@ -58,7 +58,8 @@
 .buttons {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  padding-top: 10px;
+  gap: 12px;
   max-height: 0;
   opacity: 0;
   overflow: hidden;
