@@ -90,7 +90,7 @@ def calculate_north_offsets(config_file='public/config.json', reference_scene_id
         # Update scene with calculated offset
         scene['northOffset'] = round(north_offset, 1)
         
-        print(f"Scene {scene['id']:6s}: yaw={scene_yaw:7.1f}° → northOffset={north_offset:7.1f}°")
+        print(f"Scene {scene['id']:6s}: yaw={scene_yaw:7.1f}° -> northOffset={north_offset:7.1f}°")
     
     # Save updated configuration
     backup_file = config_file + '.backup'
