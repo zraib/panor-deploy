@@ -115,7 +115,7 @@ def generate_config(csv_file, output_file='config.json'):
                     distances.append((dist, target))
         
         distances.sort(key=lambda x: x[0])
-        for _, target in distances[:10]:
+        for _, target in distances[:20]:
             target_pos = target['pos']
             rel_vec = np.array(target_pos) - eye_pos  # reference from eye position
             local_vec = quaternion_rotate_vector(quaternion_conjugate(pano_ori), rel_vec)
