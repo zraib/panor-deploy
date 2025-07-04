@@ -1,19 +1,12 @@
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
   position: relative;
-  color: white;
-}
-
-@media (prefers-color-scheme: dark) {
-  .container {
-    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-    color: #f7fafc;
-  }
+  color: #f7fafc;
 }
 
 /* Logo */
@@ -22,9 +15,7 @@
   top: 20px;
   left: 20px;
   z-index: 1100;
-
   padding: 12px 16px;
- 
 }
 
 .logo {
@@ -49,19 +40,10 @@
   font-size: 48px;
   font-weight: 700;
   margin-bottom: 20px;
-  background: linear-gradient(45deg, #fff, #e0e7ff);
+  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.8));
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-@media (prefers-color-scheme: dark) {
-  .title {
-    background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.8));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+  -webkit-text-fill-color: transparent;
 }
 
 .description {
@@ -111,13 +93,7 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-@media (prefers-color-scheme: dark) {
-  .loadingContainer {
-    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-  }
+  background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
 }
 
 .loadingContent {
