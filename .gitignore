@@ -59,7 +59,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-
 lib64/
 parts/
 sdist/
@@ -125,9 +124,10 @@ pnpm-lock.yaml
 # Uncomment the line below if you don't want to track the CSV data file
 /public/data/pano-poses.csv
 
-# Ignore all contents of the /public/images directory except .gitkeep
+# Ignore all contents of the /public/images /public/data/ and directory except .gitkeep
 /public/images/*
 !/public/images/.gitkeep
+/public/data/*
 
 # Lighthouse reports
 lighthouse-report.html
