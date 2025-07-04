@@ -26,16 +26,22 @@ export default function Home(): ReactElement {
 
   useEffect(() => {
     const checkForPanoramas = async () => {
+      console.log('Checking for panoramas...');
       try {
         // First check if config.json exists and has scenes
+        console.log('Fetching /config.json...');
         const configResponse = await fetch('/config.json');
+        console.log('Config response:', configResponse.status, configResponse.ok);
         if (!configResponse.ok) {
+          console.log('config.json not found or failed to load.');
           setHasPanoramas(false);
           return;
         }
 
         const config: ConfigData = await configResponse.json();
+        console.log('Config loaded:', config);
         if (!config.scenes || config.scenes.length === 0) {
+          console.log('No scenes in config.json.');
           setHasPanoramas(false);
           return;
         }
@@ -43,25 +49,34 @@ export default function Home(): ReactElement {
         // Check if actual image files exist by testing the first few scenes
         const testScenes = config.scenes.slice(0, Math.min(3, config.scenes.length));
         let imageExists = false;
+        console.log('Testing for images:', testScenes.map(s => s.id));
 
         for (const scene of testScenes) {
+          const imageUrl = `/images/${scene.id}-pano.jpg`;
           try {
-            const imageResponse = await fetch(`/images/${scene.id}-pano.jpg`, { method: 'HEAD' });
+            console.log(`Checking for image: ${imageUrl}`);
+            const imageResponse = await fetch(imageUrl, { method: 'HEAD' });
+            console.log(`Image response for ${imageUrl}:`, imageResponse.status, imageResponse.ok);
             if (imageResponse.ok) {
               imageExists = true;
+              console.log(`Image found: ${imageUrl}`);
               break;
             }
-          } catch {
+          } catch (e) {
+            console.error(`Error checking for image ${imageUrl}:`, e);
             // Continue checking other images
           }
         }
 
+        console.log('Final imageExists check:', imageExists);
         setHasPanoramas(imageExists);
       } catch (error) {
+        console.error('Error in checkForPanoramas:', error);
         console.log('No config or images found, showing welcome screen');
         setHasPanoramas(false);
       } finally {
         setIsLoading(false);
+        console.log('Finished checking for panoramas.');
       }
     };
 

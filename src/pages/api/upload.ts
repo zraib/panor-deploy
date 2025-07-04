@@ -14,8 +14,8 @@ export const config = {
     // Increase timeout for large uploads (5 minutes)
     externalResolver: true,
   },
-  // Set maximum execution time
-  maxDuration: 300,
+  // Note: maxDuration is not a valid Next.js API config option
+  // For Vercel deployments, use vercel.json to configure function timeouts
 };
 
 const ensureDirectoryExists = (dirPath: string) => {
