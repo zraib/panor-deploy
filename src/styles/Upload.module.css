@@ -109,9 +109,6 @@
   box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
 }
 
-.fieldGroup {
-  margin-bottom: 25px;
-}
 
 .label {
   display: flex;
@@ -154,6 +151,7 @@
 .fileInput {
   width: 100%;
   padding: 16px 20px;
+  margin-bottom  : 12px;
   border: 2px dashed #cbd5e0;
   border-radius: 12px;
   background: #f7fafc;
@@ -196,7 +194,7 @@
 }
 
 .fileInfo {
-  margin: 8px 0;
+  margin-bottom: 8px;
   color: rgba(128, 128, 128, 0.8);
   font-size: 13px;
   display: flex;
@@ -205,7 +203,7 @@
 }
 
 .fileList {
-  margin: 10px 0;
+
   padding: 12px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 6px;
@@ -295,6 +293,7 @@
   letter-spacing: 0.025em;
   position: relative;
   overflow: hidden;
+  margin-top: 12px;
 }
 
 .submitButton:hover:not(:disabled) {
@@ -451,80 +450,187 @@
 
 .overwriteButton {
   width: 100%;
-  padding: 18px 24px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  padding: 12px 24px;
+  background-color: #ffa500; /* Orange */
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
-  letter-spacing: 0.025em;
-  position: relative;
-  overflow: hidden;
-  margin-top: 16px;
+  transition: background-color 0.3s ease;
 }
 
-.overwriteButton::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
+.overwriteButton:hover {
+  background-color: #e69500;
+}
+
+.overwriteButton:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.duplicateActions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.clearButton {
   width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
+  background-color: #dc3545; /* Red */
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.3s ease;
 }
 
-.overwriteButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.5);
+.clearButton:hover {
+  background-color: #c82333;
 }
 
-.overwriteButton:hover:not(:disabled)::before {
-  left: 100%;
-}
-
-.overwriteButton:active {
-  transform: translateY(0);
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
-}
-
-.overwriteButton:disabled {
-  background: linear-gradient(135deg, #a0aec0, #718096);
+.clearButton:disabled {
+  background-color: #cccccc;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
-.overwriteButton:disabled::before {
-  display: none;
+.loadingSpinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
 }
 
-.overwriteButton:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.overwriteButton:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+.message {
+  padding: 16px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 20px;
+  border-left: 4px solid;
+  animation: slideIn 0.3s ease;
 }
 
-.overwriteButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
+.messageSuccess {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.messageError {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.messageWarning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  border-color: rgba(245, 158, 11, 0.3);
+  text-align: left;
+}
+
+.messageWarning h4 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  text-align: center;
+}
+
+.messageWarning p {
+  margin: 12px 0 0 0;
+  text-align: center;
+  font-style: italic;
+}
+
+.duplicateList {
+  margin: 8px 0;
+  padding-left: 20px;
+  list-style-type: disc;
+}
+
+.duplicateList li {
+  margin: 4px 0;
+  font-family: 'Courier New', monospace;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-right: 8px;
+  margin-bottom: 8px;
+}
+
+/* Overwrite Options */
+.overwriteOptions {
+  margin-top: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
+  border-radius: 12px;
+  border: 2px solid rgba(255, 193, 7, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 16px;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.checkboxLabel:hover {
+  background: rgba(255, 193, 7, 0.1);
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: #fbbf24;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+
 
 /* Progress Bar */
 .progressContainer {
