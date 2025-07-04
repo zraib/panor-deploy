@@ -54,12 +54,36 @@ def generate_config(csv_file, output_file='config.json'):
             current = [z]
     floors.append(current)
 
-    # assign floor centers
+    # assign floor centers and create floor levels
+    # Find the ground floor (floor with most panoramas or middle floor)
+    floor_sizes = [(len([p for p in panoramas if any(abs(p['pos'][2] - z) < 0.1 for z in group)]), i, group) 
+                   for i, group in enumerate(floors)]
+    ground_floor_idx = max(floor_sizes, key=lambda x: x[0])[1]
+    
     z_to_floor_center = {}
-    for group in floors:
+    z_to_floor_number = {}
+    floor_levels = []
+    
+    def get_floor_name(floor_num):
+        if floor_num < 0:
+            return f'Basement {abs(floor_num)}'
+        elif floor_num == 0:
+            return 'Ground Floor'
+        else:
+            return f'Floor {floor_num}'
+    
+    for i, group in enumerate(floors):
         center = sum(group) / len(group)
+        # Assign floor numbers relative to ground floor
+        floor_number = i - ground_floor_idx
+        floor_levels.append({
+            'id': f'floor_{floor_number}',
+            'name': get_floor_name(floor_number),
+            'z': center
+        })
         for z in group:
             z_to_floor_center[z] = center
+            z_to_floor_number[z] = floor_number
 
     scenes = []
     CAMERA_HEIGHT = 1.5  # eye height on a human body, approximate
@@ -67,18 +91,29 @@ def generate_config(csv_file, output_file='config.json'):
         pano_pos = pano['pos']
         pano_ori = pano['ori']
         floor_center = z_to_floor_center[pano_pos[2]]
+        current_floor = z_to_floor_number[pano_pos[2]]
 
+        # Adjust camera height based on floor type for better hotspot positioning
+        adjusted_camera_height = CAMERA_HEIGHT
+        if current_floor < 0:  # Basement floors might have lower ceilings
+            adjusted_camera_height = CAMERA_HEIGHT * 0.9
+        
         # compute eye position in world coordinates using orientation
-        eye_offset_local = np.array([0, 0, CAMERA_HEIGHT])
+        eye_offset_local = np.array([0, 0, adjusted_camera_height])
         eye_offset_world = quaternion_rotate_vector(pano_ori, eye_offset_local)
         eye_pos = np.array(pano_pos) + eye_offset_world
 
         hotspots = []
         distances = []
+        # Only consider targets on the same floor level
         for target in panoramas:
             if target['id'] != pano['id']:
-                dist = np.linalg.norm(np.array(target['pos']) - np.array(pano_pos))
-                distances.append((dist, target))
+                target_floor = z_to_floor_number[target['pos'][2]]
+                # Filter: only include hotspots to panoramas on the same floor
+                if target_floor == current_floor:
+                    dist = np.linalg.norm(np.array(target['pos']) - np.array(pano_pos))
+                    distances.append((dist, target))
+        
         distances.sort(key=lambda x: x[0])
         for _, target in distances[:10]:
             target_pos = target['pos']
@@ -93,6 +128,7 @@ def generate_config(csv_file, output_file='config.json'):
             yaw = math.atan2(x_m, z_m)
             pitch = -math.atan2(y_m, math.sqrt(x_m**2 + z_m**2))
             distance = np.linalg.norm(rel_vec)
+            
             hotspots.append({
                 'yaw': yaw,
                 'pitch': pitch,
@@ -103,19 +139,24 @@ def generate_config(csv_file, output_file='config.json'):
             })
         scene = {
             'id': pano['id'],
-            'name': f"Panorama {pano['id']}",
+            'name': f"Panorama {pano['id']} - {get_floor_name(current_floor)}",
+            'floor': current_floor,
             'position': dict(zip(['x','y','z'], pano['pos'])),
             'orientation': dict(zip(['w','x','y','z'], pano['ori'])),
             'initialViewParameters': {
                 'yaw': 0,
                 'pitch': 0,
-                'fov': math.radians(90)
+                'fov': math.radians(30)
             },
             'linkHotspots': hotspots,
             'infoHotspots': []
         }
         scenes.append(scene)
-    config = {'scenes': scenes, 'name': 'Panorama Tour'}
+    config = {
+        'scenes': scenes, 
+        'name': 'Panorama Tour',
+        'floors': floor_levels
+    }
     with open(output_file, 'w') as f:
         json.dump(config, f, indent=2)
     print(f"Config generated in {output_file}")
