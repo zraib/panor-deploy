@@ -33,10 +33,29 @@ const moveFile = (oldPath: string, newPath: string) => {
   });
 };
 
+// Helper function to clean up temp files
+const cleanupTempFiles = async (tempFiles: (File | File[])[]) => {
+  for (const fileOrArray of tempFiles) {
+    const files = Array.isArray(fileOrArray) ? fileOrArray : [fileOrArray];
+    for (const file of files) {
+      if (file && file.filepath && fs.existsSync(file.filepath)) {
+        try {
+          await fs.promises.unlink(file.filepath);
+          console.log(`Cleaned up temp file: ${file.filepath}`);
+        } catch (error) {
+          console.warn(`Failed to cleanup temp file ${file.filepath}:`, error);
+        }
+      }
+    }
+  }
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  let tempFilesToCleanup: (File | File[])[] = [];
 
   try {
     // Ensure tmp directory exists
@@ -76,6 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!csvFile) {
       return res.status(400).json({ error: 'CSV file is required' });
     }
+    tempFilesToCleanup.push(csvFile);
 
     const csvDestPath = path.join(dataDir, 'pano-poses.csv');
     await moveFile(csvFile.filepath, csvDestPath);
@@ -85,6 +105,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!imageFiles || imageFiles.length === 0) {
       return res.status(400).json({ error: 'At least one image file is required' });
     }
+    tempFilesToCleanup.push(files.images);
 
     // Check for overwrite flag
     const allowOverwrite = fields.overwrite && fields.overwrite[0] === 'true';
@@ -104,6 +125,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // If duplicates found, return warning
       if (duplicateFiles.length > 0) {
+        // Clean up temp files before returning
+        await cleanupTempFiles(tempFilesToCleanup);
         return res.status(409).json({ 
           error: 'Duplicate file names detected',
           duplicates: duplicateFiles,
@@ -142,6 +165,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Clean up temp files after successful processing
+    await cleanupTempFiles(tempFilesToCleanup);
+
   } catch (error: any) {
     console.error('Upload error:', error);
     
@@ -173,5 +199,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: errorMessage,
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+
+    // Clean up temp files even on error
+    try {
+      await cleanupTempFiles(tempFilesToCleanup);
+    } catch (cleanupError) {
+      console.error('Error during temp file cleanup:', cleanupError);
+    }
   }
 }
