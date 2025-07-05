@@ -5,9 +5,10 @@ import Script from 'next/script';
 import FloorSelector from './FloorSelector';
 import MiniMap from './MiniMap';
 import LoadingScreen from './LoadingScreen';
+import PerformanceMonitor from './PerformanceMonitor';
 
 import Hotspot from './Hotspot';
-import { checkWebGLSupport, createRipple } from '@/lib/panoramaUtils';
+import { checkWebGLSupport, createRipple, getWebGLDiagnostics } from '@/lib/panoramaUtils';
 import {
   ConfigData,
   SceneInfo as SceneInfoType,
@@ -49,6 +50,12 @@ export default function PanoramaViewer() {
     pitch: number;
     fov: number;
   } | null>(null);
+  const [performanceStats, setPerformanceStats] = useState<{
+    loadedScenes: number;
+    memoryUsage: string;
+    avgLoadTime: number;
+  }>({ loadedScenes: 0, memoryUsage: '0 MB', avgLoadTime: 0 });
+  const loadTimesRef = useRef<number[]>([]);
 
   const viewerRef = useRef<Marzipano.Viewer | null>(null);
   const scenesRef = useRef<Record<string, SceneInfoType>>({});
@@ -109,11 +116,41 @@ export default function PanoramaViewer() {
     [clearHotspotsForScene]
   );
 
-  // Load a single scene on demand
-  const loadScene = useCallback(async (sceneId: string): Promise<void> => {
+  // Calculate distance between two scenes
+  const calculateSceneDistance = useCallback((scene1: string, scene2: string): number => {
+    const s1 = scenesRef.current[scene1]?.data;
+    const s2 = scenesRef.current[scene2]?.data;
+    if (!s1 || !s2) return Infinity;
+    
+    const dx = s1.position.x - s2.position.x;
+    const dy = s1.position.y - s2.position.y;
+    const dz = s1.position.z - s2.position.z;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }, []);
+
+  // Update performance statistics
+  const updatePerformanceStats = useCallback(() => {
+    const loadedCount = Object.values(scenesRef.current).filter(s => s.loaded).length;
+    const avgTime = loadTimesRef.current.length > 0 
+      ? loadTimesRef.current.reduce((a, b) => a + b, 0) / loadTimesRef.current.length 
+      : 0;
+    
+    // Estimate memory usage (rough calculation)
+    const estimatedMemoryMB = loadedCount * 8; // ~8MB per scene estimate
+    
+    setPerformanceStats({
+      loadedScenes: loadedCount,
+      memoryUsage: `${estimatedMemoryMB} MB`,
+      avgLoadTime: Math.round(avgTime)
+    });
+  }, []);
+
+  // Load a single scene on demand with progressive quality
+  const loadScene = useCallback(async (sceneId: string, priority: 'high' | 'normal' | 'low' = 'normal'): Promise<void> => {
     const sceneInfo = scenesRef.current[sceneId];
     if (!sceneInfo || sceneInfo.loaded) return;
 
+    const startTime = performance.now();
     const viewer = viewerRef.current;
     const { Marzipano } = window;
 
@@ -123,17 +160,39 @@ export default function PanoramaViewer() {
         `/images/${sceneInfo.data.id}-pano.jpg`
       );
 
-      // Create geometry with lower resolution for better performance
-      const geometry = new Marzipano.EquirectGeometry([
-        { width: 512 },
-        { width: 1024 },
-        { width: 2048 },
-        { width: 4096 },
-      ]);
+      // Progressive geometry based on priority and total scene count
+      const totalScenes = Object.keys(scenesRef.current).length;
+      let geometry;
+      
+      if (totalScenes > 100 || priority === 'low') {
+        // Ultra-light for large datasets
+        geometry = new Marzipano.EquirectGeometry([
+          { width: 256 },
+          { width: 512 },
+          { width: 1024 },
+          { width: 2048 },
+        ]);
+      } else if (totalScenes > 50 || priority === 'normal') {
+        // Balanced for medium datasets
+        geometry = new Marzipano.EquirectGeometry([
+          { width: 512 },
+          { width: 1024 },
+          { width: 2048 },
+          { width: 3072 },
+        ]);
+      } else {
+        // Full quality for small datasets or high priority
+        geometry = new Marzipano.EquirectGeometry([
+          { width: 512 },
+          { width: 1024 },
+          { width: 2048 },
+          { width: 4096 },
+        ]);
+      }
 
-      // Create view with more conservative limits
+      // Create view with zoom-friendly limits (always 4096 for zoom functionality)
       const limiter = Marzipano.RectilinearView.limit.traditional(
-        4096,
+        4096, // Keep 4096 for zoom functionality
         (120 * Math.PI) / 180
       );
       const view = new Marzipano.RectilinearView(
@@ -155,41 +214,102 @@ export default function PanoramaViewer() {
       // Update scene info
       sceneInfo.scene = scene;
       sceneInfo.loaded = true;
+      
+      // Track performance
+      const loadTime = performance.now() - startTime;
+      loadTimesRef.current.push(loadTime);
+      if (loadTimesRef.current.length > 20) {
+        loadTimesRef.current.shift(); // Keep only last 20 measurements
+      }
+      updatePerformanceStats();
+      
+      console.log(`Loaded scene ${sceneId} with ${priority} priority in ${Math.round(loadTime)}ms (${Object.keys(scenesRef.current).length} total scenes)`);
     } catch (err) {
       console.error(`Failed to load scene ${sceneId}:`, err);
     }
-  }, []);
+  }, [updatePerformanceStats]);
 
-  // Preload adjacent scenes more aggressively
+  // Smart preloading with distance-based prioritization
   const preloadAdjacentScenes = useCallback(
     async (sceneId: string): Promise<void> => {
       const sceneInfo = scenesRef.current[sceneId];
       if (!sceneInfo) return;
 
-      // Preload all connected scenes immediately
+      const totalScenes = Object.keys(scenesRef.current).length;
       const connections = sceneInfo.data.linkHotspots.map(h => h.target);
+      
+      // Adaptive limits based on total scene count
+      const maxPreloadedScenes = totalScenes > 200 ? 6 : totalScenes > 100 ? 8 : totalScenes > 50 ? 12 : 16;
+      const maxPriorityConnections = totalScenes > 200 ? 2 : totalScenes > 100 ? 3 : 4;
+      
+      const loadedScenes = Object.values(scenesRef.current).filter(s => s.loaded);
 
-      // Create image elements to preload in background
-      connections.forEach(targetId => {
+      // If we have too many loaded scenes, unload the furthest ones by distance
+      if (loadedScenes.length > maxPreloadedScenes) {
+        const scenesToUnload = loadedScenes
+          .filter(s => s.data.id !== sceneId && !connections.includes(s.data.id))
+          .map(s => ({
+            scene: s,
+            distance: calculateSceneDistance(sceneId, s.data.id)
+          }))
+          .sort((a, b) => b.distance - a.distance) // Sort by distance (furthest first)
+          .slice(0, loadedScenes.length - maxPreloadedScenes)
+          .map(item => item.scene);
+
+        scenesToUnload.forEach(scene => {
+          if (scene.scene) {
+            try {
+              scene.scene.destroy();
+              scene.scene = null;
+              scene.loaded = false;
+              clearHotspotsForScene(scene);
+              console.log(`Unloaded distant scene: ${scene.data.id}`);
+            } catch (err) {
+              console.warn(`Error unloading scene ${scene.data.id}:`, err);
+            }
+          }
+        });
+        updatePerformanceStats();
+      }
+
+      // Sort connections by distance for priority loading
+      const connectionsByDistance = connections
+        .map(targetId => ({
+          id: targetId,
+          distance: calculateSceneDistance(sceneId, targetId)
+        }))
+        .sort((a, b) => a.distance - b.distance);
+
+      // Preload closest connections with high priority
+      const priorityConnections = connectionsByDistance.slice(0, maxPriorityConnections);
+      
+      // Create low-priority image preloads for remaining connections
+      connectionsByDistance.slice(maxPriorityConnections).forEach(({ id: targetId }) => {
         const img = new Image();
+        img.loading = 'lazy';
         img.src = `/images/${targetId}-pano.jpg`;
       });
 
-      // Also load the scenes properly in Marzipano
-      for (const targetId of connections) {
+      // Load priority scenes in Marzipano with staggered timing
+      for (let i = 0; i < priorityConnections.length; i++) {
+        const { id: targetId } = priorityConnections[i];
         if (
           scenesRef.current[targetId] &&
           !scenesRef.current[targetId].loaded
         ) {
           try {
-            await loadScene(targetId);
+            // Stagger loading to prevent overwhelming the system
+            if (i > 0) {
+              await new Promise(resolve => setTimeout(resolve, 100 * i));
+            }
+            await loadScene(targetId, i === 0 ? 'normal' : 'low');
           } catch (err) {
             console.error(`Failed to preload scene ${targetId}:`, err);
           }
         }
       }
     },
-    [loadScene]
+    [loadScene, clearHotspotsForScene, calculateSceneDistance, updatePerformanceStats]
   );
 
   // Switch scene
@@ -204,10 +324,14 @@ export default function PanoramaViewer() {
 
       // Load scene if not already loaded
       if (!sceneInfo.loaded) {
-        await loadScene(sceneId);
+        await loadScene(sceneId, 'high');
       }
 
-      if (!sceneInfo.scene) return;
+      // Ensure scene is loaded before proceeding
+      if (!sceneInfo.scene) {
+        console.error(`Scene ${sceneId} is not loaded yet or failed to load`);
+        return;
+      }
 
       // Use tracked view direction if preserving and available
       let currentView = null;
@@ -300,9 +424,11 @@ export default function PanoramaViewer() {
   // Initialize viewer
   const initializeViewer = useCallback(async () => {
     try {
-      // Check WebGL support
+      // Check WebGL support with detailed diagnostics
       if (!checkWebGLSupport()) {
-        throw new Error('WebGL is not supported or disabled in your browser');
+        const diagnostics = getWebGLDiagnostics();
+        console.error('WebGL Diagnostics:', diagnostics);
+        throw new Error(`WebGL is not supported or disabled in your browser. Diagnostics: ${diagnostics}`);
       }
 
       // Load configuration
@@ -373,10 +499,10 @@ export default function PanoramaViewer() {
         };
       });
 
-      // Load and display first scene
+      // Load and display first scene with high priority
       if (configData.scenes.length > 0) {
         const firstScene = configData.scenes[0];
-        await loadScene(firstScene.id);
+        await loadScene(firstScene.id, 'high');
         switchScene(firstScene.id, true, false);
       }
 
@@ -412,7 +538,7 @@ export default function PanoramaViewer() {
 
         // Load scene in Marzipano if not already loaded
         if (!sceneInfo.loaded) {
-          await loadScene(sceneId);
+          await loadScene(sceneId, 'high');
         }
       }
 
@@ -469,11 +595,52 @@ export default function PanoramaViewer() {
     return () => document.removeEventListener('keydown', handleKeyPress);
   }, [toggleHotspots]);
 
+  // WebGL context loss recovery
+  const handleWebGLContextLoss = useCallback(() => {
+    console.warn('WebGL context lost, attempting recovery...');
+    setError('WebGL context was lost. Reloading viewer...');
+    
+    // Attempt to reinitialize after a short delay
+    setTimeout(() => {
+      if (checkWebGLSupport()) {
+        setError(null);
+        setIsLoading(true);
+        initializeViewer();
+      } else {
+        setError('WebGL context could not be restored. Please refresh the page.');
+      }
+    }, 1000);
+  }, [initializeViewer]);
+
   // Initialize when Marzipano loads
   const handleMarzipanoLoad = (): void => {
     marzipanoRef.current = true;
     initializeViewer();
   };
+
+  // Add WebGL context loss listeners
+  useEffect(() => {
+    const canvas = panoRef.current?.querySelector('canvas');
+    if (canvas) {
+      const handleContextLost = (event: Event) => {
+        event.preventDefault();
+        handleWebGLContextLoss();
+      };
+      
+      const handleContextRestored = () => {
+        console.log('WebGL context restored');
+        handleWebGLContextLoss();
+      };
+      
+      canvas.addEventListener('webglcontextlost', handleContextLost);
+      canvas.addEventListener('webglcontextrestored', handleContextRestored);
+      
+      return () => {
+        canvas.removeEventListener('webglcontextlost', handleContextLost);
+        canvas.removeEventListener('webglcontextrestored', handleContextRestored);
+      };
+    }
+  }, [handleWebGLContextLoss, viewerRef.current]);
 
   // Check if Marzipano is already loaded on mount
   useEffect(() => {
@@ -545,8 +712,47 @@ export default function PanoramaViewer() {
     };
   }, [clearHotspotsForScene]);
 
+  // Retry function for WebGL errors
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setIsLoading(true);
+    // Small delay to ensure state is reset
+    setTimeout(() => {
+      initializeViewer();
+    }, 100);
+  }, [initializeViewer]);
+
+  // Optimize performance by unloading distant scenes
+  const optimizePerformance = useCallback(() => {
+    if (!currentScene) return;
+    
+    const loadedScenes = Object.values(scenesRef.current).filter(s => s.loaded);
+    const currentConnections = scenesRef.current[currentScene]?.data.linkHotspots.map(h => h.target) || [];
+    
+    // Unload all scenes except current and immediate connections
+    const scenesToUnload = loadedScenes.filter(s => 
+      s.data.id !== currentScene && !currentConnections.includes(s.data.id)
+    );
+    
+    scenesToUnload.forEach(scene => {
+      if (scene.scene) {
+        try {
+          scene.scene.destroy();
+          scene.scene = null;
+          scene.loaded = false;
+          clearHotspotsForScene(scene);
+        } catch (err) {
+          console.warn(`Error during optimization unload ${scene.data.id}:`, err);
+        }
+      }
+    });
+    
+    updatePerformanceStats();
+    console.log(`Optimized: Unloaded ${scenesToUnload.length} distant scenes`);
+  }, [currentScene, clearHotspotsForScene, updatePerformanceStats]);
+
   if (error) {
-    return <LoadingScreen error={error} />;
+    return <LoadingScreen error={error} onRetry={handleRetry} />;
   }
 
   return (
@@ -595,6 +801,13 @@ export default function PanoramaViewer() {
       {showTapHint && (
         <div className='tap-hint show'>Tap anywhere to show navigation</div>
       )}
+
+      {/* Performance Monitor - Always visible */}
+      <PerformanceMonitor
+        stats={performanceStats}
+        totalScenes={config?.scenes.length || 0}
+        onOptimize={optimizePerformance}
+      />
 
       {config && currentScene && scenesRef.current[currentScene] && (
         <>

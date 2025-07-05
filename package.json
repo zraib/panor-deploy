@@ -12,6 +12,7 @@
     "dev:config": "npm run generate-config && npm run dev",
     "test:config": "node -e \"const { execSync } = require('child_process'); const os = require('os'); try { const pythonCmd = os.platform() === 'win32' ? 'python' : 'python3'; console.log('Testing configuration generation...'); execSync(`${pythonCmd} scripts/generate_marzipano_config.py --test`, { stdio: 'inherit' }); console.log('Configuration test completed successfully'); } catch (error) { console.error('Configuration test failed:', error.message); process.exit(1); }\"",
     "clean": "rimraf .next out public/config.json",
+    "cleanup-temp": "node scripts/cleanup-temp.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
