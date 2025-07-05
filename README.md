@@ -202,10 +202,43 @@ npm run export
 
 ## 🔍 Performance Optimization
 
+The application now includes intelligent performance optimizations that automatically adapt based on dataset size:
+
+### Automatic Optimizations
+
+- **Smart Scene Loading**: Progressive quality based on total scene count
+  - 4-50 scenes: Full quality (4096px max resolution)
+  - 51-100 scenes: Balanced quality (3072px max resolution)
+  - 101-200 scenes: Optimized quality (2048px max resolution)
+  - 200+ scenes: Ultra-light quality (2048px max resolution)
+
+- **Distance-Based Prioritization**: Scenes are loaded/unloaded based on spatial proximity
+- **Memory Management**: Automatic unloading of distant scenes to prevent memory overflow
+- **Adaptive Preloading**: Intelligent preloading limits based on dataset size
+- **Staggered Loading**: Prevents system overwhelming with delayed scene loading
+
+### Performance Monitor
+
+A real-time performance monitor is available in the top-right corner showing:
+- Number of loaded scenes vs total scenes
+- Estimated memory usage
+- Average loading times
+- Performance status (Excellent/Good/Fair/Poor)
+- Manual optimization button
+
+### Manual Optimizations
+
 - **Image Optimization**: Use WebP format for panorama images
-- **Lazy Loading**: Implement progressive loading for large scenes
+- **Lazy Loading**: Implemented automatically for large datasets
 - **Caching**: Configure appropriate cache headers
 - **Bundle Analysis**: Use `npm run build` to analyze bundle size
+
+### Performance Tips
+
+- **Large Datasets (200+ scenes)**: Performance is automatically optimized
+- **Navigation**: Move gradually between scenes for best experience
+- **Browser**: Close other tabs if experiencing lag
+- **Hardware**: Ensure graphics drivers are up to date
 
 ## 🛡️ Security
 
@@ -261,9 +294,24 @@ pip install numpy
 
 ### Performance Issues
 
-- Reduce image file sizes
-- Limit number of concurrent panoramas
+**Symptoms**: Laggy navigation, slow loading, or high memory usage
+
+**Automatic Solutions**:
+- Smart loading is enabled automatically for large datasets
+- Use the Performance Monitor (top-right corner) to check status
+- Click "Optimize Performance" button for manual cleanup
+
+**Manual Solutions**:
+- Reduce image file sizes (compress to 80-90% quality)
+- Navigate gradually between scenes instead of jumping far distances
+- Close other browser tabs to free up memory
 - Check browser console for errors
+- Update graphics drivers for better WebGL performance
+
+**For Large Datasets (100+ scenes)**:
+- Performance optimizations are automatically applied
+- Expect 6-16 scenes loaded simultaneously (adaptive)
+- Monitor shows performance status and memory usage
 
 For more detailed troubleshooting, see [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 

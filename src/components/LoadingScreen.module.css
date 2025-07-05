@@ -75,7 +75,59 @@
     opacity: 0.6;
 }
 
+.diagnostics {
+    margin-top: 15px;
+    text-align: left;
+}
+
+.diagnostics summary {
+    cursor: pointer;
+    font-size: 14px;
+    color: #ffd93d;
+    margin-bottom: 10px;
+    user-select: none;
+}
+
+.diagnostics summary:hover {
+    color: #ffed4e;
+}
+
+.diagnosticsContent {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #ccc;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.retryButton {
+    margin-top: 20px;
+    padding: 12px 24px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.retryButton:hover {
+    background: #45a049;
+}
+
+.retryButton:active {
+    background: #3d8b40;
+}
+
 @keyframes spin {
     to {
         transform: rotate(360deg);
-    } }
+    }
+}

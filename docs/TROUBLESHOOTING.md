@@ -135,6 +135,46 @@ pip3 install numpy
 
 ## Runtime Issues
 
+### WebGL Context Lost Error
+
+**Error**: "Bad WebGL context - maybe context was lost?"
+
+**This is primarily a hardware/driver issue (90% of cases)**
+
+**Immediate Solutions**:
+
+1. **Update Graphics Drivers** (Most Important):
+   - NVIDIA: Use GeForce Experience or download from nvidia.com
+   - AMD: Use AMD Software or download from amd.com
+   - Intel: Use Intel Driver & Support Assistant
+
+2. **Enable Hardware Acceleration**:
+   - Chrome: Settings → Advanced → System → "Use hardware acceleration when available"
+   - Firefox: Settings → General → Performance → "Use hardware acceleration when available"
+   - Edge: Settings → System → "Use hardware acceleration when available"
+
+3. **Browser Troubleshooting**:
+   - Restart browser completely (close all tabs)
+   - Clear browser cache and cookies
+   - Try incognito/private mode
+   - Test in different browser (Chrome, Firefox, Edge)
+
+4. **System-Level Fixes**:
+   - Check for laptop overheating (use HWiNFO64)
+   - Ensure adequate power supply
+   - Close GPU-intensive applications
+   - Check GPU memory usage in Task Manager
+
+5. **Test WebGL Status**:
+   - Visit https://get.webgl.org/ to verify WebGL works
+   - Check browser console for detailed error messages
+
+**Prevention**:
+- Keep graphics drivers updated
+- Monitor system temperature
+- Avoid running multiple WebGL applications
+- Use `npm run cleanup-temp` to free system resources
+
 ### Panorama Images Not Loading
 
 **Symptoms**: Black screen or missing textures
