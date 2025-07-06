@@ -37,7 +37,7 @@ def generate_config(csv_file, output_file='config.json', project_path=''):
         for row in reader:
             row = {k.strip(): v.strip() for k, v in row.items()}
             pano = {
-                'id': row.get('ID') or row.get('id') or row.get('Id') or row.get('filename').split('-')[0],
+                'id': row.get('filename').split('-')[0],  # Always extract ID from filename
                 'filename': row.get('filename'),
                 'pos': [float(row['pano_pos_x']), float(row['pano_pos_y']), float(row['pano_pos_z'])],
                 'ori': [float(row['pano_ori_w']), float(row['pano_ori_x']), float(row['pano_ori_y']), float(row['pano_ori_z'])]
