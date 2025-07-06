@@ -1,8 +1,10 @@
 import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Link from 'next/link';
 import styles from '@/styles/Upload.module.css';
 
 export default function Upload() {
+  const router = useRouter();
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -11,53 +13,82 @@ export default function Upload() {
   const [allowOverwrite, setAllowOverwrite] = useState(false);
   const [showSelectedFiles, setShowSelectedFiles] = useState(false);
   const [showDuplicateFiles, setShowDuplicateFiles] = useState(false);
+  const [projectName, setProjectName] = useState('');
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [existingFiles, setExistingFiles] = useState<{
+    csv: string | null;
+    images: string[];
+  }>({ csv: null, images: [] });
   const [selectedFiles, setSelectedFiles] = useState<{
     csv: File | null;
     images: File[];
   }>({ csv: null, images: [] });
 
+  // This effect handles project editing mode
+  useEffect(() => {
+    const projectParam = router.query.project as string;
+    if (projectParam && !isEditMode) {
+      setIsEditMode(true);
+      setEditingProjectId(projectParam);
+      setCreatedProjectId(projectParam);
+      
+      // Load existing project data
+      const loadProjectData = async () => {
+        try {
+          // Load project info
+          const projectResponse = await fetch(`/api/projects?projectId=${encodeURIComponent(projectParam)}`);
+          if (projectResponse.ok) {
+            const projectData = await projectResponse.json();
+            const project = projectData.projects?.find((p: any) => p.id === projectParam);
+            if (project) {
+              setProjectName(project.name);
+            }
+          }
+
+          // Load existing files
+           const filesResponse = await fetch(`/api/projects/${encodeURIComponent(projectParam)}/files`);
+           if (filesResponse.ok) {
+             const filesData = await filesResponse.json();
+             const { files } = filesData;
+             
+             // Store existing files in state
+             setExistingFiles({
+               csv: files.csv,
+               images: files.images
+             });
+             
+             let fileInfo = [];
+             if (files.csv) {
+               fileInfo.push(`CSV: ${files.csv}`);
+             }
+             if (files.images.length > 0) {
+               fileInfo.push(`${files.images.length} image(s)`);
+             }
+             
+             if (fileInfo.length > 0) {
+               setMessage(`✏️ Editing project: ${projectName || projectParam}. Current files: ${fileInfo.join(', ')}. Upload new files to update this project.`);
+             } else {
+               setMessage(`✏️ Editing project: ${projectName || projectParam}. No existing files found. Upload files to add content to this project.`);
+             }
+           } else {
+             setMessage(`✏️ Editing project: ${projectName || projectParam}. Upload new files to update this project.`);
+           }
+        } catch (error) {
+          console.error('Failed to load project data:', error);
+          setMessage('⚠️ Failed to load project data. You can still upload files to update the project.');
+        }
+      };
+      
+      loadProjectData();
+    }
+  }, [router.query.project, isEditMode]);
+
   // This effect will run once on mount to initialize file state
   useEffect(() => {
     const initializeFiles = async () => {
-      // 1. Check for files on the server
-      try {
-        const response = await fetch('/api/check-files');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.csvFile || (data.imageFiles && data.imageFiles.length > 0)) {
-            const newSelectedFiles: { csv: File | null; images: File[] } = {
-              csv: null,
-              images: [],
-            };
-
-            if (data.csvFile) {
-              const fileResponse = await fetch(`/data/${data.csvFile}`);
-              const blob = await fileResponse.blob();
-              newSelectedFiles.csv = new File([blob], data.csvFile, {
-                type: blob.type,
-              });
-            }
-
-            if (data.imageFiles && data.imageFiles.length > 0) {
-              const imagePromises = data.imageFiles.map(
-                async (imageName: string) => {
-                  const fileResponse = await fetch(`/images/${imageName}`);
-                  const blob = await fileResponse.blob();
-                  return new File([blob], imageName, { type: blob.type });
-                }
-              );
-              newSelectedFiles.images = await Promise.all(imagePromises);
-            }
-
-            setSelectedFiles(newSelectedFiles);
-            return; // Prioritize server files
-          }
-        }
-      } catch (error) {
-        console.error('Failed to check or fetch server files:', error);
-      }
-
-      // 2. If no server files, try to restore from browser session
+      // Try to restore from browser session (no longer checking legacy server files)
       try {
         if (
           typeof window !== 'undefined' &&
@@ -84,8 +115,10 @@ export default function Upload() {
       }
     };
 
-    initializeFiles();
-  }, []); // Empty dependency array ensures this runs only once on mount
+    if (!isEditMode) {
+      initializeFiles();
+    }
+  }, [isEditMode]); // Only run when not in edit mode
 
   // This effect synchronizes the file input elements with the state
   useEffect(() => {
@@ -93,21 +126,33 @@ export default function Upload() {
     const imagesInput = document.getElementById('images') as HTMLInputElement;
 
     const dtCsv = new DataTransfer();
+    // Use selected files first, then fall back to existing files in edit mode
     if (selectedFiles.csv) {
       dtCsv.items.add(selectedFiles.csv);
+    } else if (isEditMode && existingFiles.csv) {
+      // Create a File object from existing CSV data to display in the input
+      const csvFile = new File([''], existingFiles.csv, { type: 'text/csv' });
+      dtCsv.items.add(csvFile);
     }
     if (csvInput) {
       csvInput.files = dtCsv.files;
     }
 
     const dtImages = new DataTransfer();
+    // Use selected images first, then fall back to existing images in edit mode
     if (selectedFiles.images.length > 0) {
       selectedFiles.images.forEach(file => dtImages.items.add(file));
+    } else if (isEditMode && existingFiles.images.length > 0) {
+      // Create File objects from existing image data
+      existingFiles.images.forEach(imageName => {
+        const imageFile = new File([''], imageName, { type: 'image/jpeg' });
+        dtImages.items.add(imageFile);
+      });
     }
     if (imagesInput) {
       imagesInput.files = dtImages.files;
     }
-  }, [selectedFiles]);
+  }, [selectedFiles, existingFiles, isEditMode]);
 
   // This effect persists selected files for the session
   useEffect(() => {
@@ -171,8 +216,26 @@ export default function Upload() {
       setAllowOverwrite(false);
     }
 
-    if (!selectedFiles.csv || selectedFiles.images.length === 0) {
-      setMessage('Please select both a CSV file and at least one image.');
+    // In edit mode, allow updating without requiring new files if existing files are present
+    const hasExistingCsv = isEditMode && existingFiles.csv;
+    const hasExistingImages = isEditMode && existingFiles.images.length > 0;
+    const hasNewCsv = selectedFiles.csv;
+    const hasNewImages = selectedFiles.images.length > 0;
+    
+    if (!hasNewCsv && !hasExistingCsv) {
+      setMessage('Please select a CSV file.');
+      setIsLoading(false);
+      return;
+    }
+    
+    if (!hasNewImages && !hasExistingImages) {
+      setMessage('Please select at least one image.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!projectName.trim()) {
+      setMessage('Please enter a project name.');
       setIsLoading(false);
       return;
     }
@@ -196,7 +259,49 @@ export default function Upload() {
         });
       }, 1000);
 
-      const response = await fetch('/api/upload', {
+      let projectId: string;
+
+      if (isEditMode && editingProjectId) {
+        // Use existing project ID for editing
+        projectId = editingProjectId;
+        
+        // Update project name if it has changed
+        try {
+          await fetch('/api/projects', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              projectId: editingProjectId,
+              projectName: projectName.trim() 
+            }),
+          });
+        } catch (error) {
+          console.warn('Failed to update project name:', error);
+        }
+      } else {
+        // Create new project
+        const projectResponse = await fetch('/api/projects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ projectName: projectName.trim() }),
+        });
+
+        if (!projectResponse.ok) {
+          const projectError = await projectResponse.json();
+          throw new Error(projectError.error || 'Failed to create project');
+        }
+
+        const projectData = await projectResponse.json();
+        projectId = projectData.project.id;
+        setCreatedProjectId(projectId);
+      }
+
+      // Upload files to the project
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -269,12 +374,37 @@ export default function Upload() {
           </Link>
         </div>
 
-        <h1 className={styles.title}>Upload Panorama Data</h1>
+        <h1 className={styles.title}>
+          {isEditMode ? 'Edit Project Data' : 'Upload Panorama Data'}
+        </h1>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
+            <label htmlFor='projectName' className={styles.label}>
+              📁 Project Name:
+            </label>
+            <input
+              type='text'
+              id='projectName'
+              name='projectName'
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              placeholder='Enter a name for your project'
+              required
+              className={styles.textInput}
+            />
+            <div className={styles.inputHint}>
+              {isEditMode 
+                ? 'Update the name of your existing project.' 
+                : 'This will create a new project folder for your panorama data.'}
+            </div>
+          </div>
+
+
+
+          <div className={styles.formGroup}>
             <label htmlFor='csv' className={styles.label}>
-              📄 CSV File:
+              📄 CSV File{isEditMode && existingFiles.csv ? ' (Optional - will replace existing)' : ''}:
             </label>
             {selectedFiles.csv &&
               selectedFiles.csv.name !== 'pano-poses.csv' && (
@@ -290,20 +420,20 @@ export default function Upload() {
               id='csv'
               name='csv'
               accept='.csv'
-              required
+              required={!isEditMode || !existingFiles.csv}
               onChange={handleFileChange}
               className={styles.fileInput}
             />
-            {selectedFiles.csv && (
+            {(selectedFiles.csv || (isEditMode && existingFiles.csv)) && (
               <div className={styles.fileInfo}>
-                Selected: {selectedFiles.csv.name}
+                Selected: {selectedFiles.csv ? selectedFiles.csv.name : existingFiles.csv}
               </div>
             )}
           </div>
 
           <div className={styles.formGroup}>
             <label htmlFor='images' className={styles.label}>
-              🖼️ Panorama Images:
+              🖼️ Panorama Images{isEditMode && existingFiles.images.length > 0 ? ' (Optional - will add to existing)' : ''}:
             </label>
             <input
               type='file'
@@ -311,15 +441,15 @@ export default function Upload() {
               name='images'
               accept='image/*'
               multiple
-              required
+              required={!isEditMode || existingFiles.images.length === 0}
               onChange={handleFileChange}
               className={styles.fileInput}
             />
-            {selectedFiles.images.length > 0 && (
+            {(selectedFiles.images.length > 0 || (isEditMode && existingFiles.images.length > 0)) && (
               <div className={styles.fileList}>
                 <div className={styles.fileListHeader}>
                   <p className={styles.fileListTitle}>
-                    Selected {selectedFiles.images.length} image(s)
+                    Selected {selectedFiles.images.length > 0 ? selectedFiles.images.length : existingFiles.images.length} image(s)
                   </p>
                   <button
                     type='button'
@@ -331,9 +461,14 @@ export default function Upload() {
                 </div>
                 {showSelectedFiles && (
                   <ul className={styles.fileListItems}>
-                    {selectedFiles.images.map((file, index) => (
-                      <li key={index}>{file.name}</li>
-                    ))}
+                    {selectedFiles.images.length > 0 
+                      ? selectedFiles.images.map((file, index) => (
+                          <li key={index}>{file.name}</li>
+                        ))
+                      : existingFiles.images.map((imageName, index) => (
+                          <li key={index}>{imageName}</li>
+                        ))
+                    }
                   </ul>
                 )}
               </div>
@@ -346,7 +481,9 @@ export default function Upload() {
             className={styles.submitButton}
           >
             {isLoading && <span className={styles.loadingSpinner}></span>}
-            {isLoading ? 'Uploading and Generating...' : 'Upload and Generate'}
+            {isLoading 
+              ? (isEditMode ? 'Updating Project...' : 'Uploading and Generating...') 
+              : (isEditMode ? 'Update Project' : 'Upload and Generate')}
           </button>
 
           {isLoading && uploadProgress > 0 && (
@@ -426,52 +563,7 @@ export default function Upload() {
                 {isLoading ? 'Overwriting...' : '🔄 Upload and Overwrite'}
               </button>
 
-              <button
-                onClick={async e => {
-                  e.preventDefault();
-                  setIsLoading(true);
-                  setMessage('Clearing old data...');
-                  try {
-                    const response = await fetch('/api/clear-data', {
-                      method: 'POST',
-                    });
-                    if (!response.ok) {
-                      throw new Error('Failed to clear old data.');
-                    }
-                    setMessage('Old data cleared. Now uploading new files...');
-                    const form = document.querySelector(
-                      'form'
-                    ) as HTMLFormElement;
-                    if (form) {
-                      const syntheticEvent = {
-                        preventDefault: () => {},
-                        currentTarget: form,
-                        target: form,
-                        nativeEvent: new Event('submit'),
-                        bubbles: true,
-                        cancelable: true,
-                        defaultPrevented: false,
-                        eventPhase: 0,
-                        isTrusted: true,
-                        timeStamp: Date.now(),
-                        type: 'submit',
-                        _overwriteMode: true, // Treat as overwrite since we just cleared
-                      } as unknown as FormEvent<HTMLFormElement> & {
-                        _overwriteMode: boolean;
-                      };
-                      handleSubmit(syntheticEvent);
-                    }
-                  } catch (error: any) {
-                    setMessage(`Error: ${error.message}`);
-                    setIsLoading(false);
-                  }
-                }}
-                disabled={isLoading}
-                className={styles.clearButton}
-              >
-                {isLoading && <span className={styles.loadingSpinner}></span>}
-                {isLoading ? 'Clearing...' : '🗑️ Clear All and Upload'}
-              </button>
+
             </div>
           </div>
         )}
@@ -490,9 +582,15 @@ export default function Upload() {
 
         {uploadSuccess && (
           <div className={styles.successActions}>
-            <Link href='/' className={styles.viewPanoramasButton}>
-              🏠 View Panoramas
-            </Link>
+            {createdProjectId ? (
+              <Link href={`/${createdProjectId}`} className={styles.viewPanoramasButton}>
+                🏠 View Project Panoramas
+              </Link>
+            ) : (
+              <Link href='/' className={styles.viewPanoramasButton}>
+                🏠 View Panoramas
+              </Link>
+            )}
           </div>
         )}
 

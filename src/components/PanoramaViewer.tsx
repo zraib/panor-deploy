@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback, MouseEvent } from 'react';
 import Script from 'next/script';
+import { useRouter } from 'next/router';
 import MiniMap from './MiniMap';
 import LoadingScreen from './LoadingScreen';
 import ControlPanel from './ControlPanel';
-
 import Hotspot from './Hotspot';
 import {
   checkWebGLSupport,
@@ -36,7 +36,16 @@ function yawPitchToScreen(
   return { x, y };
 }
 
-export default function PanoramaViewer() {
+interface PanoramaViewerProps {
+  projectId?: string;
+  initialSceneId?: string;
+}
+
+export default function PanoramaViewer({
+  projectId,
+  initialSceneId,
+}: PanoramaViewerProps = {}) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<ConfigData | null>(null);
@@ -169,10 +178,11 @@ export default function PanoramaViewer() {
       const { Marzipano } = window;
 
       try {
-        // Create source
-        const source = Marzipano.ImageUrlSource.fromString(
-          `/images/${sceneInfo.data.id}-pano.jpg`
-        );
+        // Create source with project-specific path
+        const imagePath = projectId
+          ? `/${projectId}/images/${sceneInfo.data.id}-pano.jpg`
+          : `/images/${sceneInfo.data.id}-pano.jpg`;
+        const source = Marzipano.ImageUrlSource.fromString(imagePath);
 
         // Progressive geometry based on priority and total scene count
         const totalScenes = Object.keys(scenesRef.current).length;
@@ -322,7 +332,10 @@ export default function PanoramaViewer() {
         .forEach(({ id: targetId }) => {
           const img = new Image();
           img.loading = 'lazy';
-          img.src = `/images/${targetId}-pano.jpg`;
+          const imagePath = projectId
+            ? `/${projectId}/images/${targetId}-pano.jpg`
+            : `/images/${targetId}-pano.jpg`;
+          img.src = imagePath;
         });
 
       // Load priority scenes in Marzipano with staggered timing
@@ -473,10 +486,13 @@ export default function PanoramaViewer() {
         );
       }
 
-      // Load configuration
-      const response = await fetch('/config.json');
+      // Load configuration with project-specific path
+      const configUrl = projectId
+        ? `/api/projects/${encodeURIComponent(projectId)}/config`
+        : '/config.json';
+      const response = await fetch(configUrl);
       if (!response.ok) {
-        throw new Error(`Failed to load config.json: ${response.statusText}`);
+        throw new Error(`Failed to load config: ${response.statusText}`);
       }
 
       const configData = (await response.json()) as ConfigData;
@@ -541,11 +557,22 @@ export default function PanoramaViewer() {
         };
       });
 
-      // Load and display first scene with high priority
+      // Load and display initial scene with high priority
       if (configData.scenes.length > 0) {
-        const firstScene = configData.scenes[0];
-        await loadScene(firstScene.id, 'high');
-        switchScene(firstScene.id, true, false);
+        let targetScene = configData.scenes[0];
+
+        // Use initialSceneId if provided and exists
+        if (initialSceneId) {
+          const foundScene = configData.scenes.find(
+            s => s.id === initialSceneId
+          );
+          if (foundScene) {
+            targetScene = foundScene;
+          }
+        }
+
+        await loadScene(targetScene.id, 'high');
+        switchScene(targetScene.id, true, false);
       }
 
       setIsLoading(false);
@@ -568,9 +595,12 @@ export default function PanoramaViewer() {
       // First ensure the target scene is fully loaded
       const sceneInfo = scenesRef.current[sceneId];
       if (sceneInfo) {
-        // Create image element to force preload
+        // Create image element to force preload with project-specific path
         const img = new Image();
-        img.src = `/images/${sceneId}-pano.jpg`;
+        const imagePath = projectId
+          ? `/${projectId}/images/${sceneId}-pano.jpg`
+          : `/images/${sceneId}-pano.jpg`;
+        img.src = imagePath;
 
         // Wait for image to load
         await new Promise<void>(resolve => {
@@ -816,6 +846,32 @@ export default function PanoramaViewer() {
       />
 
       {isLoading && <LoadingScreen />}
+
+      {/* Logo */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          zIndex: 1200,
+          background: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          padding: '10px',
+          borderRadius: '14px',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
+        }}
+      >
+        <img
+          src='/assets/svg/primezone-logo.svg'
+          alt='PrimeZone Logo'
+          style={{
+            height: '60px',
+            width: 'auto',
+            display: 'block',
+          }}
+        />
+      </div>
 
       <div
         ref={panoRef}

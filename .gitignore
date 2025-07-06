@@ -129,6 +129,9 @@ pnpm-lock.yaml
 !/public/images/.gitkeep
 /public/data/*
 
+# Ignore project-specific directories
+/public/*/
+
 # Lighthouse reports
 lighthouse-report.html
 lighthouse-report.json

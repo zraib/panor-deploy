@@ -18,21 +18,7 @@ export function getEnvironmentConfig(): Partial<EnvironmentConfig> {
   };
 }
 
-/**
- * Load panorama configuration from public/config.json
- */
-export async function loadPanoramaConfig() {
-  try {
-    const response = await fetch('/config.json');
-    if (!response.ok) {
-      throw new Error(`Failed to load config: ${response.status}`);
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error loading panorama configuration:', error);
-    throw error;
-  }
-}
+
 
 /**
  * Validate panorama configuration
@@ -110,36 +96,5 @@ export function formatErrorMessage(error: Error | string): string {
   } else {
     // Show user-friendly error in production
     return 'An error occurred while loading the panorama viewer. Please try refreshing the page.';
-  }
-}
-
-/**
- * Check if configuration file exists
- */
-export async function checkConfigExists(): Promise<boolean> {
-  try {
-    const response = await fetch('/config.json', { method: 'HEAD' });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Get configuration file status
- */
-export async function getConfigStatus() {
-  try {
-    const response = await fetch('/config.json', { method: 'HEAD' });
-    return {
-      exists: response.ok,
-      lastModified: response.headers.get('last-modified'),
-      size: response.headers.get('content-length'),
-    };
-  } catch (error) {
-    return {
-      exists: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
   }
 }

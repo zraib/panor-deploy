@@ -6,6 +6,8 @@ calculate_north_offsets.py - Calculate northOffset values from quaternion orient
 import json
 import math
 import numpy as np
+import argparse
+import os
 from pathlib import Path
 
 def quaternion_to_yaw(w, x, y, z):
@@ -139,17 +141,28 @@ def analyze_orientations(config_file='public/config.json'):
     print(f"Average yaw: {sum(yaws)/len(yaws):.1f}°")
 
 if __name__ == '__main__':
-    import sys
+    parser = argparse.ArgumentParser(description='Calculate north offsets for panorama scenes')
+    parser.add_argument('--project', type=str, help='Project ID for project-specific calculation')
+    parser.add_argument('--reference', type=str, help='Reference scene ID to use as 0 offset')
+    parser.add_argument('--analyze', action='store_true', help='Analyze current orientations')
+    args = parser.parse_args()
     
-    if len(sys.argv) > 1:
-        if sys.argv[1] == '--analyze':
-            analyze_orientations()
-        elif sys.argv[1] == '--reference' and len(sys.argv) > 2:
-            calculate_north_offsets(reference_scene_id=sys.argv[2])
-        else:
-            print("Usage:")
-            print("  python calculate_north_offsets.py                    # Calculate offsets using first scene as reference")
-            print("  python calculate_north_offsets.py --reference 00005  # Use specific scene as reference")
-            print("  python calculate_north_offsets.py --analyze          # Analyze current orientations")
+    # Determine config file path
+    if not args.project:
+        print('Error: Project ID is required. Use --project <projectId> argument.')
+        exit(1)
+        
+    # Project-specific paths
+    config_file = f'public/{args.project}/config.json'
+    print(f'Using project-specific config: {config_file}')
+    
+    if not os.path.exists(config_file):
+        print(f'Error: Config file not found at {config_file}')
+        exit(1)
+    
+    if args.analyze:
+        analyze_orientations(config_file)
+    elif args.reference:
+        calculate_north_offsets(config_file, args.reference)
     else:
-        calculate_north_offsets()
+        calculate_north_offsets(config_file)

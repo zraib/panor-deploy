@@ -11,11 +11,8 @@ export const config = {
   api: {
     bodyParser: false,
     responseLimit: false,
-    // Increase timeout for large uploads (5 minutes)
     externalResolver: true,
   },
-  // Note: maxDuration is not a valid Next.js API config option
-  // For Vercel deployments, use vercel.json to configure function timeouts
 };
 
 const ensureDirectoryExists = (dirPath: string) => {
@@ -33,7 +30,6 @@ const moveFile = (oldPath: string, newPath: string) => {
   });
 };
 
-// Helper function to clean up temp files
 const cleanupTempFiles = async (tempFiles: (File | File[])[]) => {
   for (const fileOrArray of tempFiles) {
     const files = Array.isArray(fileOrArray) ? fileOrArray : [fileOrArray];
@@ -55,6 +51,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const { projectId } = req.query;
+  
+  if (!projectId || typeof projectId !== 'string') {
+    return res.status(400).json({ error: 'Project ID is required' });
+  }
+
   let tempFilesToCleanup: (File | File[])[] = [];
 
   try {
@@ -63,13 +65,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ensureDirectoryExists(tmpDir);
     
     const form = new IncomingForm({
-      maxFileSize: 200 * 1024 * 1024, // 200MB per file (for large panorama images)
+      maxFileSize: 200 * 1024 * 1024, // 200MB per file
       maxTotalFileSize: 2 * 1024 * 1024 * 1024, // 2GB total
       maxFields: 1000,
       maxFieldsSize: 20 * 1024 * 1024, // 20MB for fields
       allowEmptyFiles: false,
       minFileSize: 1,
-      // Increase timeout for parsing
       uploadDir: tmpDir,
       keepExtensions: true,
       multiples: true,
@@ -82,11 +83,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     });
 
-    // Ensure directories exist
+    // Ensure project directories exist
     const publicDir = path.join(process.cwd(), 'public');
-    const imagesDir = path.join(publicDir, 'images');
-    const dataDir = path.join(publicDir, 'data');
+    const projectDir = path.join(publicDir, projectId);
+    const imagesDir = path.join(projectDir, 'images');
+    const dataDir = path.join(projectDir, 'data');
     
+    ensureDirectoryExists(projectDir);
     ensureDirectoryExists(imagesDir);
     ensureDirectoryExists(dataDir);
 
@@ -113,7 +116,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Check for duplicate file names only if overwrite is not allowed
     if (!allowOverwrite) {
       const duplicateFiles: string[] = [];
-      const existingFiles = fs.readdirSync(imagesDir);
+      const existingFiles = fs.existsSync(imagesDir) ? fs.readdirSync(imagesDir) : [];
       
       for (const imageFile of imageFiles) {
         if (imageFile && imageFile.originalFilename) {
@@ -125,7 +128,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // If duplicates found, return warning
       if (duplicateFiles.length > 0) {
-        // Clean up temp files before returning
         await cleanupTempFiles(tempFilesToCleanup);
         return res.status(409).json({ 
           error: 'Duplicate file names detected',
@@ -142,9 +144,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Run the configuration generation script
+    // Run the configuration generation script for this specific project
     try {
-      const { stdout, stderr } = await execAsync('npm run generate-config', {
+      const { stdout, stderr } = await execAsync(`npm run generate-config -- --project "${projectId}"`, {
         cwd: process.cwd(),
       });
       
@@ -154,13 +156,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       res.status(200).json({ 
-        message: 'Files uploaded successfully and configuration generated!',
+        message: `Files uploaded successfully to project "${projectId}" and configuration generated!`,
+        projectId,
         scriptOutput: stdout
       });
     } catch (scriptError) {
       console.error('Script execution error:', scriptError);
       res.status(200).json({ 
-        message: 'Files uploaded successfully, but configuration generation failed. Please run "npm run generate-config" manually.',
+        message: `Files uploaded successfully to project "${projectId}", but configuration generation failed. Please run "npm run generate-config -- --project \"${projectId}\"" manually.`,
+        projectId,
         error: scriptError
       });
     }

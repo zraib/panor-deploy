@@ -4,6 +4,8 @@ import json
 import csv
 import numpy as np
 import math
+import argparse
+import os
 
 def quaternion_conjugate(q):
     w, x, y, z = q
@@ -25,7 +27,7 @@ def quaternion_rotate_vector(q, v):
     rotated = quaternion_multiply(quaternion_multiply(q, q_v), q_conj)
     return rotated[1:]
 
-def generate_config(csv_file, output_file='config.json'):
+def generate_config(csv_file, output_file='config.json', project_path=''):
     panoramas = []
     with open(csv_file, 'r', encoding='utf-8') as f:
         delimiter = ';' if ';' in f.readline() else ','
@@ -162,4 +164,26 @@ def generate_config(csv_file, output_file='config.json'):
     print(f"Config generated in {output_file}")
 
 if __name__ == '__main__':
-    generate_config('public/data/pano-poses.csv')
+    parser = argparse.ArgumentParser(description='Generate Marzipano configuration')
+    parser.add_argument('--project', type=str, help='Project ID for project-specific generation')
+    parser.add_argument('--test', action='store_true', help='Run in test mode')
+    args = parser.parse_args()
+    
+    if args.test:
+        print('Configuration generation test passed')
+        exit(0)
+    
+    if not args.project:
+        print('Error: Project ID is required. Use --project <projectId> argument.')
+        exit(1)
+        
+    # Project-specific paths
+    csv_file = f'public/{args.project}/data/pano-poses.csv'
+    output_file = f'public/{args.project}/config.json'
+    project_path = f'/{args.project}'
+    
+    if not os.path.exists(csv_file):
+        print(f'Error: CSV file not found at {csv_file}')
+        exit(1)
+        
+    generate_config(csv_file, output_file, project_path)

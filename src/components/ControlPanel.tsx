@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, ReactElement } from 'react';
+import React, { useState, ReactElement, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import styles from './ControlPanel.module.css';
 import { SceneData } from '@/types/scenes';
 
@@ -55,6 +56,15 @@ interface PerformanceStats {
   avgLoadTime: number;
 }
 
+interface Project {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  sceneCount: number;
+  hasConfig: boolean;
+}
+
 interface ControlPanelProps {
   // Floor Selector props
   scenes?: SceneData[];
@@ -75,7 +85,16 @@ export default function ControlPanel({
   totalScenes = 0,
   onOptimize,
 }: ControlPanelProps): ReactElement {
+  const router = useRouter();
   const [expandedPanel, setExpandedPanel] = useState<string | null>(null);
+  const [hoveredPanel, setHoveredPanel] = useState<string | null>(null);
+
+  // Project management state
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const currentProject = router.query.projectId as string;
   const [floors, setFloors] = useState<number[]>([]);
 
   // Floor Selector logic
@@ -87,6 +106,72 @@ export default function ControlPanel({
       setFloors(uniqueFloors);
     }
   }, [scenes]);
+
+  // Project management functions
+  const loadProjects = async () => {
+    try {
+      setProjectsLoading(true);
+      const response = await fetch('/api/projects');
+      if (!response.ok) {
+        throw new Error('Failed to load projects');
+      }
+      const data = await response.json();
+      setProjects(data.projects);
+      setProjectsError(null);
+    } catch (err: any) {
+      setProjectsError(err.message);
+    } finally {
+      setProjectsLoading(false);
+    }
+  };
+
+  const deleteProject = async (projectId: string) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete project "${projectId}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeleting(projectId);
+      const response = await fetch(
+        `/api/projects?projectId=${encodeURIComponent(projectId)}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete project');
+      }
+
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+
+      // If we deleted the current project, go to home
+      if (currentProject === projectId) {
+        router.push('/');
+      }
+    } catch (err: any) {
+      setProjectsError(err.message);
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleProjectSelect = (projectId: string) => {
+    router.push(`/${projectId}`);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
 
   const handlePanelToggle = (panelId: string) => {
     setExpandedPanel(expandedPanel === panelId ? null : panelId);
@@ -156,11 +241,15 @@ export default function ControlPanel({
 
   const performance = getPerformanceLevel();
 
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
   return (
     <div className={styles.controlPanel}>
-      {/* Upload Files */}
+      {/* Projects */}
       <ControlButton
-        id='upload'
+        id='projects'
         expandedPanel={expandedPanel}
         onToggle={handlePanelToggle}
         onMouseEnter={handleMouseEnter}
@@ -174,24 +263,10 @@ export default function ControlPanel({
             xmlns='http://www.w3.org/2000/svg'
           >
             <path
-              d='M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2Z'
+              d='M22 19C22 19.6 21.6 20 21 20H3C2.4 20 2 19.6 2 19V5C2 4.4 2.4 4 3 4H7L9 6H21C21.6 6 22 6.4 22 7V19Z'
               stroke='white'
               strokeWidth='2'
               fill='none'
-            />
-            <path d='M14 2V8H20' stroke='white' strokeWidth='2' fill='none' />
-            <path
-              d='M12 18V12'
-              stroke='white'
-              strokeWidth='2'
-              strokeLinecap='round'
-            />
-            <path
-              d='M9 15L12 12L15 15'
-              stroke='white'
-              strokeWidth='2'
-              strokeLinecap='round'
-              strokeLinejoin='round'
             />
           </svg>
         }
@@ -199,7 +274,7 @@ export default function ControlPanel({
         <div className={styles.expandedPanel}>
           <div
             className={styles.header}
-            onClick={() => handlePanelToggle('upload')}
+            onClick={() => handlePanelToggle('projects')}
           >
             <div className={styles.icon}>
               <svg
@@ -210,46 +285,198 @@ export default function ControlPanel({
                 xmlns='http://www.w3.org/2000/svg'
               >
                 <path
-                  d='M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2Z'
+                  d='M22 19C22 19.6 21.6 20 21 20H3C2.4 20 2 19.6 2 19V5C2 4.4 2.4 4 3 4H7L9 6H21C21.6 6 22 6.4 22 7V19Z'
                   stroke='white'
                   strokeWidth='2'
                   fill='none'
-                />
-                <path
-                  d='M14 2V8H20'
-                  stroke='white'
-                  strokeWidth='2'
-                  fill='none'
-                />
-                <path
-                  d='M12 18V12'
-                  stroke='white'
-                  strokeWidth='2'
-                  strokeLinecap='round'
-                />
-                <path
-                  d='M9 15L12 12L15 15'
-                  stroke='white'
-                  strokeWidth='2'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
                 />
               </svg>
             </div>
-            <span className={styles.text}>Upload Files</span>
+            <span className={styles.text}>Projects</span>
           </div>
           <div className={styles.content}>
-            <p className={styles.description}>
-              Upload panorama images and CSV configuration files to create new
-              tours.
-            </p>
+            {/* Create Project Button */}
             <Link
               href='/upload'
               className={styles.actionButton}
               onClick={() => setExpandedPanel(null)}
+              style={{ marginBottom: '16px' }}
             >
-              Go to Upload Page
+              + Create New Project
             </Link>
+
+            {/* Error Display */}
+            {projectsError && (
+              <div
+                style={{
+                  padding: '8px 12px',
+                  background: 'rgba(244, 67, 54, 0.2)',
+                  border: '1px solid rgba(244, 67, 54, 0.4)',
+                  borderRadius: '6px',
+                  color: '#ffcdd2',
+                  fontSize: '12px',
+                  marginBottom: '12px',
+                }}
+              >
+                {projectsError}
+                <button
+                  onClick={loadProjects}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '2px 6px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: 'none',
+                    borderRadius: '4px',
+                    color: 'white',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* Projects List */}
+            {projectsLoading ? (
+              <div
+                style={{
+                  padding: '12px',
+                  textAlign: 'center',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontSize: '13px',
+                }}
+              >
+                Loading projects...
+              </div>
+            ) : projects.length === 0 ? (
+              <div
+                style={{
+                  padding: '12px',
+                  textAlign: 'center',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontSize: '13px',
+                }}
+              >
+                No projects yet
+              </div>
+            ) : (
+              <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                {projects.map(project => (
+                  <div
+                    key={project.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      marginBottom: '6px',
+                      background:
+                        currentProject === project.id
+                          ? 'rgba(33, 150, 243, 0.3)'
+                          : 'rgba(255, 255, 255, 0.05)',
+                      border:
+                        currentProject === project.id
+                          ? '1px solid rgba(33, 150, 243, 0.5)'
+                          : '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => {
+                      if (currentProject !== project.id) {
+                        e.currentTarget.style.background =
+                          'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.borderColor =
+                          'rgba(255, 255, 255, 0.2)';
+                        e.currentTarget.style.transform = 'translateX(2px)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (currentProject !== project.id) {
+                        e.currentTarget.style.background =
+                          'rgba(255, 255, 255, 0.05)';
+                        e.currentTarget.style.borderColor =
+                          'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.transform = 'translateX(0px)';
+                      }
+                    }}
+                    onClick={() => handleProjectSelect(project.id)}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          color: 'white',
+                          marginBottom: '2px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {project.name}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '11px',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                        }}
+                      >
+                        {formatDate(project.updatedAt)} • {project.sceneCount}{' '}
+                        scenes
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <Link
+                        href={`/upload?project=${encodeURIComponent(project.id)}`}
+                        onClick={e => {
+                          e.stopPropagation();
+                          setExpandedPanel(null);
+                        }}
+                        style={{
+                          padding: '4px 6px',
+                          background: 'rgba(76, 175, 80, 0.8)',
+                          border: 'none',
+                          borderRadius: '4px',
+                          color: 'white',
+                          fontSize: '11px',
+                          cursor: 'pointer',
+                          textDecoration: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        title='Edit project'
+                      >
+                        ✏️
+                      </Link>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          deleteProject(project.id);
+                        }}
+                        disabled={deleting === project.id}
+                        style={{
+                          padding: '4px 6px',
+                          background: 'rgba(244, 67, 54, 0.8)',
+                          border: 'none',
+                          borderRadius: '4px',
+                          color: 'white',
+                          fontSize: '11px',
+                          cursor:
+                            deleting === project.id ? 'not-allowed' : 'pointer',
+                          opacity: deleting === project.id ? 0.5 : 1,
+                        }}
+                        title='Delete project'
+                      >
+                        {deleting === project.id ? '...' : '🗑️'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </ControlButton>
