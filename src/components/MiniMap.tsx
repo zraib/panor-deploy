@@ -37,12 +37,15 @@ export default function MiniMap({
   const [initialPanOffset, setInitialPanOffset] = useState({ x: 0, y: 0 }); // Store initial pan offset
   const [dragStartMouse, setDragStartMouse] = useState({ x: 0, y: 0 });
   const [dragStartPan, setDragStartPan] = useState({ x: 0, y: 0 });
-  
+
   // Add performance optimization state
   const [animationFrameId, setAnimationFrameId] = useState<number | null>(null);
-  const [contentDimensions, setContentDimensions] = useState({ width: 0, height: 0 });
+  const [contentDimensions, setContentDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
   const lastMousePosition = useRef({ x: 0, y: 0 });
-  
+
   const [mapBounds, setMapBounds] = useState({
     minX: 0,
     maxX: 0,
@@ -99,7 +102,7 @@ export default function MiniMap({
         const rect = contentRef.current!.getBoundingClientRect();
         setContentDimensions({ width: rect.width, height: rect.height });
       };
-      
+
       updateDimensions();
       window.addEventListener('resize', updateDimensions);
       return () => window.removeEventListener('resize', updateDimensions);
@@ -107,69 +110,85 @@ export default function MiniMap({
   }, [isHovered, isMinimized]);
 
   // Optimized mouse move handler with requestAnimationFrame throttling
-  const handleMouseMoveThrottled = useCallback((e: MouseEvent) => {
-    lastMousePosition.current = { x: e.clientX, y: e.clientY };
-    
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-    }
-    
-    const frameId = requestAnimationFrame(() => {
-      const { x: clientX, y: clientY } = lastMousePosition.current;
-      
-      if (isDragging) {
-        // Minimap window dragging (optimized)
-        const newX = clientX - dragOffset.x;
-        const newY = clientY - dragOffset.y;
+  const handleMouseMoveThrottled = useCallback(
+    (e: MouseEvent) => {
+      lastMousePosition.current = { x: e.clientX, y: e.clientY };
 
-        const maxX = window.innerWidth - (isHovered ? 300 : 200);
-        const maxY = window.innerHeight - (isHovered ? 300 : 200);
-
-        setPosition({
-          x: Math.max(20, Math.min(newX, maxX)),
-          y: Math.max(20, Math.min(newY, maxY)),
-        });
-      } else if (isPanning && contentDimensions.width > 0) {
-        // Calculate mouse movement delta
-        const deltaX = clientX - dragStartMouse.x;
-        const deltaY = clientY - dragStartMouse.y;
-        
-        // Apply inverse rotation to mouse movement
-        const rotatedDelta = rotateMouseDelta(deltaX, deltaY, rotationAngle);
-        
-        // Use cached content dimensions instead of getBoundingClientRect
-        const contentSize = contentDimensions.width;
-        
-        // Convert pixel movement to percentage with improved sensitivity
-        const sensitivity = 0.8; // Adjust for smoother panning
-        const percentDeltaX = (rotatedDelta.x / contentSize) * 100 * sensitivity;
-        const percentDeltaY = (rotatedDelta.y / contentSize) * 100 * sensitivity;
-        
-        // Apply movement
-        const newPanX = dragStartPan.x + percentDeltaX;
-        const newPanY = dragStartPan.y + percentDeltaY;
-        
-        // Calculate dynamic pan limits based on zoom level
-        // When zoomed in, allow more panning to see all content
-        const visibleRange = 100 / zoomLevel;
-        const overflowX = Math.max(0, (zoomLevel * 100 - 100) / 2);
-        const overflowY = Math.max(0, (zoomLevel * 100 - 100) / 2);
-        
-        // Expanded pan limits to ensure all hotspots are accessible
-        const maxPanX = overflowX + 20; // Extra margin for better UX
-        const maxPanY = overflowY + 20;
-        
-        setPanOffset({
-          x: Math.max(-maxPanX, Math.min(maxPanX, newPanX)),
-          y: Math.max(-maxPanY, Math.min(maxPanY, newPanY)),
-        });
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
       }
-      
-      setAnimationFrameId(null);
-    });
-    
-    setAnimationFrameId(frameId);
-  }, [isDragging, isPanning, dragOffset, isHovered, dragStartMouse, dragStartPan, zoomLevel, rotateMouseDelta, rotationAngle, contentDimensions]);
+
+      const frameId = requestAnimationFrame(() => {
+        const { x: clientX, y: clientY } = lastMousePosition.current;
+
+        if (isDragging) {
+          // Minimap window dragging (optimized)
+          const newX = clientX - dragOffset.x;
+          const newY = clientY - dragOffset.y;
+
+          const maxX = window.innerWidth - (isHovered ? 300 : 200);
+          const maxY = window.innerHeight - (isHovered ? 300 : 200);
+
+          setPosition({
+            x: Math.max(20, Math.min(newX, maxX)),
+            y: Math.max(20, Math.min(newY, maxY)),
+          });
+        } else if (isPanning && contentDimensions.width > 0) {
+          // Calculate mouse movement delta
+          const deltaX = clientX - dragStartMouse.x;
+          const deltaY = clientY - dragStartMouse.y;
+
+          // Apply inverse rotation to mouse movement
+          const rotatedDelta = rotateMouseDelta(deltaX, deltaY, rotationAngle);
+
+          // Use cached content dimensions instead of getBoundingClientRect
+          const contentSize = contentDimensions.width;
+
+          // Convert pixel movement to percentage with improved sensitivity
+          const sensitivity = 0.8; // Adjust for smoother panning
+          const percentDeltaX =
+            (rotatedDelta.x / contentSize) * 100 * sensitivity;
+          const percentDeltaY =
+            (rotatedDelta.y / contentSize) * 100 * sensitivity;
+
+          // Apply movement
+          const newPanX = dragStartPan.x + percentDeltaX;
+          const newPanY = dragStartPan.y + percentDeltaY;
+
+          // Calculate dynamic pan limits based on zoom level
+          // When zoomed in, allow more panning to see all content
+          const visibleRange = 100 / zoomLevel;
+          const overflowX = Math.max(0, (zoomLevel * 100 - 100) / 2);
+          const overflowY = Math.max(0, (zoomLevel * 100 - 100) / 2);
+
+          // Expanded pan limits to ensure all hotspots are accessible
+          const maxPanX = overflowX + 20; // Extra margin for better UX
+          const maxPanY = overflowY + 20;
+
+          setPanOffset({
+            x: Math.max(-maxPanX, Math.min(maxPanX, newPanX)),
+            y: Math.max(-maxPanY, Math.min(maxPanY, newPanY)),
+          });
+        }
+
+        setAnimationFrameId(null);
+      });
+
+      setAnimationFrameId(frameId);
+    },
+    [
+      isDragging,
+      isPanning,
+      dragOffset,
+      isHovered,
+      dragStartMouse,
+      dragStartPan,
+      zoomLevel,
+      rotateMouseDelta,
+      rotationAngle,
+      contentDimensions,
+    ]
+  );
 
   // Handle mouse move for dragging and panning
   useEffect(() => {
@@ -184,7 +203,9 @@ export default function MiniMap({
 
     if (isDragging || isPanning) {
       // Use passive event listeners for better performance
-      document.addEventListener('mousemove', handleMouseMoveThrottled, { passive: true });
+      document.addEventListener('mousemove', handleMouseMoveThrottled, {
+        passive: true,
+      });
       document.addEventListener('mouseup', handleMouseUp);
       document.addEventListener('mouseleave', handleMouseUp);
     }
@@ -273,7 +294,7 @@ export default function MiniMap({
 
       // Finally apply rotation
       const rotated = rotatePoint(x, y, 50, 50, rotationAngle);
-      
+
       return { x: rotated.x, y: rotated.y };
     },
     [mapBounds, scenes, rotatePoint, rotationAngle, zoomLevel, panOffset]
@@ -284,16 +305,109 @@ export default function MiniMap({
     scene => scene.floor === currentScene.floor
   );
 
+  // Calculate distance between two scenes in map coordinates
+  const calculateDistance = useCallback(
+    (scene1: SceneData, scene2: SceneData): number => {
+      const dx = scene1.position.x - scene2.position.x;
+      const dy = scene1.position.y - scene2.position.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    },
+    []
+  );
+
+  // Filter hotspots based on zoom level and proximity
+  const getVisibleHotspots = useCallback(() => {
+    if (currentFloorScenes.length === 0) return [];
+
+    // Define zoom thresholds and minimum distances
+    const zoomThresholds = {
+      minDistance100: 4.0, // At 100% zoom, hide hotspots closer than this
+      minDistance200: 2.0, // At 200% zoom
+      minDistance300: 1.0, // At 300% zoom
+      minDistance400: 0.5, // At 400% zoom, show almost all
+    };
+
+    // Calculate minimum distance based on current zoom level
+    let minDistance: number;
+    if (zoomLevel <= 1.0) {
+      minDistance = zoomThresholds.minDistance100;
+    } else if (zoomLevel <= 2.0) {
+      // Interpolate between 100% and 200%
+      const factor = (zoomLevel - 1.0) / 1.0;
+      minDistance =
+        zoomThresholds.minDistance100 -
+        (zoomThresholds.minDistance100 - zoomThresholds.minDistance200) *
+          factor;
+    } else if (zoomLevel <= 3.0) {
+      // Interpolate between 200% and 300%
+      const factor = (zoomLevel - 2.0) / 1.0;
+      minDistance =
+        zoomThresholds.minDistance200 -
+        (zoomThresholds.minDistance200 - zoomThresholds.minDistance300) *
+          factor;
+    } else {
+      // Interpolate between 300% and 400%
+      const factor = Math.min((zoomLevel - 3.0) / 1.0, 1.0);
+      minDistance =
+        zoomThresholds.minDistance300 -
+        (zoomThresholds.minDistance300 - zoomThresholds.minDistance400) *
+          factor;
+    }
+
+    // Always show the current scene
+    const visibleScenes = new Set<string>([currentScene.id]);
+
+    // Sort scenes by priority: current scene first, then by distance from current scene
+    const sortedScenes = [...currentFloorScenes].sort((a, b) => {
+      if (a.id === currentScene.id) return -1;
+      if (b.id === currentScene.id) return 1;
+
+      const distA = calculateDistance(currentScene, a);
+      const distB = calculateDistance(currentScene, b);
+      return distA - distB;
+    });
+
+    // Add scenes that don't conflict with already visible ones
+    for (const scene of sortedScenes) {
+      if (visibleScenes.has(scene.id)) continue;
+
+      let canShow = true;
+
+      // Check distance to all already visible scenes
+      for (const visibleSceneId of visibleScenes) {
+        const visibleScene = currentFloorScenes.find(
+          s => s.id === visibleSceneId
+        );
+        if (
+          visibleScene &&
+          calculateDistance(scene, visibleScene) < minDistance
+        ) {
+          canShow = false;
+          break;
+        }
+      }
+
+      if (canShow) {
+        visibleScenes.add(scene.id);
+      }
+    }
+
+    return currentFloorScenes.filter(scene => visibleScenes.has(scene.id));
+  }, [currentFloorScenes, currentScene, zoomLevel, calculateDistance]);
+
+  // Get filtered hotspots based on zoom level
+  const visibleHotspots = getVisibleHotspots();
+
   // Handle mouse down for dragging minimap or panning content
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
-      
+
       // Check if clicking on interactive elements
       if (
-        target.classList.contains('minimize-button') || 
+        target.classList.contains('minimize-button') ||
         target.closest('.minimize-button') ||
-        target.classList.contains('scene-hotspot') || 
+        target.classList.contains('scene-hotspot') ||
         target.closest('.scene-hotspot') ||
         target.classList.contains(styles.resetIndicator)
       ) {
@@ -302,20 +416,20 @@ export default function MiniMap({
 
       // Dragging the entire minimap
       if (
-        target.classList.contains('minimap-header') || 
+        target.classList.contains('minimap-header') ||
         target.closest('.minimap-header')
       ) {
         setIsDragging(true);
         setDragOffset({
           x: e.clientX - position.x,
-          y: e.clientY - position.y
+          y: e.clientY - position.y,
         });
       }
       // Panning the content
       else if (
         contentRef.current &&
-        (target.classList.contains('minimap-content') || 
-         target.closest('.minimap-content'))
+        (target.classList.contains('minimap-content') ||
+          target.closest('.minimap-content'))
       ) {
         setIsPanning(true);
         setDragStartMouse({ x: e.clientX, y: e.clientY });
@@ -330,20 +444,20 @@ export default function MiniMap({
     (e: WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       const delta = e.deltaY > 0 ? -0.15 : 0.15; // Slightly faster zoom
       const newZoom = Math.max(0.5, Math.min(4, zoomLevel + delta)); // Increased max zoom
-      
+
       setZoomLevel(newZoom);
-      
+
       // Improved pan limits calculation for better zoom experience
       const overflowX = Math.max(0, (newZoom * 100 - 100) / 2);
       const overflowY = Math.max(0, (newZoom * 100 - 100) / 2);
-      
+
       // More generous pan limits to ensure all content is accessible
       const maxPanX = overflowX + 30;
       const maxPanY = overflowY + 30;
-      
+
       setPanOffset(prev => ({
         x: Math.max(-maxPanX, Math.min(maxPanX, prev.x)),
         y: Math.max(-maxPanY, Math.min(maxPanY, prev.y)),
@@ -408,8 +522,10 @@ export default function MiniMap({
         styles.minimap,
         isDragging && styles.dragging,
         isPanning && styles.panning,
-        isMinimized && styles.minimized
-      ].filter(Boolean).join(' ')}
+        isMinimized && styles.minimized,
+      ]
+        .filter(Boolean)
+        .join(' ')}
       style={{
         position: 'fixed',
         right: `${position.x}px`,
@@ -453,7 +569,7 @@ export default function MiniMap({
       </div>
 
       {!isMinimized && (
-        <div 
+        <div
           ref={contentRef}
           className={`${styles.minimapContent} minimap-content`}
           onDoubleClick={handleDoubleClick}
@@ -464,13 +580,17 @@ export default function MiniMap({
           {/* Map background grid */}
           <div className={styles.mapGrid} />
 
-          {/* Scene hotspots */}
-          {currentFloorScenes.map(scene => {
+          {/* Scene hotspots - filtered by zoom level and proximity */}
+          {visibleHotspots.map(scene => {
             const coords = positionToMapCoords(scene.id);
             const isCurrentScene = scene.id === currentScene.id;
-            
+
             // More generous visibility bounds to show hotspots when zoomed
-            const isVisible = coords.x > -20 && coords.x < 120 && coords.y > -20 && coords.y < 120;
+            const isVisible =
+              coords.x > -20 &&
+              coords.x < 120 &&
+              coords.y > -20 &&
+              coords.y < 120;
 
             return (
               <div
@@ -483,9 +603,10 @@ export default function MiniMap({
                   transform: 'translate(-50%, -50%)',
                   visibility: isVisible ? 'visible' : 'hidden',
                   opacity: isVisible ? 1 : 0,
-                  transition: 'opacity 0.2s ease',
+                  transition: 'opacity 0.3s ease, transform 0.2s ease',
+                  zIndex: isCurrentScene ? 10 : 5,
                 }}
-                title={scene.name}
+                title={`${scene.name} (Floor ${scene.floor})`}
                 tabIndex={0}
                 role='button'
                 aria-label={`Navigate to ${scene.name}`}
@@ -506,36 +627,62 @@ export default function MiniMap({
               left: `${currentSceneCoords.x}%`,
               top: `${currentSceneCoords.y}%`,
               transform: `translate(-50%, -50%) rotate(${((currentYaw * 180) / Math.PI - (currentScene.northOffset || 0) + 360) % 360}deg)`,
-              visibility: currentSceneCoords.x > -20 && currentSceneCoords.x < 120 && currentSceneCoords.y > -20 && currentSceneCoords.y < 120 ? 'visible' : 'hidden',
-              opacity: currentSceneCoords.x > -20 && currentSceneCoords.x < 120 && currentSceneCoords.y > -20 && currentSceneCoords.y < 120 ? 1 : 0,
+              visibility:
+                currentSceneCoords.x > -20 &&
+                currentSceneCoords.x < 120 &&
+                currentSceneCoords.y > -20 &&
+                currentSceneCoords.y < 120
+                  ? 'visible'
+                  : 'hidden',
+              opacity:
+                currentSceneCoords.x > -20 &&
+                currentSceneCoords.x < 120 &&
+                currentSceneCoords.y > -20 &&
+                currentSceneCoords.y < 120
+                  ? 1
+                  : 0,
               transition: 'opacity 0.2s ease',
             }}
           >
             <div className={styles.directionArrow} />
           </div>
 
-          {/* Connection lines - only for current scene */}
-          {currentScene.linkHotspots && currentScene.linkHotspots.length > 0 && 
+          {/* Connection lines - only for current scene and visible targets */}
+          {currentScene.linkHotspots &&
+            currentScene.linkHotspots.length > 0 &&
             currentScene.linkHotspots.map((hotspot, index) => {
               const targetScene = scenes.find(s => s.id === hotspot.target);
-              if (!targetScene || targetScene.floor !== currentScene.floor) return null;
-              
+              if (!targetScene || targetScene.floor !== currentScene.floor)
+                return null;
+
+              // Only show connection if target scene is visible in filtered hotspots
+              const isTargetVisible = visibleHotspots.some(
+                scene => scene.id === hotspot.target
+              );
+              if (!isTargetVisible) return null;
+
               const fromCoords = positionToMapCoords(currentScene.id);
               const toCoords = positionToMapCoords(hotspot.target);
-              
+
               // Skip if either point is outside expanded visible area
               if (
-                fromCoords.x < -30 || fromCoords.x > 130 || fromCoords.y < -30 || fromCoords.y > 130 ||
-                toCoords.x < -30 || toCoords.x > 130 || toCoords.y < -30 || toCoords.y > 130
+                fromCoords.x < -30 ||
+                fromCoords.x > 130 ||
+                fromCoords.y < -30 ||
+                fromCoords.y > 130 ||
+                toCoords.x < -30 ||
+                toCoords.x > 130 ||
+                toCoords.y < -30 ||
+                toCoords.y > 130
               ) {
                 return null;
               }
-              
+
               const deltaX = toCoords.x - fromCoords.x;
               const deltaY = toCoords.y - fromCoords.y;
               const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
               const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-              
+
               return (
                 <div
                   key={`${currentScene.id}-${hotspot.target}-${index}`}
@@ -546,19 +693,20 @@ export default function MiniMap({
                     width: `${length}%`,
                     transform: `rotate(${angle}deg)`,
                     transformOrigin: '0 50%',
+                    opacity: 0.6,
+                    transition: 'opacity 0.3s ease',
                   }}
                 />
               );
-            })
-          }
+            })}
 
           {/* Reset indicator */}
           {(panOffset.x !== 0 || panOffset.y !== 0 || zoomLevel !== 1) && (
             <div
               className={styles.resetIndicator}
               onClick={resetView}
-              title="Reset view"
-              role="button"
+              title='Reset view'
+              role='button'
               tabIndex={0}
               onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -574,6 +722,11 @@ export default function MiniMap({
           {/* Zoom level indicator */}
           <div className={styles.zoomIndicator}>
             {Math.round(zoomLevel * 100)}%
+          </div>
+
+          {/* Hotspot visibility indicator */}
+          <div className={styles.hotspotCounter}>
+            {visibleHotspots.length}/{currentFloorScenes.length}
           </div>
 
           {/* Scroll hint for better UX */}

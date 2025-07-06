@@ -240,6 +240,54 @@ A real-time performance monitor is available in the top-right corner showing:
 - **Browser**: Close other tabs if experiencing lag
 - **Hardware**: Ensure graphics drivers are up to date
 
+## 🗺️ MiniMap Features
+
+The interactive minimap includes advanced zoom-based hotspot filtering to reduce visual clutter and improve navigation clarity.
+
+### Zoom-Based Hotspot Filtering
+
+The minimap dynamically adjusts hotspot visibility based on zoom level to prevent overcrowding:
+
+- **100% Zoom**: Only distant hotspots are shown (minimum distance of 6.0 units)
+  - Ideal for overview navigation and identifying major areas
+  - Reduces clutter in dense scene clusters
+
+- **200% Zoom**: More hotspots appear (minimum distance of 3.5 units)
+  - Balanced view showing moderate detail
+  - Good for regional navigation
+
+- **300% Zoom**: Even closer hotspots become visible (minimum distance of 1.0 units)
+  - Detailed view for precise navigation
+  - Shows most scene connections
+
+- **400% Zoom**: Nearly all hotspots are visible (minimum distance of 0.5 units)
+  - Maximum detail view
+  - All scenes and connections visible
+
+### MiniMap Controls
+
+- **Zoom**: Mouse wheel to zoom in/out (50% - 400%)
+- **Pan**: Click and drag to move around the map
+- **Reset**: Double-click to reset zoom and pan
+- **Minimize**: Click the minimize button to collapse the minimap
+
+### Visual Indicators
+
+- **Hotspot Counter**: Shows visible/total hotspots (e.g., "👁 5/12")
+- **Zoom Level**: Displays current zoom percentage
+- **Current Scene**: Red pulsing dot with direction indicator
+- **Other Scenes**: Green dots for navigable scenes
+- **Connection Lines**: Shows links between visible scenes only
+
+### Smart Filtering Algorithm
+
+The filtering system uses intelligent proximity detection:
+
+1. **Distance Calculation**: Uses real 3D coordinates for accurate spacing
+2. **Priority System**: Always shows current scene and nearby important locations
+3. **Smooth Transitions**: Gradual hotspot appearance/disappearance during zoom
+4. **Performance Optimized**: Efficient for projects with hundreds of scenes
+
 ## 🛡️ Security
 
 - Environment variables are properly scoped
