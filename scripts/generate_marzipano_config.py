@@ -27,6 +27,35 @@ def quaternion_rotate_vector(q, v):
     rotated = quaternion_multiply(quaternion_multiply(q, q_v), q_conj)
     return rotated[1:]
 
+def compute_initial_yaw(quat):
+    """Compute absolute yaw in Marzipano coordinate system"""
+    # Local forward vector in NavVis system (X-forward, Y-left, Z-up)
+    local_forward = np.array([1, 0, 0])
+    
+    # Rotate to world coordinates
+    world_forward = quaternion_rotate_vector(quat, local_forward)
+    
+    # Convert to Marzipano coordinate system:
+    # NavVis: X=forward, Y=left, Z=up
+    # Marzipano: X=right, Y=up, Z=back (where positive Z points towards viewer)
+    # For proper north alignment, we need:
+    # - North (0°) should be positive Z in Marzipano
+    # - East (90°) should be positive X in Marzipano
+    marz_forward = np.array([
+        -world_forward[1],  # -left = right (X axis)
+        world_forward[2],   # up stays up (Y axis)
+        world_forward[0]    # forward = forward (Z axis)
+    ])
+    
+    # Project to horizontal plane
+    x = marz_forward[0]  # East-West component
+    z = marz_forward[2]  # North-South component
+    
+    # Calculate absolute yaw (0 = north, increasing clockwise)
+    # atan2(x, z) gives: North=0°, East=90°, South=180°, West=270°
+    yaw_rad = math.atan2(x, z)
+    return math.degrees(yaw_rad)
+
 def generate_config(csv_file, output_file='config.json', project_path=''):
     panoramas = []
     with open(csv_file, 'r', encoding='utf-8') as f:
@@ -139,12 +168,17 @@ def generate_config(csv_file, output_file='config.json', project_path=''):
                 'distance': round(distance, 2),
                 'type': 'navigation'
             })
+        
+        # Calculate initial yaw for proper orientation
+        initialYaw = compute_initial_yaw(pano_ori)
+        
         scene = {
             'id': pano['id'],
             'name': f"Panorama {pano['id']} - {get_floor_name(current_floor)}",
             'floor': current_floor,
             'position': dict(zip(['x','y','z'], pano['pos'])),
             'orientation': dict(zip(['w','x','y','z'], pano['ori'])),
+            'initialYaw': initialYaw,
             'initialViewParameters': {
                 'yaw': 0,
                 'pitch': 0,

@@ -48,6 +48,7 @@ export interface SceneData {
   position: Position;
   initialViewParameters: ViewParameters;
   linkHotspots: LinkHotspot[];
+  initialYaw: number; // Absolute orientation in degrees
   northOffset?: number; // Optional: offset from true north in degrees
   panoPos?: PanoPosition;
   // Optional fields for Marzipano configuration
