@@ -95,9 +95,67 @@ export default function FloorSelector({
     >
       <h3>
         {isHovered ? (
-          'Select a Floor'
+          <>
+            <div className={styles.icon}>
+              <svg
+                width='16'
+                height='16'
+                viewBox='0 0 24 24'
+                fill='none'
+                xmlns='http://www.w3.org/2000/svg'
+              >
+                <path
+                  d='M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V7'
+                  stroke='white'
+                  strokeWidth='2'
+                  fill='none'
+                />
+                <path
+                  d='M21 7L12 2L3 7'
+                  stroke='white'
+                  strokeWidth='2'
+                  fill='none'
+                />
+                <path
+                  d='M9 21V12H15V21'
+                  stroke='white'
+                  strokeWidth='2'
+                  fill='none'
+                />
+              </svg>
+            </div>
+            Select a Floor
+          </>
         ) : (
           <>
+            <div className={styles.icon}>
+              <svg
+                width='16'
+                height='16'
+                viewBox='0 0 24 24'
+                fill='none'
+                xmlns='http://www.w3.org/2000/svg'
+              >
+                <path
+                  d='M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V7'
+                  stroke='white'
+                  strokeWidth='2'
+                  fill='none'
+                />
+                <path
+                  d='M21 7L12 2L3 7'
+                  stroke='white'
+                  strokeWidth='2'
+                  fill='none'
+                />
+                <path
+                  d='M9 21V12H15V21'
+                  stroke='white'
+                  strokeWidth='2'
+                  fill='none'
+                />
+              </svg>
+            </div>
             Floor:{' '}
             <span className={styles.currentFloorName}>
               {currentScene ? getFloorLabel(currentScene.floor) : 'None'}

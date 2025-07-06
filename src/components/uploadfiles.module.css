@@ -1,0 +1,67 @@
+.container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transition: all 0.3s ease;
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.container:hover {
+  background: rgba(0, 0, 0, 0.85);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+.container:hover .icon {
+  opacity: 1;
+}
+
+.text {
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+.container:hover .text {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .container {
+    top: 10px;
+    right: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    min-width: 120px;
+  }
+  
+  .icon svg {
+    width: 14px;
+    height: 14px;
+  }
+}

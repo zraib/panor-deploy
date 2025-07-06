@@ -15,10 +15,10 @@ interface PerformanceMonitorProps {
   onOptimize?: () => void;
 }
 
-export default function PerformanceMonitor({ 
-  stats, 
-  totalScenes, 
-  onOptimize 
+export default function PerformanceMonitor({
+  stats,
+  totalScenes,
+  onOptimize,
 }: PerformanceMonitorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -34,59 +34,88 @@ export default function PerformanceMonitor({
 
   return (
     <div className={styles.monitor}>
-      <button 
+      <button
         className={styles.toggle}
         onClick={() => setIsExpanded(!isExpanded)}
         style={{ borderColor: performance.color }}
       >
-        <span className={styles.indicator} style={{ backgroundColor: performance.color }} />
+        <div className={styles.icon}>
+          <svg
+            width='16'
+            height='16'
+            viewBox='0 0 24 24'
+            fill='none'
+            xmlns='http://www.w3.org/2000/svg'
+          >
+            <path
+              d='M3 3V21H21'
+              stroke='white'
+              strokeWidth='2'
+              strokeLinecap='round'
+              strokeLinejoin='round'
+            />
+            <path
+              d='M9 9L12 6L16 10L20 6'
+              stroke='white'
+              strokeWidth='2'
+              strokeLinecap='round'
+              strokeLinejoin='round'
+            />
+          </svg>
+        </div>
+        <span
+          className={styles.indicator}
+          style={{ borderColor: performance.color }}
+        />
         Performance
       </button>
-      
+
       {isExpanded && (
         <div className={styles.panel}>
           <div className={styles.header}>
             <h3>Performance Monitor</h3>
-            <span 
+            <span
               className={styles.status}
               style={{ color: performance.color }}
             >
               {performance.level.toUpperCase()}
             </span>
           </div>
-          
+
           <div className={styles.stats}>
             <div className={styles.stat}>
               <label>Loaded Scenes</label>
-              <span>{stats.loadedScenes} / {totalScenes}</span>
+              <span>
+                {stats.loadedScenes} / {totalScenes}
+              </span>
               <div className={styles.bar}>
-                <div 
+                <div
                   className={styles.fill}
-                  style={{ 
+                  style={{
                     width: `${(stats.loadedScenes / totalScenes) * 100}%`,
-                    backgroundColor: performance.color
+                    backgroundColor: performance.color,
                   }}
                 />
               </div>
             </div>
-            
+
             <div className={styles.stat}>
               <label>Memory Usage</label>
               <span>{stats.memoryUsage}</span>
             </div>
-            
+
             <div className={styles.stat}>
               <label>Avg Load Time</label>
               <span>{stats.avgLoadTime}ms</span>
             </div>
           </div>
-          
+
           {onOptimize && (
             <button className={styles.optimize} onClick={onOptimize}>
               🚀 Optimize Performance
             </button>
           )}
-          
+
           <div className={styles.tips}>
             <h4>Performance Tips:</h4>
             <ul>

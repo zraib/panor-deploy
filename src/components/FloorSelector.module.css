@@ -1,6 +1,6 @@
 .container {
-  position: absolute;
-  top: 80px;
+  position: fixed;
+  top: 76px;
   right: 20px;
   width: 220px;
   background: rgba(0, 0, 0, 0.65);
@@ -10,8 +10,9 @@
   padding: 14px 16px;
   border-radius: 14px;
   z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-  transition: background 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  transition: all 0.3s ease;
   font-family: system-ui, sans-serif;
   overflow: hidden;
   gap: 10px
@@ -20,6 +21,7 @@
 .container.hovered {
   background: rgba(0, 0, 0, 0.85);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .container h3 {
@@ -104,9 +106,21 @@
   font-weight: 600;
 }
 
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+.container:hover .icon {
+  opacity: 1;
+}
+
 @media (max-width: 768px) {
   .container {
-    top: 10px;
+    top: 66px;
     right: 10px;
     width: 90%;
     padding: 12px;
@@ -119,5 +133,10 @@
   .button {
     font-size: 13px;
     padding: 8px 12px;
+  }
+  
+  .icon svg {
+    width: 14px;
+    height: 14px;
   }
 }
