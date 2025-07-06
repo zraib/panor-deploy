@@ -27,7 +27,7 @@ def quaternion_to_yaw(w, x, y, z):
     # Convert to degrees
     return math.degrees(yaw)
 
-def calculate_north_offsets(config_file='public/config.json', reference_scene_id=None):
+def calculate_north_offsets(config_file, reference_scene_id=None):
     """
     Calculate northOffset values for all scenes based on their quaternion orientations
     
@@ -107,7 +107,7 @@ def calculate_north_offsets(config_file='public/config.json', reference_scene_id
     print(f"Updated {config_file} with calculated northOffset values")
     print(f"\nTotal scenes processed: {len(scenes)}")
 
-def analyze_orientations(config_file='public/config.json'):
+def analyze_orientations(config_file):
     """
     Analyze the orientation distribution of all scenes
     """
@@ -147,14 +147,12 @@ if __name__ == '__main__':
     parser.add_argument('--analyze', action='store_true', help='Analyze current orientations')
     args = parser.parse_args()
     
-    # Determine config file path
     if not args.project:
         print('Error: Project ID is required. Use --project <projectId> argument.')
         exit(1)
         
     # Project-specific paths
     config_file = f'public/{args.project}/config.json'
-    print(f'Using project-specific config: {config_file}')
     
     if not os.path.exists(config_file):
         print(f'Error: Config file not found at {config_file}')
