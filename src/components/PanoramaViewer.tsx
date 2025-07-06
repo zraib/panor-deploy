@@ -614,10 +614,16 @@ export default function PanoramaViewer({
         }
       }
 
+      // Update URL when navigating via hotspots without triggering page reload
+      if (projectId) {
+        const newUrl = `/${projectId}/${sceneId}`;
+        window.history.replaceState(null, '', newUrl);
+      }
+
       // Switch scene directly
       await switchScene(sceneId, false, true);
     },
-    [switchScene, currentScene, loadScene]
+    [switchScene, currentScene, loadScene, router, projectId]
   );
 
   // Toggle hotspots

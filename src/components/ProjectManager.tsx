@@ -30,6 +30,8 @@ export default function ProjectManager({
   const [newProjectName, setNewProjectName] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   const loadProjects = async () => {
     try {
@@ -78,14 +80,25 @@ export default function ProjectManager({
     }
   };
 
-  const deleteProject = async (projectId: string) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete project "${projectId}"? This action cannot be undone.`
-      )
-    ) {
-      return;
+  const handleDeleteRequest = (project: Project) => {
+    setProjectToDelete(project);
+    setShowConfirmModal(true);
+  };
+
+  const confirmDeletion = () => {
+    if (projectToDelete) {
+      deleteProject(projectToDelete.id);
     }
+    setShowConfirmModal(false);
+    setProjectToDelete(null);
+  };
+
+  const cancelDeletion = () => {
+    setShowConfirmModal(false);
+    setProjectToDelete(null);
+  };
+
+  const deleteProject = async (projectId: string) => {
 
     try {
       setDeleting(projectId);
@@ -127,7 +140,26 @@ export default function ProjectManager({
   }, []);
 
   return (
-    <div className={styles.container}>
+    <>
+      {showConfirmModal && projectToDelete && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h2 className={styles.modalTitle}>Confirm Deletion</h2>
+            <p className={styles.modalMessage}>
+              Are you sure you want to delete the project "<strong>{projectToDelete.name}</strong>"? This action cannot be undone.
+            </p>
+            <div className={styles.modalActions}>
+              <button onClick={cancelDeletion} className={`${styles.modalButton} ${styles.cancelButton}`}>
+                Cancel
+              </button>
+              <button onClick={confirmDeletion} className={`${styles.modalButton} ${styles.confirmButton}`}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className={styles.container}>
       <div className={styles.header}>
         <h3 className={styles.title}>Projects</h3>
         <button
@@ -221,10 +253,7 @@ export default function ProjectManager({
                 </div>
                 <button
                   className={styles.deleteButton}
-                  onClick={e => {
-                    e.stopPropagation();
-                    deleteProject(project.id);
-                  }}
+                  onClick={() => handleDeleteRequest(project)}
                   disabled={deleting === project.id}
                   title='Delete project'
                 >
@@ -242,5 +271,6 @@ export default function ProjectManager({
         </button>
       </div>
     </div>
+  </>
   );
 }
