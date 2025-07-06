@@ -33,54 +33,68 @@ export default function Upload() {
       setIsEditMode(true);
       setEditingProjectId(projectParam);
       setCreatedProjectId(projectParam);
-      
+
       // Load existing project data
       const loadProjectData = async () => {
         try {
           // Load project info
-          const projectResponse = await fetch(`/api/projects?projectId=${encodeURIComponent(projectParam)}`);
+          const projectResponse = await fetch(
+            `/api/projects?projectId=${encodeURIComponent(projectParam)}`
+          );
           if (projectResponse.ok) {
             const projectData = await projectResponse.json();
-            const project = projectData.projects?.find((p: any) => p.id === projectParam);
+            const project = projectData.projects?.find(
+              (p: any) => p.id === projectParam
+            );
             if (project) {
               setProjectName(project.name);
             }
           }
 
           // Load existing files
-           const filesResponse = await fetch(`/api/projects/${encodeURIComponent(projectParam)}/files`);
-           if (filesResponse.ok) {
-             const filesData = await filesResponse.json();
-             const { files } = filesData;
-             
-             // Store existing files in state
-             setExistingFiles({
-               csv: files.csv,
-               images: files.images
-             });
-             
-             let fileInfo = [];
-             if (files.csv) {
-               fileInfo.push(`CSV: ${files.csv}`);
-             }
-             if (files.images.length > 0) {
-               fileInfo.push(`${files.images.length} image(s)`);
-             }
-             
-             if (fileInfo.length > 0) {
-               setMessage(`✏️ Editing project: ${projectName || projectParam}. Current files: ${fileInfo.join(', ')}. Upload new files to update this project.`);
-             } else {
-               setMessage(`✏️ Editing project: ${projectName || projectParam}. No existing files found. Upload files to add content to this project.`);
-             }
-           } else {
-             setMessage(`✏️ Editing project: ${projectName || projectParam}. Upload new files to update this project.`);
-           }
+          const filesResponse = await fetch(
+            `/api/projects/${encodeURIComponent(projectParam)}/files`
+          );
+          if (filesResponse.ok) {
+            const filesData = await filesResponse.json();
+            const { files } = filesData;
+
+            // Store existing files in state
+            setExistingFiles({
+              csv: files.csv,
+              images: files.images,
+            });
+
+            let fileInfo = [];
+            if (files.csv) {
+              fileInfo.push(`CSV: ${files.csv}`);
+            }
+            if (files.images.length > 0) {
+              fileInfo.push(`${files.images.length} image(s)`);
+            }
+
+            if (fileInfo.length > 0) {
+              setMessage(
+                `✏️ Editing project: ${projectName || projectParam}. Current files: ${fileInfo.join(', ')}. Upload new files to update this project.`
+              );
+            } else {
+              setMessage(
+                `✏️ Editing project: ${projectName || projectParam}. No existing files found. Upload files to add content to this project.`
+              );
+            }
+          } else {
+            setMessage(
+              `✏️ Editing project: ${projectName || projectParam}. Upload new files to update this project.`
+            );
+          }
         } catch (error) {
           console.error('Failed to load project data:', error);
-          setMessage('⚠️ Failed to load project data. You can still upload files to update the project.');
+          setMessage(
+            '⚠️ Failed to load project data. You can still upload files to update the project.'
+          );
         }
       };
-      
+
       loadProjectData();
     }
   }, [router.query.project, isEditMode]);
@@ -221,13 +235,13 @@ export default function Upload() {
     const hasExistingImages = isEditMode && existingFiles.images.length > 0;
     const hasNewCsv = selectedFiles.csv;
     const hasNewImages = selectedFiles.images.length > 0;
-    
+
     if (!hasNewCsv && !hasExistingCsv) {
       setMessage('Please select a CSV file.');
       setIsLoading(false);
       return;
     }
-    
+
     if (!hasNewImages && !hasExistingImages) {
       setMessage('Please select at least one image.');
       setIsLoading(false);
@@ -264,7 +278,7 @@ export default function Upload() {
       if (isEditMode && editingProjectId) {
         // Use existing project ID for editing
         projectId = editingProjectId;
-        
+
         // Update project name if it has changed
         try {
           await fetch('/api/projects', {
@@ -272,9 +286,9 @@ export default function Upload() {
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               projectId: editingProjectId,
-              projectName: projectName.trim() 
+              projectName: projectName.trim(),
             }),
           });
         } catch (error) {
@@ -292,7 +306,15 @@ export default function Upload() {
 
         if (!projectResponse.ok) {
           const projectError = await projectResponse.json();
-          throw new Error(projectError.error || 'Failed to create project');
+          if (projectResponse.status === 409) {
+            setMessage(
+              `A project named "${projectName.trim()}" already exists. Please choose a different name.`
+            );
+            setIsLoading(false);
+            return;
+          } else {
+            throw new Error(projectError.error || 'Failed to create project');
+          }
         }
 
         const projectData = await projectResponse.json();
@@ -301,10 +323,13 @@ export default function Upload() {
       }
 
       // Upload files to the project
-      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/upload`, {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
 
       clearInterval(progressInterval);
       setUploadProgress(100);
@@ -369,7 +394,10 @@ export default function Upload() {
       </div>
       <div className={styles.content}>
         <div className={styles.header}>
-          <Link href='/' className={styles.backLink}>
+          <Link
+            href={editingProjectId ? `/${editingProjectId}` : '/'}
+            className={styles.backLink}
+          >
             ← Back to Panorama Viewer
           </Link>
         </div>
@@ -388,23 +416,25 @@ export default function Upload() {
               id='projectName'
               name='projectName'
               value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
+              onChange={e => setProjectName(e.target.value)}
               placeholder='Enter a name for your project'
               required
               className={styles.textInput}
             />
             <div className={styles.inputHint}>
-              {isEditMode 
-                ? 'Update the name of your existing project.' 
+              {isEditMode
+                ? 'Update the name of your existing project.'
                 : 'This will create a new project folder for your panorama data.'}
             </div>
           </div>
 
-
-
           <div className={styles.formGroup}>
             <label htmlFor='csv' className={styles.label}>
-              📄 CSV File{isEditMode && existingFiles.csv ? ' (Optional - will replace existing)' : ''}:
+              📄 CSV File
+              {isEditMode && existingFiles.csv
+                ? ' (Optional - will replace existing)'
+                : ''}
+              :
             </label>
             {selectedFiles.csv &&
               selectedFiles.csv.name !== 'pano-poses.csv' && (
@@ -426,14 +456,19 @@ export default function Upload() {
             />
             {(selectedFiles.csv || (isEditMode && existingFiles.csv)) && (
               <div className={styles.fileInfo}>
-                Selected: {selectedFiles.csv ? selectedFiles.csv.name : existingFiles.csv}
+                Selected:{' '}
+                {selectedFiles.csv ? selectedFiles.csv.name : existingFiles.csv}
               </div>
             )}
           </div>
 
           <div className={styles.formGroup}>
             <label htmlFor='images' className={styles.label}>
-              🖼️ Panorama Images{isEditMode && existingFiles.images.length > 0 ? ' (Optional - will add to existing)' : ''}:
+              🖼️ Panorama Images
+              {isEditMode && existingFiles.images.length > 0
+                ? ' (Optional - will add to existing)'
+                : ''}
+              :
             </label>
             <input
               type='file'
@@ -445,11 +480,16 @@ export default function Upload() {
               onChange={handleFileChange}
               className={styles.fileInput}
             />
-            {(selectedFiles.images.length > 0 || (isEditMode && existingFiles.images.length > 0)) && (
+            {(selectedFiles.images.length > 0 ||
+              (isEditMode && existingFiles.images.length > 0)) && (
               <div className={styles.fileList}>
                 <div className={styles.fileListHeader}>
                   <p className={styles.fileListTitle}>
-                    Selected {selectedFiles.images.length > 0 ? selectedFiles.images.length : existingFiles.images.length} image(s)
+                    Selected{' '}
+                    {selectedFiles.images.length > 0
+                      ? selectedFiles.images.length
+                      : existingFiles.images.length}{' '}
+                    image(s)
                   </p>
                   <button
                     type='button'
@@ -461,14 +501,13 @@ export default function Upload() {
                 </div>
                 {showSelectedFiles && (
                   <ul className={styles.fileListItems}>
-                    {selectedFiles.images.length > 0 
+                    {selectedFiles.images.length > 0
                       ? selectedFiles.images.map((file, index) => (
                           <li key={index}>{file.name}</li>
                         ))
                       : existingFiles.images.map((imageName, index) => (
                           <li key={index}>{imageName}</li>
-                        ))
-                    }
+                        ))}
                   </ul>
                 )}
               </div>
@@ -481,9 +520,13 @@ export default function Upload() {
             className={styles.submitButton}
           >
             {isLoading && <span className={styles.loadingSpinner}></span>}
-            {isLoading 
-              ? (isEditMode ? 'Updating Project...' : 'Uploading and Generating...') 
-              : (isEditMode ? 'Update Project' : 'Upload and Generate')}
+            {isLoading
+              ? isEditMode
+                ? 'Updating Project...'
+                : 'Uploading and Generating...'
+              : isEditMode
+                ? 'Update Project'
+                : 'Upload and Generate'}
           </button>
 
           {isLoading && uploadProgress > 0 && (
@@ -562,8 +605,6 @@ export default function Upload() {
                 {isLoading && <span className={styles.loadingSpinner}></span>}
                 {isLoading ? 'Overwriting...' : '🔄 Upload and Overwrite'}
               </button>
-
-
             </div>
           </div>
         )}
@@ -583,7 +624,10 @@ export default function Upload() {
         {uploadSuccess && (
           <div className={styles.successActions}>
             {createdProjectId ? (
-              <Link href={`/${createdProjectId}`} className={styles.viewPanoramasButton}>
+              <Link
+                href={`/${createdProjectId}`}
+                className={styles.viewPanoramasButton}
+              >
                 🏠 View Project Panoramas
               </Link>
             ) : (

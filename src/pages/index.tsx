@@ -50,13 +50,7 @@ export default function Home(): ReactElement {
         setProjects(data.projects);
         setHasProjects(data.projects.length > 0);
 
-        // Auto-select the most recently updated project with config
-        const projectWithConfig = data.projects.find(
-          (p: Project) => p.hasConfig
-        );
-        if (projectWithConfig && !selectedProject) {
-          setSelectedProject(projectWithConfig.id);
-        }
+        // Do not auto-select a project to ensure the welcome page is always shown first.
       }
     } catch (error) {
       console.error('Error loading projects:', error);
@@ -203,11 +197,9 @@ export default function Home(): ReactElement {
             <h1 className={styles.title}>Welcome to PrimeZone</h1>
 
             <p className={styles.description}>
-              Experience immersive 360° panoramic tours of your spaces.
-              <br />
               {hasProjects
-                ? 'Select a project from the sidebar or create a new one.'
-                : 'Get started by creating your first project.'}
+                ? `You have ${projects.length} project${projects.length !== 1 ? 's' : ''}. Select one to get started.`
+                : 'Experience immersive 360° panoramic tours of your spaces.'}
             </p>
 
             <Link href='/upload' className={styles.uploadButton}>
@@ -220,17 +212,22 @@ export default function Home(): ReactElement {
             </div>
 
             {hasProjects && (
-              <div style={{ marginTop: '24px', textAlign: 'center' }}>
-                <p
-                  style={{
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    fontSize: '14px',
-                  }}
-                >
-                  You have {projects.length} project
-                  {projects.length !== 1 ? 's' : ''}. Select a project from the
-                  sidebar to view panoramas.
-                </p>
+              <div className={styles.projectList}>
+                {projects.map((project) => (
+                  <div
+                    key={project.id}
+                    className={styles.projectCard}
+                    onClick={() => handleProjectSelect(project.id)}
+                  >
+                    <div className={styles.projectName}>{project.name}</div>
+                    <div className={styles.projectInfo}>
+                      {project.sceneCount} scene{project.sceneCount !== 1 ? 's' : ''}
+                    </div>
+                    <div className={styles.projectInfo}>
+                      Updated: {new Date(project.updatedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
