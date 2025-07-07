@@ -8,7 +8,7 @@ import styles from '@/styles/Welcome.module.css';
 // ProjectManager moved to PanoramaViewer component
 
 // Dynamically import PanoramaViewer to avoid SSR issues with Marzipano
-const PanoramaViewer = dynamic(() => import('@/components/PanoramaViewer'), {
+const PanoramaViewer = dynamic(() => import('@/components/viewer/PanoramaViewer'), {
   ssr: false,
   loading: (): ReactElement => (
     <div id='loading'>

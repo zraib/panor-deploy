@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, useCallback, MouseEvent } from 'react';
 import Script from 'next/script';
 import { useRouter } from 'next/router';
 import MiniMap from './MiniMap';
-import LoadingScreen from './LoadingScreen';
-import ControlPanel from './ControlPanel';
-import Hotspot from './Hotspot';
+import LoadingScreen from '../utility/LoadingScreen';
+import ControlPanel from '../ui/ControlPanel';
+import Hotspot from '../hotspot/Hotspot';
 import {
   checkWebGLSupport,
   createRipple,
