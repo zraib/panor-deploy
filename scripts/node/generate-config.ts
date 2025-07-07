@@ -1,6 +1,6 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const os = require('os');
+import { execSync } from 'child_process';
+import * as fs from 'fs';
+import * as os from 'os';
 
 try {
   const pythonCmd = os.platform() === 'win32' ? 'python' : 'python3';
@@ -50,6 +50,6 @@ try {
 
   console.log('North offsets calculated and applied successfully');
 } catch (error) {
-  console.error('Error in configuration process:', error.message);
+  console.error('Error in configuration process:', (error as Error).message);
   process.exit(1);
 }

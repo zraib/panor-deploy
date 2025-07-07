@@ -11,7 +11,7 @@ import {
   checkWebGLSupport,
   createRipple,
   getWebGLDiagnostics,
-} from '@/lib/panoramaUtils';
+} from '@/utils/panoramaUtils';
 import {
   ConfigData,
   SceneInfo as SceneInfoType,

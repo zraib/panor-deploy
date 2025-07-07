@@ -1,5 +1,43 @@
 // Configuration utilities for panorama viewer
 
+/**
+ * Load panorama configuration from a URL
+ */
+export async function loadPanoramaConfig(url: string = '/config.json'): Promise<any> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to load config: ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Check if the configuration file exists
+ */
+export async function checkConfigExists(url: string = '/config.json'): Promise<boolean> {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Get the status of the configuration
+ */
+export async function getConfigStatus(url: string = '/config.json'): Promise<string> {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    if (response.ok) {
+      return 'available';
+    }
+    return `error: ${response.status}`;
+  } catch (error) {
+    return 'error: network';
+  }
+}
+
 import type { EnvironmentConfig } from '../types/config';
 
 /**

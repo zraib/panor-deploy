@@ -6,7 +6,7 @@ import {
   formatErrorMessage,
   checkConfigExists,
   getConfigStatus,
-} from '../src/lib/config';
+} from '../config';
 
 describe('Configuration Utilities', () => {
   describe('getEnvironmentConfig', () => {

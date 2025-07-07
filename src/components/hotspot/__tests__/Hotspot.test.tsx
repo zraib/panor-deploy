@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { HotspotComponent as Hotspot } from '../src/components/Hotspot';
+import { HotspotComponent as Hotspot } from '../Hotspot';
 
 describe('HotspotComponent', () => {
   const mockData = {

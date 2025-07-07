@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Script to clean up accumulated temporary files in the tmp directory
@@ -44,4 +44,4 @@ if (require.main === module) {
   cleanupTempDirectory();
 }
 
-module.exports = { cleanupTempDirectory };
+export { cleanupTempDirectory };
