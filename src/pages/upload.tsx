@@ -9,6 +9,11 @@ export default function Upload() {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<string[]>([]);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [duplicateImages, setDuplicateImages] = useState<
+    { name: string; size: number; lastModified: number }[]
+  >([]);
+  const [showDuplicatePreview, setShowDuplicatePreview] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [allowOverwrite, setAllowOverwrite] = useState(false);
   const [showSelectedFiles, setShowSelectedFiles] = useState(false);
@@ -21,6 +26,9 @@ export default function Upload() {
     csv: string | null;
     images: string[];
   }>({ csv: null, images: [] });
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [diagnosticsData, setDiagnosticsData] = useState<any>(null);
+  const [loadingDiagnostics, setLoadingDiagnostics] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<{
     csv: File | null;
     images: File[];
@@ -202,13 +210,163 @@ export default function Upload() {
     }
   }, [selectedFiles]);
 
+  // Validation functions
+  const validateProjectName = (name: string): string[] => {
+    const errors: string[] = [];
+    if (!name.trim()) {
+      errors.push('Project name is required');
+    } else if (name.length < 3) {
+      errors.push('Project name must be at least 3 characters long');
+    } else if (name.length > 50) {
+      errors.push('Project name must be less than 50 characters');
+    } else if (!/^[a-zA-Z0-9\s\-_]+$/.test(name)) {
+      errors.push(
+        'Project name can only contain letters, numbers, spaces, hyphens, and underscores'
+      );
+    }
+    return errors;
+  };
+
+  const validateCSVFile = (file: File): string[] => {
+    const errors: string[] = [];
+    if (file.name !== 'pano-poses.csv') {
+      errors.push('CSV file must be named exactly "pano-poses.csv"');
+    }
+    if (!file.type.includes('csv') && !file.name.endsWith('.csv')) {
+      errors.push('File must be a valid CSV file');
+    }
+    return errors;
+  };
+
+  const validateImageFiles = (files: File[]): string[] => {
+    const errors: string[] = [];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+
+    if (files.length === 0) {
+      errors.push('At least one image file is required');
+      return errors;
+    }
+
+    const fileNames = new Set<string>();
+
+    files.forEach((file, index) => {
+      // Check file type
+      if (!allowedTypes.includes(file.type)) {
+        errors.push(
+          `Image ${index + 1} (${file.name}): Only JPEG and PNG files are allowed`
+        );
+      }
+
+      // Check for duplicate names in selection
+      if (fileNames.has(file.name)) {
+        errors.push(`Duplicate file name in selection: ${file.name}`);
+      }
+      fileNames.add(file.name);
+    });
+
+    return errors;
+  };
+
+  const detectDuplicateImages = (
+    newFiles: File[]
+  ): { name: string; size: number; lastModified: number }[] => {
+    if (!isEditMode || existingFiles.images.length === 0) return [];
+
+    const duplicates: { name: string; size: number; lastModified: number }[] =
+      [];
+    newFiles.forEach(file => {
+      if (existingFiles.images.includes(file.name)) {
+        duplicates.push({
+          name: file.name,
+          size: file.size,
+          lastModified: file.lastModified,
+        });
+      }
+    });
+
+    return duplicates;
+  };
+
+  const removeDuplicateImages = () => {
+    const duplicateNames = new Set(duplicateImages.map(img => img.name));
+    const filteredImages = selectedFiles.images.filter(
+      file => !duplicateNames.has(file.name)
+    );
+
+    setSelectedFiles(prev => ({ ...prev, images: filteredImages }));
+    setDuplicateImages([]);
+    setValidationErrors([]);
+
+    // Update the file input
+    const imagesInput = document.getElementById('images') as HTMLInputElement;
+    if (imagesInput) {
+      const dt = new DataTransfer();
+      filteredImages.forEach(file => dt.items.add(file));
+      imagesInput.files = dt.files;
+    }
+  };
+
+  const handleProjectNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setProjectName(newName);
+
+    // Real-time validation for project name
+    if (newName.trim()) {
+      const nameErrors = validateProjectName(newName);
+      if (nameErrors.length > 0) {
+        setValidationErrors(nameErrors);
+      } else {
+        setValidationErrors([]);
+      }
+    } else {
+      setValidationErrors([]);
+    }
+  };
+
+  const runDiagnostics = async () => {
+    setLoadingDiagnostics(true);
+    try {
+      const response = await fetch('/api/diagnostics');
+      const data = await response.json();
+      setDiagnosticsData(data);
+      setShowDiagnostics(true);
+    } catch (error) {
+      console.error('Failed to run diagnostics:', error);
+      setDiagnosticsData({
+        healthy: false,
+        error: 'Failed to run diagnostics. Please check your connection.',
+      });
+      setShowDiagnostics(true);
+    } finally {
+      setLoadingDiagnostics(false);
+    }
+  };
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, files } = event.target;
+    setValidationErrors([]);
+    setDuplicateImages([]);
 
     if (name === 'csv' && files && files[0]) {
+      const csvErrors = validateCSVFile(files[0]);
+      if (csvErrors.length > 0) {
+        setValidationErrors(csvErrors);
+      }
       setSelectedFiles(prev => ({ ...prev, csv: files[0] }));
     } else if (name === 'images' && files) {
-      setSelectedFiles(prev => ({ ...prev, images: Array.from(files) }));
+      const fileArray = Array.from(files);
+      const imageErrors = validateImageFiles(fileArray);
+      const duplicates = detectDuplicateImages(fileArray);
+
+      if (imageErrors.length > 0) {
+        setValidationErrors(imageErrors);
+      }
+
+      if (duplicates.length > 0) {
+        setDuplicateImages(duplicates);
+      }
+
+      setSelectedFiles(prev => ({ ...prev, images: fileArray }));
     }
   };
 
@@ -218,9 +376,46 @@ export default function Upload() {
     event.preventDefault();
     setMessage('');
     setDuplicateWarning([]);
+    setValidationErrors([]);
     setUploadSuccess(false);
     setUploadProgress(0);
     setIsLoading(true);
+
+    // Comprehensive validation before submission
+    const allErrors: string[] = [];
+
+    // Validate project name
+    const nameErrors = validateProjectName(projectName);
+    allErrors.push(...nameErrors);
+
+    // In edit mode, allow updating without requiring new files if existing files are present
+    const hasExistingCsv = isEditMode && existingFiles.csv;
+    const hasExistingImages = isEditMode && existingFiles.images.length > 0;
+    const hasNewCsv = selectedFiles.csv;
+    const hasNewImages = selectedFiles.images.length > 0;
+
+    // Validate CSV file
+    if (!hasNewCsv && !hasExistingCsv) {
+      allErrors.push('Please select a CSV file.');
+    } else if (hasNewCsv) {
+      const csvErrors = validateCSVFile(selectedFiles.csv!);
+      allErrors.push(...csvErrors);
+    }
+
+    // Validate image files
+    if (!hasNewImages && !hasExistingImages) {
+      allErrors.push('Please select at least one image.');
+    } else if (hasNewImages) {
+      const imageErrors = validateImageFiles(selectedFiles.images);
+      allErrors.push(...imageErrors);
+    }
+
+    // If there are validation errors, show them and stop
+    if (allErrors.length > 0) {
+      setValidationErrors(allErrors);
+      setIsLoading(false);
+      return;
+    }
 
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -230,36 +425,10 @@ export default function Upload() {
       setAllowOverwrite(false);
     }
 
-    // In edit mode, allow updating without requiring new files if existing files are present
-    const hasExistingCsv = isEditMode && existingFiles.csv;
-    const hasExistingImages = isEditMode && existingFiles.images.length > 0;
-    const hasNewCsv = selectedFiles.csv;
-    const hasNewImages = selectedFiles.images.length > 0;
-
-    if (!hasNewCsv && !hasExistingCsv) {
-      setMessage('Please select a CSV file.');
-      setIsLoading(false);
-      return;
-    }
-
-    if (!hasNewImages && !hasExistingImages) {
-      setMessage('Please select at least one image.');
-      setIsLoading(false);
-      return;
-    }
-
-    if (!projectName.trim()) {
-      setMessage('Please enter a project name.');
-      setIsLoading(false);
-      return;
-    }
-
-    const totalSize =
-      selectedFiles.images.reduce((sum, file) => sum + file.size, 0) +
-      (selectedFiles.csv ? selectedFiles.csv.size : 0);
-
-    if (totalSize > 500 * 1024 * 1024) {
-      // 500MB
+    // Show upload preparation message for large uploads
+    const totalFiles =
+      selectedFiles.images.length + (selectedFiles.csv ? 1 : 0);
+    if (totalFiles > 10) {
       setMessage(
         'Large upload detected. This may take several minutes. Please be patient and do not close this page.'
       );
@@ -307,9 +476,17 @@ export default function Upload() {
         if (!projectResponse.ok) {
           const projectError = await projectResponse.json();
           if (projectResponse.status === 409) {
-            setMessage(
-              `A project named "${projectName.trim()}" already exists. Please choose a different name.`
-            );
+            setValidationErrors([
+              `❌ Project name "${projectName.trim()}" already exists`,
+              '💡 Please choose a different name or edit the existing project',
+            ]);
+            setIsLoading(false);
+            return;
+          } else if (projectResponse.status === 400) {
+            setValidationErrors([
+              '❌ Invalid project name',
+              '💡 Project names can only contain letters, numbers, spaces, hyphens, and underscores',
+            ]);
             setIsLoading(false);
             return;
           } else {
@@ -361,8 +538,21 @@ export default function Upload() {
           setMessage(
             `Upload timeout: ${errorData.error} Try uploading fewer files at once.`
           );
+        } else if (
+          response.status === 500 &&
+          errorData.error === 'Configuration generation failed'
+        ) {
+          // Handle configuration generation errors with more detail
+          setMessage(
+            `⚠️ Files uploaded successfully, but configuration generation failed.\n\n` +
+              `Error: ${errorData.message}\n\n` +
+              `💡 You can try running this command manually:\n` +
+              `${errorData.manualCommand || 'node scripts/node/generate-config.js --project "' + projectId + '"'}`
+          );
         } else {
-          setMessage(`Upload failed: ${errorData.error}`);
+          setMessage(
+            `Upload failed: ${errorData.error || errorData.message || 'Unknown error'}`
+          );
         }
       }
     } catch (error: any) {
@@ -416,10 +606,10 @@ export default function Upload() {
               id='projectName'
               name='projectName'
               value={projectName}
-              onChange={e => setProjectName(e.target.value)}
+              onChange={handleProjectNameChange}
               placeholder='Enter a name for your project'
               required
-              className={styles.textInput}
+              className={`${styles.textInput} ${validationErrors.some(error => error.includes('Project name')) ? styles.inputError : ''}`}
             />
             <div className={styles.inputHint}>
               {isEditMode
@@ -516,35 +706,176 @@ export default function Upload() {
 
           <button
             type='submit'
-            disabled={isLoading}
-            className={styles.submitButton}
+            disabled={isLoading || validationErrors.length > 0}
+            className={`${styles.submitButton} ${
+              validationErrors.length > 0 ? styles.submitButtonDisabled : ''
+            }`}
           >
             {isLoading && <span className={styles.loadingSpinner}></span>}
-            {isLoading
-              ? isEditMode
-                ? 'Updating Project...'
-                : 'Uploading and Generating...'
-              : isEditMode
-                ? 'Update Project'
-                : 'Upload and Generate'}
+            {validationErrors.length > 0 && !isLoading
+              ? '⚠️ Fix errors to continue'
+              : isLoading
+                ? isEditMode
+                  ? 'Updating Project...'
+                  : 'Uploading and Generating...'
+                : isEditMode
+                  ? '✅ Update Project'
+                  : '🚀 Upload and Generate'}
           </button>
+
+          {/* File Summary */}
+          {(selectedFiles.csv || selectedFiles.images.length > 0) && (
+            <div className={styles.fileSummary}>
+              <h4 className={styles.summaryTitle}>📋 Upload Summary</h4>
+              <div className={styles.summaryContent}>
+                {selectedFiles.csv && (
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryIcon}>📄</span>
+                    <span className={styles.summaryText}>
+                      CSV: {selectedFiles.csv.name} (
+                      {Math.round(selectedFiles.csv.size / 1024)} KB)
+                    </span>
+                  </div>
+                )}
+                {selectedFiles.images.length > 0 && (
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryIcon}>🖼️</span>
+                    <span className={styles.summaryText}>
+                      {selectedFiles.images.length} image(s) (
+                      {Math.round(
+                        selectedFiles.images.reduce(
+                          (sum, file) => sum + file.size,
+                          0
+                        ) /
+                          1024 /
+                          1024
+                      )}{' '}
+                      MB total)
+                    </span>
+                  </div>
+                )}
+                {duplicateImages.length > 0 && (
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryIcon}>⚠️</span>
+                    <span className={styles.summaryText}>
+                      {duplicateImages.length} duplicate(s) detected
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {isLoading && uploadProgress > 0 && (
             <div className={styles.progressContainer}>
+              <div className={styles.progressHeader}>
+                <span className={styles.progressTitle}>
+                  {uploadProgress < 30
+                    ? '📤 Preparing files...'
+                    : uploadProgress < 70
+                      ? '⬆️ Uploading files...'
+                      : uploadProgress < 100
+                        ? '📊 Processing data...'
+                        : '🔧 Generating configuration...'}
+                </span>
+                <span className={styles.progressPercentage}>
+                  {uploadProgress < 100
+                    ? `${Math.round(uploadProgress)}%`
+                    : '99%'}
+                </span>
+              </div>
               <div className={styles.progressBar}>
                 <div
                   className={styles.progressFill}
                   style={{ width: `${uploadProgress}%` }}
                 ></div>
               </div>
-              <div className={styles.progressText}>
-                {uploadProgress < 100
-                  ? `Uploading... ${Math.round(uploadProgress)}%`
-                  : 'Processing files...'}
+              <div className={styles.progressDetails}>
+                {uploadProgress < 100 ? (
+                  <span className={styles.progressSubtext}>
+                    Please keep this page open while files are being
+                    processed...
+                  </span>
+                ) : (
+                  <span className={styles.progressSubtext}>
+                    Almost done! Finalizing your panorama project...
+                  </span>
+                )}
               </div>
             </div>
           )}
         </form>
+
+        {/* Validation Errors Display */}
+        {validationErrors.length > 0 && (
+          <div className={`${styles.message} ${styles.messageError}`}>
+            <div className={styles.errorHeader}>
+              <h4>⚠️ Please fix the following issues:</h4>
+            </div>
+            <ul className={styles.errorList}>
+              {validationErrors.map((error, index) => (
+                <li key={index} className={styles.errorItem}>
+                  {error}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Duplicate Images Management */}
+        {duplicateImages.length > 0 && (
+          <div className={`${styles.message} ${styles.messageWarning}`}>
+            <div className={styles.duplicateHeader}>
+              <h4>
+                🔄 Duplicate Images Detected ({duplicateImages.length} files)
+              </h4>
+              <button
+                type='button'
+                onClick={() => setShowDuplicatePreview(!showDuplicatePreview)}
+                className={styles.toggleButton}
+              >
+                {showDuplicatePreview ? '▼ Hide Details' : '▶ Show Details'}
+              </button>
+            </div>
+            {showDuplicatePreview && (
+              <div className={styles.duplicateDetails}>
+                <p className={styles.duplicateExplanation}>
+                  These images have the same names as existing files in your
+                  project:
+                </p>
+                <ul className={styles.duplicateList}>
+                  {duplicateImages.map((img, index) => (
+                    <li key={index} className={styles.duplicateItem}>
+                      <span className={styles.fileName}>{img.name}</span>
+                      <span className={styles.fileSize}>
+                        ({Math.round(img.size / 1024)} KB)
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className={styles.duplicateActions}>
+                  <p className={styles.actionText}>
+                    💡 <strong>Options:</strong>
+                  </p>
+                  <ul className={styles.actionList}>
+                    <li>✏️ Rename the duplicate files and re-select them</li>
+                    <li>🔄 Continue upload to replace existing files</li>
+                    <li>🗑️ Remove duplicates from your selection</li>
+                  </ul>
+                  <div className={styles.duplicateButtonContainer}>
+                    <button
+                      type='button'
+                      onClick={removeDuplicateImages}
+                      className={styles.removeDuplicatesButton}
+                    >
+                      🗑️ Remove Duplicate Images
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {duplicateWarning.length > 0 && (
           <div className={`${styles.message} ${styles.messageWarning}`}>
@@ -634,6 +965,97 @@ export default function Upload() {
               <Link href='/' className={styles.viewPanoramasButton}>
                 🏠 View Panoramas
               </Link>
+            )}
+          </div>
+        )}
+
+        {/* Diagnostics Section */}
+        {(message.includes('failed') ||
+          message.includes('error') ||
+          validationErrors.length > 0) && (
+          <div className={styles.diagnosticsSection}>
+            <button
+              type='button'
+              onClick={runDiagnostics}
+              disabled={loadingDiagnostics}
+              className={styles.diagnosticsButton}
+            >
+              {loadingDiagnostics
+                ? '🔍 Running Diagnostics...'
+                : '🔧 Run System Diagnostics'}
+            </button>
+            <p className={styles.diagnosticsHint}>
+              Having trouble? Run diagnostics to check your system setup.
+            </p>
+          </div>
+        )}
+
+        {/* Diagnostics Results */}
+        {showDiagnostics && diagnosticsData && (
+          <div
+            className={`${styles.message} ${diagnosticsData.healthy ? styles.messageSuccess : styles.messageError}`}
+          >
+            <div className={styles.diagnosticsHeader}>
+              <h4>
+                {diagnosticsData.healthy
+                  ? '✅ System Check Passed'
+                  : '❌ System Issues Detected'}
+              </h4>
+              <button
+                type='button'
+                onClick={() => setShowDiagnostics(false)}
+                className={styles.toggleButton}
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {diagnosticsData.error ? (
+              <p>{diagnosticsData.error}</p>
+            ) : (
+              <div className={styles.diagnosticsResults}>
+                <div className={styles.diagnosticsSummary}>
+                  <h5>📋 System Status:</h5>
+                  <ul>
+                    <li>
+                      Python: {diagnosticsData.summary?.python || '❓ Unknown'}
+                    </li>
+                    <li>
+                      NumPy: {diagnosticsData.summary?.numpy || '❓ Unknown'}
+                    </li>
+                    <li>
+                      Public Directory:{' '}
+                      {diagnosticsData.summary?.publicDir || '❓ Unknown'}
+                    </li>
+                    <li>
+                      Scripts:{' '}
+                      {diagnosticsData.summary?.scripts || '❓ Unknown'}
+                    </li>
+                  </ul>
+                </div>
+
+                {diagnosticsData.diagnostics?.recommendations?.length > 0 && (
+                  <div className={styles.diagnosticsRecommendations}>
+                    <h5>💡 Recommendations:</h5>
+                    <ul>
+                      {diagnosticsData.diagnostics.recommendations.map(
+                        (rec: string, index: number) => (
+                          <li key={index}>{rec}</li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {process.env.NODE_ENV === 'development' && (
+                  <details className={styles.diagnosticsDetails}>
+                    <summary>🔍 Technical Details</summary>
+                    <pre>
+                      {JSON.stringify(diagnosticsData.diagnostics, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </div>
             )}
           </div>
         )}
