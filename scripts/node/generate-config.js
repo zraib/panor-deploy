@@ -23,7 +23,7 @@ try {
 
   // Generate config for specific project
   const output1 = execSync(
-    `${pythonCmd} scripts/generate_marzipano_config.py --project "${projectId}"`,
+    `${pythonCmd} scripts/python/generate_marzipano_config.py --project "${projectId}"`,
     {
       encoding: 'utf8',
       cwd: process.cwd(),
@@ -40,7 +40,7 @@ try {
 
   console.log('Calculating north offsets...');
   const output2 = execSync(
-    `${pythonCmd} scripts/calculate_north_offsets.py --project "${projectId}"`,
+    `${pythonCmd} scripts/python/calculate_north_offsets.py --project "${projectId}"`,
     {
       encoding: 'utf8',
       cwd: process.cwd(),
