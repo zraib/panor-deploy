@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { usePanoramaViewer } from './usePanoramaViewer';
 import { useSceneManager } from './useSceneManager';
 import { useHotspotManager } from './useHotspotManager';
@@ -15,6 +15,10 @@ interface UsePanoramaManagerProps {
 
 export function usePanoramaManager({ projectId, initialSceneId, closePanels }: UsePanoramaManagerProps) {
   const { state, refs, actions, router } = usePanoramaViewer();
+  
+  // Navigation queue to prevent race conditions
+  const navigationQueueRef = useRef<string[]>([]);
+  const isNavigatingRef = useRef<boolean>(false);
   
   const { clearHotspotsForScene, createHotspotsForScene, toggleHotspots } = useHotspotManager({
     refs,
@@ -137,12 +141,40 @@ export function usePanoramaManager({ projectId, initialSceneId, closePanels }: U
     }
   }, [loadScene, switchSceneWithHooks, actions, refs, initialSceneId, projectId]);
 
-  // Navigate to scene function
-  const navigateToScene = useCallback(
-    async (sceneId: string, sourceHotspotYaw?: number): Promise<void> => {
-      if (sceneId === state.currentScene) return;
+  // Process navigation queue to prevent race conditions
+  const processNavigationQueue = useCallback(async () => {
+    if (isNavigatingRef.current || navigationQueueRef.current.length === 0) {
+      return;
+    }
 
+    isNavigatingRef.current = true;
+    const sceneId = navigationQueueRef.current.shift()!;
+
+    try {
+      // Check if viewer is properly initialized
+      if (!refs.viewerRef.current) {
+        console.error('Navigation failed: Viewer not initialized');
+        actions.setError('Failed to initialize panorama viewer');
+        return;
+      }
+
+      // Validate scene exists
       const sceneInfo = refs.scenesRef.current[sceneId];
+      if (!sceneInfo) {
+        console.error(`Navigation failed: Scene ${sceneId} not found`);
+        actions.setError(`Scene ${sceneId} not found`);
+        return;
+      }
+
+      // Skip if already on this scene
+      if (sceneId === state.currentScene) {
+        console.log(`Navigation skipped: already on scene ${sceneId}`);
+        return;
+      }
+
+      console.log(`Processing navigation to scene: ${sceneId}`);
+
+      // Preload image if scene info exists
       if (sceneInfo) {
         const img = new Image();
         const imagePath = projectId
@@ -160,14 +192,47 @@ export function usePanoramaManager({ projectId, initialSceneId, closePanels }: U
         }
       }
 
+      // Update URL before scene switch
       if (projectId) {
         const newUrl = `/${projectId}/${sceneId}`;
         window.history.replaceState(null, '', newUrl);
       }
 
+      // Perform the scene switch
       await switchSceneWithHooks(sceneId, false, true);
+      console.log(`Navigation completed successfully to scene: ${sceneId}`);
+    } catch (error) {
+      console.error(`Navigation failed for scene ${sceneId}:`, error);
+      actions.setError(`Failed to navigate to scene: ${sceneId}`);
+    } finally {
+      isNavigatingRef.current = false;
+      // Process next item in queue if any
+      if (navigationQueueRef.current.length > 0) {
+        setTimeout(() => processNavigationQueue(), 100);
+      }
+    }
+  }, [switchSceneWithHooks, state.currentScene, loadScene, projectId, refs.scenesRef, refs.viewerRef, actions]);
+
+  // Navigate to scene function with queue-based race condition prevention
+  const navigateToScene = useCallback(
+    async (sceneId: string, sourceHotspotYaw?: number): Promise<void> => {
+      // Skip if already on this scene or scene doesn't exist
+      if (sceneId === state.currentScene || !refs.scenesRef.current[sceneId]) {
+        console.log(`Navigation ignored: ${sceneId === state.currentScene ? 'same scene' : 'scene not found'}`);
+        return;
+      }
+
+      // Remove any existing instances of this scene from queue
+      navigationQueueRef.current = navigationQueueRef.current.filter(id => id !== sceneId);
+      
+      // Add to queue
+      navigationQueueRef.current.push(sceneId);
+      console.log(`Scene ${sceneId} added to navigation queue. Queue length: ${navigationQueueRef.current.length}`);
+
+      // Process queue
+      processNavigationQueue();
     },
-    [switchSceneWithHooks, state.currentScene, loadScene, projectId, refs.scenesRef]
+    [state.currentScene, refs.scenesRef, processNavigationQueue]
   );
 
   const {

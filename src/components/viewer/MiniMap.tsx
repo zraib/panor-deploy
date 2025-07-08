@@ -478,13 +478,55 @@ export default function MiniMap({
     }
   }, [handleWheel]);
 
-  // Handle hotspot click
+  // Add debouncing state for hotspot clicks
+  const [lastClickTime, setLastClickTime] = useState(0);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Handle hotspot click with debouncing and race condition prevention
   const handleHotspotClick = useCallback(
     (sceneId: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      onSelectScene(sceneId);
+      
+      const now = Date.now();
+      const timeSinceLastClick = now - lastClickTime;
+      
+      // Prevent rapid clicking (debounce with 200ms)
+       if (timeSinceLastClick < 200) {
+         console.log('Hotspot click ignored: too rapid');
+         return;
+       }
+      
+      // Prevent clicking if already navigating
+      if (isNavigating) {
+        console.log('Hotspot click ignored: navigation in progress');
+        return;
+      }
+      
+      // Prevent clicking on current scene
+      if (sceneId === currentScene.id) {
+        console.log('Hotspot click ignored: already on this scene');
+        return;
+      }
+      
+      setLastClickTime(now);
+      setIsNavigating(true);
+      
+      console.log(`MiniMap: Navigating to scene ${sceneId}`);
+      
+      // Call the scene selection with error handling
+      try {
+        onSelectScene(sceneId);
+        
+        // Reset navigation state after a delay
+         setTimeout(() => {
+           setIsNavigating(false);
+         }, 1200); // Reduced timeout to match scene transition
+      } catch (error) {
+        console.error('Scene selection failed:', error);
+        setIsNavigating(false);
+      }
     },
-    [onSelectScene]
+    [onSelectScene, lastClickTime, isNavigating, currentScene.id]
   );
 
   // Handle minimize toggle
@@ -602,16 +644,19 @@ export default function MiniMap({
                   top: `${coords.y}%`,
                   transform: 'translate(-50%, -50%)',
                   visibility: isVisible ? 'visible' : 'hidden',
-                  opacity: isVisible ? 1 : 0,
+                  opacity: isVisible ? (isNavigating ? 0.5 : 1) : 0,
                   transition: 'opacity 0.3s ease, transform 0.2s ease',
                   zIndex: isCurrentScene ? 10 : 5,
+                  cursor: isNavigating ? 'not-allowed' : 'pointer',
+                  pointerEvents: isNavigating ? 'none' : 'auto',
                 }}
-                title={`${scene.name} (Floor ${scene.floor})`}
-                tabIndex={0}
+                title={isNavigating ? 'Navigation in progress...' : `${scene.name} (Floor ${scene.floor})`}
+                tabIndex={isNavigating ? -1 : 0}
                 role='button'
-                aria-label={`Navigate to ${scene.name}`}
+                aria-label={isNavigating ? 'Navigation in progress' : `Navigate to ${scene.name}`}
+                aria-disabled={isNavigating}
                 onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (!isNavigating && (e.key === 'Enter' || e.key === ' ')) {
                     e.preventDefault();
                     handleHotspotClick(scene.id, e as any);
                   }
@@ -734,8 +779,10 @@ export default function MiniMap({
             {visibleHotspots.length}/{currentFloorScenes.length}
           </div>
 
+
+
           {/* Scroll hint for better UX */}
-          {isHovered && (
+          {isHovered && !isNavigating && (
             <div className={styles.scrollHint}>
               Scroll to zoom • Drag to pan
             </div>

@@ -12,6 +12,11 @@ declare namespace Marzipano {
     [key: string]: any;
   }
 
+  interface Stage {
+    ready?: boolean;
+    [key: string]: any;
+  }
+
   interface Viewer {
     createScene(options: SceneOptions): Scene;
     destroy(): void;
@@ -19,6 +24,7 @@ declare namespace Marzipano {
     lookTo(params: { yaw: number; pitch: number; fov: number }, options?: { transitionDuration: number }): void;
     addEventListener?(event: string, callback: () => void): void;
     removeEventListener?(event: string, callback: () => void): void;
+    stage?: Stage;
   }
 
   interface SceneOptions {

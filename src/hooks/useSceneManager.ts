@@ -316,19 +316,24 @@ export function useSceneManager({
         actions.setHotspotsVisible?.(false);
 
         // Switch scene with smooth transition
-        const transitionDuration = isInitial ? 0 : 1200; // Longer for smoother effect
+        const transitionDuration = isInitial ? 0 : 1000; // Reduced duration for better performance
 
         try {
+          // Simple scene switch without complex stage synchronization
           sceneInfo.scene.switchTo({
             transitionDuration: transitionDuration,
           });
+          
           console.log(`Scene switched successfully to: ${sceneId}`);
         } catch (switchError) {
+          const errorMessage = switchError instanceof Error ? switchError.message : 'Unknown error';
+          console.error(`Scene switch failed for ${sceneId}:`, errorMessage);
+          
           throw new SceneManagerException(
-              SceneManagerError.SCENE_LOAD_FAILED,
-              `Failed to switch viewer to scene: ${switchError instanceof Error ? switchError.message : 'Unknown error'}`,
-              sceneId
-            );
+            SceneManagerError.SCENE_LOAD_FAILED,
+            `Failed to switch viewer to scene: ${errorMessage}`,
+            sceneId
+          );
         }
 
         // Coordinate view change with slight delay
