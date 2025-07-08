@@ -264,43 +264,132 @@ const POIComponent: React.FC<POIComponentProps> = ({
     setSelectedPOI(null);
   };
 
-  const renderPOIMarkers = () => {
-    if (!viewerRef.current || pois.length === 0) {
-      return null;
+  // Store POI hotspot elements and references
+  const poiHotspotsRef = useRef<{ poi: POIData; element: HTMLElement; hotspot: any }[]>([]);
+
+  // Create POI hotspots using Marzipano's hotspot system
+  const createPOIHotspots = useCallback(() => {
+    if (!viewerRef.current || !currentPanoramaId) {
+      return;
     }
 
-    return pois.map(poi => {
-      // Calculate screen position for POI marker
-      // This is a simplified calculation - in a real implementation,
-      // you'd need to convert from spherical coordinates to screen coordinates
-      // based on the current view parameters
+    try {
+      const scene = viewerRef.current.scene();
+      if (!scene) {
+        console.warn('No active scene found for POI hotspots');
+        return;
+      }
+
+      const hotspotContainer = scene.hotspotContainer();
+      if (!hotspotContainer) {
+        console.warn('No hotspot container found for POI hotspots');
+        return;
+      }
+
+      // Clear existing POI hotspots
+      clearPOIHotspots();
+
+      // Create hotspots for current panorama's POIs
+      const currentPOIs = pois.filter(poi => poi.panoramaId === currentPanoramaId);
       
-      return (
-        <div
-          key={poi.id}
-          className="absolute z-10 cursor-pointer transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
-          style={{
-            // This is a placeholder positioning - you'll need to implement
-            // proper spherical to screen coordinate conversion
-            left: `${50 + (poi.position.yaw / 180) * 25}%`,
-            top: `${50 - (poi.position.pitch / 90) * 25}%`
-          }}
-          onClick={() => handlePOIClick(poi)}
-          title={poi.name}
-        >
-          <div className="relative">
-            <FaMapPin 
-              className="text-red-500 hover:text-red-600 transition-colors drop-shadow-lg" 
-              size={24}
-            />
-            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity">
-              {poi.name}
+      currentPOIs.forEach(poi => {
+        try {
+          // Create DOM element for POI marker
+          const element = document.createElement('div');
+          element.className = 'poi-marker';
+          element.style.cssText = `
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+            pointer-events: auto;
+            z-index: 10;
+          `;
+          
+          // Create POI marker content
+          element.innerHTML = `
+            <div class="relative">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="text-red-500 hover:text-red-600 transition-colors drop-shadow-lg">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+              <div class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity">
+                ${poi.name}
+              </div>
             </div>
-          </div>
-        </div>
-      );
-    });
-  };
+          `;
+
+          // Add click handler
+          element.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handlePOIClick(poi);
+          });
+
+          // Create Marzipano hotspot with proper yaw/pitch positioning
+          const hotspot = hotspotContainer.createHotspot(element, {
+            yaw: poi.position.yaw * (Math.PI / 180), // Convert degrees to radians
+            pitch: poi.position.pitch * (Math.PI / 180) // Convert degrees to radians
+          });
+
+          // Store reference for cleanup
+          poiHotspotsRef.current.push({ poi, element, hotspot });
+        } catch (error) {
+          console.error(`Failed to create POI hotspot for ${poi.name}:`, error);
+        }
+      });
+
+      console.log(`Created ${poiHotspotsRef.current.length} POI hotspots for panorama ${currentPanoramaId}`);
+    } catch (error) {
+      console.error('Error creating POI hotspots:', error);
+    }
+  }, [viewerRef, currentPanoramaId, pois]);
+
+  // Clear POI hotspots
+  const clearPOIHotspots = useCallback(() => {
+    if (!viewerRef.current) {
+      return;
+    }
+
+    try {
+      const scene = viewerRef.current.scene();
+      if (scene) {
+        const hotspotContainer = scene.hotspotContainer();
+        if (hotspotContainer) {
+          // Destroy all POI hotspots
+          poiHotspotsRef.current.forEach(({ hotspot }) => {
+            try {
+              hotspotContainer.destroyHotspot(hotspot);
+            } catch (error) {
+              console.warn('Failed to destroy POI hotspot:', error);
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error clearing POI hotspots:', error);
+    }
+
+    // Clear references
+    poiHotspotsRef.current = [];
+  }, [viewerRef]);
+
+  // Update POI hotspots when POIs or panorama changes
+  useEffect(() => {
+    if (currentPanoramaId && pois.length >= 0) {
+      // Small delay to ensure viewer is ready
+      const timer = setTimeout(() => {
+        createPOIHotspots();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    } else {
+      clearPOIHotspots();
+    }
+  }, [currentPanoramaId, pois, createPOIHotspots, clearPOIHotspots]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearPOIHotspots();
+    };
+  }, [clearPOIHotspots]);
 
   return (
     <>
@@ -315,10 +404,7 @@ const POIComponent: React.FC<POIComponentProps> = ({
          }}
        />
       
-      {/* POI markers container */}
-      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
-        {renderPOIMarkers()}
-       </div>
+      {/* POI markers are now handled by Marzipano's hotspot system */}
       
       {showContextMenu && (
         <POIContextMenu

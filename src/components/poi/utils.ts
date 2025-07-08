@@ -22,22 +22,29 @@ export const screenToYawPitch = (
   currentPitch: number,
   currentFov: number
 ): POIPosition => {
-  // Convert screen coords to normalized coordinates (-1 to 1)
+  // Normalize screen coordinates to [-1, 1] range
   const normalizedX = (clientX / viewerWidth) * 2 - 1;
   const normalizedY = -(clientY / viewerHeight) * 2 + 1;
   
-  // Calculate yaw/pitch based on current view and FOV
+  // Calculate the angular offset from the center of the view
   const fovRadians = (currentFov * Math.PI) / 180;
-  const yawOffset = normalizedX * (fovRadians / 2) * (180 / Math.PI);
-  const pitchOffset = normalizedY * (fovRadians / 2) * (180 / Math.PI);
+  const aspectRatio = viewerWidth / viewerHeight;
   
-  const yaw = currentYaw + yawOffset;
-  const pitch = currentPitch + pitchOffset;
+  // Calculate horizontal and vertical angular offsets
+  const horizontalFov = fovRadians;
+  const verticalFov = fovRadians / aspectRatio;
   
-  // Validate the calculated angles
-  validateViewAngles(yaw, pitch);
+  const deltaYaw = normalizedX * (horizontalFov / 2) * (180 / Math.PI);
+  const deltaPitch = -normalizedY * (verticalFov) * (180 / Math.PI);
   
-  return { yaw, pitch };
+  // Add the offsets to the current view direction
+  const targetYaw = normalizeYaw(currentYaw + deltaYaw);
+  const targetPitch = clampPitch(currentPitch + deltaPitch);
+  
+  return { 
+    yaw: parseFloat(targetYaw.toFixed(2)),
+    pitch: parseFloat(targetPitch.toFixed(2))
+  };
 };
 
 /**
