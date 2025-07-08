@@ -1,0 +1,130 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { useNavigation } from './useNavigation';
+
+interface Project {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  sceneCount: number;
+  hasConfig: boolean;
+}
+
+export function useProjectsManager() {
+  const router = useRouter();
+  const navigation = useNavigation();
+  
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState<boolean>(false);
+  
+  const currentProject = router.query.projectId as string;
+
+  const loadProjects = async () => {
+    try {
+      console.log('📂 Loading projects...');
+      setProjectsLoading(true);
+      const response = await fetch('/api/projects');
+      if (!response.ok) {
+        throw new Error('Failed to load projects');
+      }
+      const data = await response.json();
+      console.log('📂 Projects loaded:', data.projects);
+      setProjects(data.projects);
+      setProjectsError(null);
+    } catch (err: any) {
+      console.error('❌ Failed to load projects:', err);
+      setProjectsError(err.message);
+    } finally {
+      setProjectsLoading(false);
+    }
+  };
+
+  const deleteProject = async (projectId: string) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete project "${projectId}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeleting(projectId);
+      const response = await fetch(
+        `/api/projects?projectId=${encodeURIComponent(projectId)}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete project');
+      }
+
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+
+      // If we deleted the current project, go to home
+      if (currentProject === projectId) {
+        router.push('/');
+      }
+    } catch (err: any) {
+      setProjectsError(err.message);
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleProjectSelect = async (projectId: string, onPanelClose: () => void) => {
+    try {
+      console.log('🔍 handleProjectSelect called with projectId:', projectId);
+      console.log('🔍 Current router state:', {
+        pathname: router.pathname,
+        query: router.query,
+        asPath: router.asPath
+      });
+      
+      if (isNavigating) {
+        console.log('⏳ Navigation already in progress, ignoring click');
+        return;
+      }
+      
+      setIsNavigating(true);
+      onPanelClose(); // Close the panel
+      console.log('🔍 Panel closed');
+      
+      console.log('🔍 Attempting navigation with navigation hook...');
+      await navigation.navigateToProject(projectId);
+      console.log('✅ Navigation successful!');
+      
+    } catch (error) {
+      console.error('❌ Navigation failed:', error);
+      // Show user-friendly error message
+      alert(`Failed to navigate to project ${projectId}. Please try again.`);
+    } finally {
+      setIsNavigating(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  return {
+    projects,
+    projectsLoading,
+    projectsError,
+    deleting,
+    isNavigating,
+    currentProject,
+    loadProjects,
+    deleteProject,
+    handleProjectSelect,
+  };
+}

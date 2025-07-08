@@ -1,0 +1,1 @@
+export { ProjectsIcon, FloorsIcon, PerformanceIcon } from './ControlPanelIcons';
