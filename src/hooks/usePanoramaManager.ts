@@ -103,6 +103,9 @@ export function usePanoramaManager({ projectId, initialSceneId }: UsePanoramaMan
       const viewer = new Marzipano.Viewer(refs.panoRef.current, viewerOpts);
       refs.viewerRef.current = viewer;
 
+      // Setup view parameter tracking for preserving view direction
+      setupViewTracking(viewer);
+
       configData.scenes.forEach(sceneData => {
         refs.scenesRef.current[sceneData.id] = {
           data: sceneData,
