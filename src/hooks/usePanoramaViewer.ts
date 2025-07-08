@@ -1,4 +1,4 @@
-import { useState, useRef, useReducer, useCallback } from 'react';
+import { useState, useRef, useReducer, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { ConfigData, SceneInfo as SceneInfoType } from '@/types/scenes';
 
@@ -213,6 +213,26 @@ export function usePanoramaViewer(): UsePanoramaViewerReturn {
     marzipanoRef,
     loadTimesRef,
   };
+
+  // Cleanup effect to reset state when hook unmounts
+  useEffect(() => {
+    return () => {
+      // Reset state when component unmounts
+      dispatch({ type: 'RESET_STATE' });
+      
+      // Clear refs (but keep marzipanoRef as it tracks library availability)
+      viewerRef.current = null;
+      scenesRef.current = {};
+      loadTimesRef.current = [];
+      
+      if (hotspotTimeoutRef.current) {
+        clearTimeout(hotspotTimeoutRef.current);
+        hotspotTimeoutRef.current = null;
+      }
+      
+      console.log('usePanoramaViewer cleanup completed');
+    };
+  }, []);
 
   return {
     state,

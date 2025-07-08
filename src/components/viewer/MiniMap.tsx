@@ -253,7 +253,9 @@ export default function MiniMap({
     if (!viewer) return;
 
     const updateYaw = () => {
-      const yaw = viewer.view().yaw();
+      const view = viewer.view();
+      if (!view) return;
+      const yaw = view.yaw();
       setCurrentYaw(yaw);
     };
 

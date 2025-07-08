@@ -67,14 +67,19 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
       </div>
       <div className={styles.content}>
         {/* Create Project Button */}
-        <Link
-          href='/upload'
+        <button
           className={styles.actionButton}
-          onClick={onPanelClose}
+          onClick={() => {
+            console.log('🔄 Create New Project clicked');
+            onPanelClose();
+            console.log('🔄 Panel closed, navigating to upload...');
+            // Force full page navigation to ensure immediate rendering
+            window.location.href = '/upload';
+          }}
           style={{ marginBottom: '16px' }}
         >
           + Create New Project
-        </Link>
+        </button>
 
         {/* Error Display */}
         {projectsError && (
