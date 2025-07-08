@@ -10,6 +10,42 @@ import POIPreview from './POIPreview';
 import { FaMapPin } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
+// Function to determine the appropriate icon based on POI type and content
+const getPOIIcon = (poi: POIData): string => {
+  if (poi.type === 'iframe') {
+    return '/assets/svg/html.ico';
+  }
+  
+  if (poi.type === 'file' && poi.content) {
+    const extension = poi.content.toLowerCase().split('.').pop();
+    
+    switch (extension) {
+      case 'mp4':
+      case 'avi':
+      case 'mov':
+      case 'wmv':
+      case 'webm':
+        return '/assets/svg/video.ico';
+      
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'bmp':
+      case 'webp':
+        return '/assets/svg/jpg.ico';
+      
+      case 'pdf':
+        return '/assets/svg/pdf.ico';
+      
+      default:
+        return '/assets/svg/boomerang.svg'; // Default fallback
+    }
+  }
+  
+  return '/assets/svg/boomerang.svg'; // Default fallback
+};
+
 const POIComponent: React.FC<POIComponentProps> = ({
   projectId,
   currentPanoramaId,
@@ -36,9 +72,8 @@ const POIComponent: React.FC<POIComponentProps> = ({
       setPendingPOI(null);
       pendingPOIRef.current = null;
       setShowContextMenu(false);
-      setShowModal(false);
     }
-  }, [currentPanoramaId]);
+  }, [currentPanoramaId, projectId]);
 
   const loadPOIs = async () => {
     try {
@@ -304,17 +339,75 @@ const POIComponent: React.FC<POIComponentProps> = ({
             z-index: 10;
           `;
           
-          // Create POI marker content
-          element.innerHTML = `
-            <div class="relative">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="text-red-500 hover:text-red-600 transition-colors drop-shadow-lg">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-              </svg>
-              <div class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity">
-                ${poi.name}
+          // Get the appropriate icon for this POI
+          const iconPath = getPOIIcon(poi);
+          
+          // Create POI marker content with custom icon
+            element.innerHTML = `
+              <style>
+                @keyframes lightPass {
+                  0% { box-shadow: 0 0 0 3px #007bff, 0 0 10px rgba(0, 212, 255, 0.8); }
+                  25% { box-shadow: 0 0 0 3px #00d4ff, 0 0 15px rgba(0, 212, 255, 1); }
+                  50% { box-shadow: 0 0 0 3px #007bff, 0 0 10px rgba(0, 212, 255, 0.8); }
+                  75% { box-shadow: 0 0 0 3px #00d4ff, 0 0 15px rgba(0, 212, 255, 1); }
+                  100% { box-shadow: 0 0 0 3px #007bff, 0 0 10px rgba(0, 212, 255, 0.8); }
+                }
+                .poi-marker {
+                  position: relative;
+                  width: 60px;
+                  height: 70px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  border-radius: 8px;
+                  background: rgba(255, 255, 255, 0.95);
+                  animation: lightPass 2s infinite;
+                }
+                .poi-tooltip {
+                  position: absolute;
+                  top: 65px;
+                  left: 50%;
+                  transform: translateX(-50%) translateY(8px);
+                  background: rgba(255, 255, 255, 0.98);
+                  color: #2c3e50;
+                  font-size: 12px;
+                  font-weight: 400;
+                  padding: 6px 10px;
+                  border-radius: 6px;
+                  white-space: nowrap;
+                  pointer-events: none;
+                  opacity: 0;
+                  visibility: hidden;
+                  transition: all 0.25s ease-out;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                  border: 1px solid rgba(0, 0, 0, 0.08);
+                  letter-spacing: 0.3px;
+                }
+                .poi-tooltip::before {
+                  content: '';
+                  position: absolute;
+                  top: -4px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  width: 0;
+                  height: 0;
+                  border-left: 4px solid transparent;
+                  border-right: 4px solid transparent;
+                  border-bottom: 4px solid rgba(255, 255, 255, 0.98);
+                }
+                .poi-marker:hover .poi-tooltip {
+                  opacity: 1;
+                  visibility: visible;
+                  transform: translateX(-50%) translateY(0);
+                }
+              </style>
+              <div class="poi-marker">
+                <img src="${iconPath}" width="54" height="54" alt="${poi.name}" style="object-fit: contain;" />
+                <div class="poi-tooltip">
+                  ${poi.name}
+                </div>
               </div>
-            </div>
-          `;
+            `;
 
           // Add click handler
           element.addEventListener('click', (e) => {
@@ -335,7 +428,7 @@ const POIComponent: React.FC<POIComponentProps> = ({
         }
       });
 
-      console.log(`Created ${poiHotspotsRef.current.length} POI hotspots for panorama ${currentPanoramaId}`);
+      // POI hotspots created successfully
     } catch (error) {
       console.error('Error creating POI hotspots:', error);
     }
