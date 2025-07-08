@@ -367,6 +367,111 @@ For more detailed troubleshooting, see [TROUBLESHOOTING.md](docs/TROUBLESHOOTING
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## POI System
+
+The panorama viewer includes a comprehensive Point of Interest (POI) system that allows users to create, manage, and interact with points of interest within panoramic scenes. The system is **project-specific**, meaning each project maintains its own separate POI data.
+
+### Features
+
+- **Right-click Creation**: Create POIs by right-clicking anywhere on the panorama
+- **Modal Configuration**: Configure POI details through an intuitive modal interface
+- **File Support**: Attach images, videos, PDFs, and other files to POIs
+- **URL Support**: Embed external content via iframe URLs
+- **Project-Specific Data**: Each project maintains separate POI data
+- **Data Persistence**: POI data is automatically saved and loaded per project
+- **Interactive Markers**: Visual markers show POI locations on the panorama
+- **Preview System**: Click markers to preview POI content
+
+### Components
+
+- `POIComponent.tsx` - Main POI management component
+- `POIContextMenu.tsx` - Right-click context menu for POI creation
+- `POIModal.tsx` - Modal dialog for POI configuration
+- `POIPreview.tsx` - Preview component for displaying POI content
+- `utils.ts` - Utility functions for coordinate conversion and validation
+
+### Usage
+
+1. **Creating a POI**: Right-click on any location in the panorama to open the context menu, then select "Create POI"
+2. **Configuring POI**: Fill in the POI details in the modal dialog:
+   - Name (required)
+   - Description (optional)
+   - Content type (file upload or URL)
+   - Content (file or URL)
+3. **Viewing POIs**: Click on any POI marker to view its content in a preview modal
+
+### Data Structure
+
+POIs are stored with the following structure:
+
+```typescript
+interface POIData {
+  id: string;
+  panoramaId: string;
+  name: string;
+  description: string;
+  position: { yaw: number; pitch: number };
+  type: 'file' | 'iframe';
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+### API Endpoints
+
+- `GET /api/poi/load?projectId={projectId}&panoramaId={panoramaId}` - Load POIs for a specific project and panorama
+- `POST /api/poi/save` - Save POI data (requires projectId in request body)
+- `POST /api/poi/upload` - Upload POI attachment files (requires projectId in form data)
+
+### Project-Specific Storage
+
+POI data is stored per project in the following structure:
+```
+public/
+├── {projectId}/
+│   └── data/
+│       └── poi/
+│           ├── poi-data.json     # POI metadata
+│           └── attachments/      # Uploaded files
+├── toyota/
+│   └── data/
+│       └── poi/
+│           ├── poi-data.json
+│           └── attachments/
+└── parking/
+    └── data/
+        └── poi/
+            ├── poi-data.json
+            └── attachments/
+```
+
+### Coordinate System
+
+POIs use spherical coordinates:
+- **Yaw**: Horizontal rotation (-180° to 180°)
+- **Pitch**: Vertical rotation (-90° to 90°)
+
+### Error Handling
+
+The system includes comprehensive error handling for:
+- Invalid coordinate ranges
+- File upload failures
+- Network connectivity issues
+- Corrupted data files
+- Missing project directories
+
+### Styling
+
+POI markers use Tailwind CSS classes and can be customized by modifying the component styles.
+
+### Dependencies
+
+- `react-icons/fa` - Font Awesome icons
+- `uuid` - Unique ID generation
+- `react-toastify` - Toast notifications
+- `formidable` - File upload handling
+
 ## 🙏 Acknowledgments
 
 - [Marzipano](https://www.marzipano.net/) - Panorama viewing library

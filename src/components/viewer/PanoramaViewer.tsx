@@ -10,7 +10,10 @@ import TapHint from './TapHint';
 import ControlsHint from './ControlsHint';
 import PanoramaContainer from './PanoramaContainer';
 import HotspotRenderer from './HotspotRenderer';
+import POIComponent from '../poi/POIComponent';
 import { usePanoramaManager } from '@/hooks/usePanoramaManager';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface PanoramaViewerProps {
   projectId?: string;
@@ -87,10 +90,32 @@ export default function PanoramaViewer({
               hotspotsVisible={state.hotspotsVisible}
               onNavigate={navigateToScene}
             />
+
+            <POIComponent
+              projectId={projectId || 'default'}
+              currentPanoramaId={state.currentScene}
+              viewerSize={{ width: 800, height: 600 }} // You may want to get actual viewer size
+              viewerRef={refs.viewerRef}
+              panoRef={refs.panoRef}
+              onPOICreated={(poi) => console.log('POI created:', poi)}
+            />
           </>
         )}
 
       <ControlsHint />
+      
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </>
   );
 }
