@@ -208,11 +208,12 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <Link
-                    href={`/upload?project=${encodeURIComponent(project.id)}`}
+                  <button
                     onClick={e => {
                       e.stopPropagation();
                       onPanelClose();
+                      // Force full page navigation to ensure immediate rendering
+                      window.location.href = `/upload?project=${encodeURIComponent(project.id)}`;
                     }}
                     style={{
                       padding: '4px 6px',
@@ -230,7 +231,7 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
                     title='Edit project'
                   >
                     ✏️
-                  </Link>
+                  </button>
                   <button
                     onClick={e => {
                       e.stopPropagation();

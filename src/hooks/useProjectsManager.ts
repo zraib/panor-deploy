@@ -99,15 +99,15 @@ export function useProjectsManager() {
       onPanelClose(); // Close the panel
       console.log('🔍 Panel closed');
       
-      console.log('🔍 Attempting navigation with navigation hook...');
-      await navigation.navigateToProject(projectId);
-      console.log('✅ Navigation successful!');
+      console.log('🔍 Attempting navigation with full page reload...');
+      // Force full page navigation to ensure immediate rendering
+      window.location.href = `/${projectId}`;
+      console.log('✅ Navigation initiated!');
       
     } catch (error) {
       console.error('❌ Navigation failed:', error);
       // Show user-friendly error message
       alert(`Failed to navigate to project ${projectId}. Please try again.`);
-    } finally {
       setIsNavigating(false);
     }
   };
