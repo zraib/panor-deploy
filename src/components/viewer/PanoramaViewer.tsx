@@ -1,6 +1,7 @@
 'use client';
 
 import Script from 'next/script';
+import { useState, useCallback } from 'react';
 import MiniMap from './MiniMap';
 import LoadingScreen from '../utility/LoadingScreen';
 import ControlPanel from '../ui/ControlPanel';
@@ -20,6 +21,12 @@ export default function PanoramaViewer({
   projectId,
   initialSceneId,
 }: PanoramaViewerProps = {}) {
+  const [closePanelsFunc, setClosePanelsFunc] = useState<(() => void) | null>(null);
+  
+  const handleClosePanels = useCallback((closePanels: () => void) => {
+    setClosePanelsFunc(() => closePanels);
+  }, []);
+  
   const {
     state,
     refs,
@@ -28,7 +35,7 @@ export default function PanoramaViewer({
     handlePanoClick,
     handleMarzipanoLoad,
     handleRetry,
-  } = usePanoramaManager({ projectId, initialSceneId });
+  } = usePanoramaManager({ projectId, initialSceneId, closePanels: closePanelsFunc || undefined });
 
   if (state.error) {
     return <LoadingScreen error={state.error} onRetry={handleRetry} />;
@@ -59,6 +66,7 @@ export default function PanoramaViewer({
         performanceStats={state.performanceStats}
         totalScenes={state.config?.scenes.length || 0}
         onOptimize={optimizePerformance}
+        onClosePanels={handleClosePanels}
       />
 
       {state.config &&

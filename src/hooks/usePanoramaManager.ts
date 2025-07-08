@@ -10,9 +10,10 @@ import { ConfigData } from '@/types/scenes';
 interface UsePanoramaManagerProps {
   projectId?: string;
   initialSceneId?: string;
+  closePanels?: (() => void);
 }
 
-export function usePanoramaManager({ projectId, initialSceneId }: UsePanoramaManagerProps) {
+export function usePanoramaManager({ projectId, initialSceneId, closePanels }: UsePanoramaManagerProps) {
   const { state, refs, actions, router } = usePanoramaViewer();
   
   const { clearHotspotsForScene, createHotspotsForScene, toggleHotspots } = useHotspotManager({
@@ -181,6 +182,7 @@ export function usePanoramaManager({ projectId, initialSceneId }: UsePanoramaMan
     currentScene: state.currentScene,
     toggleHotspots,
     initializeViewer,
+    closePanels,
   });
 
   return {

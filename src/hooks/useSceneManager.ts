@@ -163,11 +163,29 @@ export function useSceneManager({
           pinFirstLevel: true,
         });
 
+        // Wait for the image to actually load by preloading it
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Scene load timeout'));
+          }, 15000); // 15 second timeout
+
+          const img = new Image();
+          img.onload = () => {
+            clearTimeout(timeout);
+            resolve();
+          };
+          img.onerror = () => {
+            clearTimeout(timeout);
+            reject(new Error('Failed to load scene image'));
+          };
+          img.src = imagePath;
+        });
+
         // Update scene info
         sceneInfo.scene = scene;
         sceneInfo.loaded = true;
 
-        // Track performance
+        // Track performance - now measuring actual load time
         const loadTime = performance.now() - startTime;
         refs.loadTimesRef.current.push(loadTime);
         if (refs.loadTimesRef.current.length > 20) {
@@ -180,6 +198,9 @@ export function useSceneManager({
         );
       } catch (err) {
         console.error(`Failed to load scene ${sceneId}:`, err);
+        // Still track the time even if it failed, but don't add to successful load times
+        const loadTime = performance.now() - startTime;
+        console.log(`Failed to load scene ${sceneId} after ${Math.round(loadTime)}ms`);
       }
     },
     [refs, projectId, updatePerformanceStats]
@@ -195,6 +216,8 @@ export function useSceneManager({
       createHotspotsForScene: (sceneInfo: SceneInfoType) => void,
       preloadAdjacentScenes: (sceneId: string) => Promise<void>
     ): Promise<void> => {
+      const switchStartTime = performance.now();
+      
       try {
         if (!sceneId) {
           throw new SceneManagerException(
@@ -360,7 +383,18 @@ export function useSceneManager({
         }, transitionDuration + 300); // Wait for transition to complete
 
         actions.setIsLoading?.(false);
-        console.log(`Scene switch completed: ${sceneId}`);
+        
+        // Measure total scene switch time and track it
+        const totalSwitchTime = performance.now() - switchStartTime;
+        
+        // Track scene switch time in performance metrics
+        refs.loadTimesRef.current.push(totalSwitchTime);
+        if (refs.loadTimesRef.current.length > 20) {
+          refs.loadTimesRef.current.shift(); // Keep only last 20 measurements
+        }
+        updatePerformanceStats();
+        
+        console.log(`Scene switch completed: ${sceneId} in ${Math.round(totalSwitchTime)}ms`);
       } catch (error) {
         actions.setIsLoading?.(false);
         

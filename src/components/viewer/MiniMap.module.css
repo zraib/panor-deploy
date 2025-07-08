@@ -86,7 +86,7 @@
   border: 2px solid white !important;
   width: 12px;
   height: 12px;
-  z-index: 10;
+  z-index: 20;
   animation: pulse 2s infinite;
 }
 
@@ -107,7 +107,7 @@
   width: 60px;
   height: 60px;
   pointer-events: none;
-  z-index: 15;
+  z-index: 9;
   transition: transform 0.1s linear, opacity 0.2s ease;
   /* Improve rendering performance */
   will-change: transform, opacity;
@@ -116,31 +116,34 @@
 
 .directionArrow {
   position: absolute;
-  top: -30px;
+  top: -40px;
   left: 50%;
   transform: translateX(-50%);
-  width: 120px;
-  height: 60px;
+  width: 140px;
+  height: 70px;
   /* Create flashlight beam cone using clip-path */
   background: radial-gradient(ellipse at bottom, 
-    rgba(255, 235, 59, 0.7) 0%, 
-    rgba(255, 235, 59, 0.4) 40%, 
-    rgba(255, 235, 59, 0.2) 70%, 
-    rgba(255, 235, 59, 0.05) 100%);
-  clip-path: polygon(50% 100%, 15% 0%, 85% 0%);
-  filter: drop-shadow(0 2px 8px rgba(255, 235, 59, 0.6)) blur(1px);
+    rgba(255, 235, 59, 0.4) 0%, 
+    rgba(255, 235, 59, 0.25) 30%, 
+    rgba(255, 235, 59, 0.15) 50%, 
+    rgba(255, 235, 59, 0.08) 70%, 
+    rgba(255, 235, 59, 0.02) 100%);
+  clip-path: polygon(50% 100%, 5% 0%, 95% 0%);
+  filter: drop-shadow(0 2px 8px rgba(255, 235, 59, 0.4)) blur(2px);
   /* Add subtle animation for flashlight effect */
   animation: flashlightPulse 3s ease-in-out infinite;
+  z-index: 15;
+
 }
 
 @keyframes flashlightPulse {
   0%, 100% {
-    filter: drop-shadow(0 2px 8px rgba(255, 235, 59, 0.6));
-    opacity: 0.8;
+    filter: drop-shadow(0 2px 8px rgba(255, 235, 59, 0.5)) blur(2px);
+    opacity: 0.6;
   }
   50% {
-    filter: drop-shadow(0 2px 12px rgba(255, 235, 59, 0.8));
-    opacity: 1;
+    filter: drop-shadow(0 2px 12px rgba(255, 235, 59, 0.6)) blur(1px);
+    opacity: 0.8;
   }
 }
 

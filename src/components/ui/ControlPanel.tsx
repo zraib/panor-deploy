@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useEffect } from 'react';
 import styles from './ControlPanel.module.css';
 import { SceneData } from '@/types/scenes';
 import { ControlButton } from './ControlButton';
@@ -24,6 +24,9 @@ interface ControlPanelProps {
   performanceStats?: PerformanceStats;
   totalScenes?: number;
   onOptimize?: () => void;
+  
+  // Panel control props
+  onClosePanels?: (closePanelsFunc: () => void) => void;
 }
 
 export default function ControlPanel({
@@ -33,6 +36,7 @@ export default function ControlPanel({
   performanceStats,
   totalScenes = 0,
   onOptimize,
+  onClosePanels,
 }: ControlPanelProps): ReactElement {
   const {
     expandedPanel,
@@ -41,6 +45,13 @@ export default function ControlPanel({
     handleMouseLeave,
     closePanels,
   } = usePanelState();
+
+  // Provide closePanels function to parent component
+  useEffect(() => {
+    if (onClosePanels) {
+      onClosePanels(closePanels);
+    }
+  }, [onClosePanels, closePanels]);
 
   return (
     <div className={styles.controlPanel}>

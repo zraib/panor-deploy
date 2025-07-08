@@ -9,6 +9,7 @@ export interface UseViewerEventsProps {
   currentScene: string | null;
   toggleHotspots: () => void;
   initializeViewer: () => Promise<void>;
+  closePanels?: () => void;
 }
 
 export function useViewerEvents({
@@ -18,6 +19,7 @@ export function useViewerEvents({
   currentScene,
   toggleHotspots,
   initializeViewer,
+  closePanels,
 }: UseViewerEventsProps) {
   // Handle panorama click
   const handlePanoClick = useCallback(
@@ -25,13 +27,18 @@ export function useViewerEvents({
       // Don't toggle if clicking a hotspot
       if ((e.target as HTMLElement).closest('.hotspot')) return;
 
+      // Close any open panels
+      if (closePanels) {
+        closePanels();
+      }
+
       // Show touch ripple effect
       createRipple(e.clientX, e.clientY, refs.panoRef.current);
 
       // Toggle hotspots
       toggleHotspots();
     },
-    [toggleHotspots, refs.panoRef]
+    [toggleHotspots, closePanels, refs.panoRef]
   );
 
   // WebGL context loss recovery
