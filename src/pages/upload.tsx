@@ -16,6 +16,7 @@ export default function Upload() {
   const [showDuplicatePreview, setShowDuplicatePreview] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [allowOverwrite, setAllowOverwrite] = useState(false);
+  const [deleteAllAndUpload, setDeleteAllAndUpload] = useState(false);
   const [showSelectedFiles, setShowSelectedFiles] = useState(false);
   const [showDuplicateFiles, setShowDuplicateFiles] = useState(false);
   const [projectName, setProjectName] = useState('');
@@ -26,6 +27,7 @@ export default function Upload() {
     csv: string | null;
     images: string[];
   }>({ csv: null, images: [] });
+  const [showExistingFiles, setShowExistingFiles] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnosticsData, setDiagnosticsData] = useState<any>(null);
   const [loadingDiagnostics, setLoadingDiagnostics] = useState(false);
@@ -148,28 +150,16 @@ export default function Upload() {
     const imagesInput = document.getElementById('images') as HTMLInputElement;
 
     const dtCsv = new DataTransfer();
-    // Use selected files first, then fall back to existing files in edit mode
     if (selectedFiles.csv) {
       dtCsv.items.add(selectedFiles.csv);
-    } else if (isEditMode && existingFiles.csv) {
-      // Create a File object from existing CSV data to display in the input
-      const csvFile = new File([''], existingFiles.csv, { type: 'text/csv' });
-      dtCsv.items.add(csvFile);
     }
     if (csvInput) {
       csvInput.files = dtCsv.files;
     }
 
     const dtImages = new DataTransfer();
-    // Use selected images first, then fall back to existing images in edit mode
     if (selectedFiles.images.length > 0) {
       selectedFiles.images.forEach(file => dtImages.items.add(file));
-    } else if (isEditMode && existingFiles.images.length > 0) {
-      // Create File objects from existing image data
-      existingFiles.images.forEach(imageName => {
-        const imageFile = new File([''], imageName, { type: 'image/jpeg' });
-        dtImages.items.add(imageFile);
-      });
     }
     if (imagesInput) {
       imagesInput.files = dtImages.files;
@@ -209,6 +199,29 @@ export default function Upload() {
       console.warn('Failed to save files to storage:', error);
     }
   }, [selectedFiles]);
+
+  const handleDeleteAllAndUpload = () => {
+    setDuplicateWarning([]);
+    setDeleteAllAndUpload(true);
+    const form = document.querySelector('form') as HTMLFormElement;
+    if (form) {
+      const syntheticEvent = {
+        preventDefault: () => {},
+        currentTarget: form,
+        target: form,
+        nativeEvent: new Event('submit'),
+        bubbles: true,
+        cancelable: true,
+        defaultPrevented: false,
+        eventPhase: 0,
+        isTrusted: true,
+        timeStamp: Date.now(),
+        type: 'submit',
+        _deleteAllMode: true,
+      } as any;
+      handleSubmit(syntheticEvent);
+    }
+  };
 
   // Validation functions
   const validateProjectName = (name: string): string[] => {
@@ -371,7 +384,7 @@ export default function Upload() {
   };
 
   const handleSubmit = async (
-    event: FormEvent<HTMLFormElement> & { _overwriteMode?: boolean }
+    event: FormEvent<HTMLFormElement> & { _overwriteMode?: boolean, _deleteAllMode?: boolean }
   ) => {
     event.preventDefault();
     setMessage('');
@@ -418,12 +431,37 @@ export default function Upload() {
     }
 
     const form = event.currentTarget;
-    const formData = new FormData(form);
+    const formData = new FormData();
+
+    // Manually append form data to implement logic for existing files in edit mode.
+    formData.append('projectName', projectName.trim());
+
+    // Handle CSV file
+    if (selectedFiles.csv) {
+      formData.append('csv', selectedFiles.csv);
+    } else if (isEditMode && existingFiles.csv) {
+      formData.append('existing_csv', existingFiles.csv);
+    }
+
+    // Handle image files
+    if (selectedFiles.images.length > 0) {
+      selectedFiles.images.forEach(image => {
+        formData.append('images', image);
+      });
+    } else if (isEditMode && existingFiles.images.length > 0) {
+      existingFiles.images.forEach(imageName => {
+        formData.append('existing_images', imageName);
+      });
+    }
 
     if (allowOverwrite || event._overwriteMode) {
       formData.append('overwrite', 'true');
-      setAllowOverwrite(false);
     }
+
+    if (deleteAllAndUpload || event._deleteAllMode) {
+      formData.append('deleteAll', 'true');
+    }
+    setAllowOverwrite(false);
 
     // Show upload preparation message for large uploads
     const totalFiles =
@@ -670,16 +708,11 @@ export default function Upload() {
               onChange={handleFileChange}
               className={styles.fileInput}
             />
-            {(selectedFiles.images.length > 0 ||
-              (isEditMode && existingFiles.images.length > 0)) && (
+            {selectedFiles.images.length > 0 && (
               <div className={styles.fileList}>
                 <div className={styles.fileListHeader}>
                   <p className={styles.fileListTitle}>
-                    Selected{' '}
-                    {selectedFiles.images.length > 0
-                      ? selectedFiles.images.length
-                      : existingFiles.images.length}{' '}
-                    image(s)
+                    Selected {selectedFiles.images.length} new image(s)
                   </p>
                   <button
                     type='button'
@@ -691,18 +724,39 @@ export default function Upload() {
                 </div>
                 {showSelectedFiles && (
                   <ul className={styles.fileListItems}>
-                    {selectedFiles.images.length > 0
-                      ? selectedFiles.images.map((file, index) => (
-                          <li key={index}>{file.name}</li>
-                        ))
-                      : existingFiles.images.map((imageName, index) => (
-                          <li key={index}>{imageName}</li>
-                        ))}
+                    {selectedFiles.images.map((file, index) => (
+                      <li key={index}>{file.name}</li>
+                    ))}
                   </ul>
                 )}
               </div>
             )}
           </div>
+
+          {isEditMode && (existingFiles.csv || existingFiles.images.length > 0) && (
+            <div className={styles.formGroup}>
+              <div className={styles.fileList}>
+                <div className={styles.fileListHeader}>
+                  <p className={styles.fileListTitle}>Current Project Files</p>
+                  <button
+                    type='button'
+                    onClick={() => setShowExistingFiles(!showExistingFiles)}
+                    className={styles.toggleButton}
+                  >
+                    {showExistingFiles ? '▼ Hide' : '▶ Show'}
+                  </button>
+                </div>
+                {showExistingFiles && (
+                  <ul className={styles.fileListItems}>
+                    {existingFiles.csv && <li>{existingFiles.csv}</li>}
+                    {existingFiles.images.map((imageName, index) => (
+                      <li key={index}>{imageName}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
 
           <button
             type='submit'
@@ -935,6 +989,13 @@ export default function Upload() {
               >
                 {isLoading && <span className={styles.loadingSpinner}></span>}
                 {isLoading ? 'Overwriting...' : '🔄 Upload and Overwrite'}
+              </button>
+              <button
+                type='button'
+                onClick={handleDeleteAllAndUpload}
+                className={styles.deleteAllButton}
+              >
+                Delete All & Upload
               </button>
             </div>
           </div>

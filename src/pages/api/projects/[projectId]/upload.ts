@@ -89,6 +89,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const projectDir = path.join(publicDir, projectId);
     const imagesDir = path.join(projectDir, 'images');
     const dataDir = path.join(projectDir, 'data');
+
+    const deleteAll = fields.deleteAll && fields.deleteAll[0] === 'true';
+
+    if (deleteAll) {
+      if (fs.existsSync(imagesDir)) {
+        fs.rmSync(imagesDir, { recursive: true, force: true });
+      }
+      if (fs.existsSync(dataDir)) {
+        fs.rmSync(dataDir, { recursive: true, force: true });
+      }
+    }
     
     ensureDirectoryExists(projectDir);
     ensureDirectoryExists(imagesDir);
@@ -96,13 +107,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Handle CSV file
     const csvFile = Array.isArray(files.csv) ? files.csv[0] : files.csv;
-    if (!csvFile) {
+    const existingCsv = fields.existing_csv ? fields.existing_csv[0] : null;
+    let csvDestPath = '';
+
+    if (csvFile) {
+      tempFilesToCleanup.push(csvFile);
+      csvDestPath = path.join(dataDir, 'pano-poses.csv');
+      await moveFile(csvFile.filepath, csvDestPath);
+    } else if (existingCsv) {
+      csvDestPath = path.join(dataDir, existingCsv);
+    } else {
       return res.status(400).json({ error: 'CSV file is required' });
     }
-    tempFilesToCleanup.push(csvFile);
-
-    const csvDestPath = path.join(dataDir, 'pano-poses.csv');
-    await moveFile(csvFile.filepath, csvDestPath);
     
     // Verify CSV file was moved successfully
     if (!fs.existsSync(csvDestPath)) {
@@ -111,11 +127,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`CSV file successfully moved to: ${csvDestPath}`);
 
     // Handle image files
-    const imageFiles = Array.isArray(files.images) ? files.images : [files.images];
-    if (!imageFiles || imageFiles.length === 0) {
+    const imageFiles = Array.isArray(files.images) ? files.images : (files.images ? [files.images] : []);
+    const existingImages = fields.existing_images ? (Array.isArray(fields.existing_images) ? fields.existing_images : [fields.existing_images]) : [];
+
+    if (imageFiles.length === 0 && existingImages.length === 0) {
       return res.status(400).json({ error: 'At least one image file is required' });
     }
-    tempFilesToCleanup.push(files.images);
+    if (imageFiles.length > 0) {
+        tempFilesToCleanup.push(files.images);
+    }
 
     // Check for overwrite flag
     const allowOverwrite = fields.overwrite && fields.overwrite[0] === 'true';
@@ -157,6 +177,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         movedImages.push(imageFile.originalFilename);
       }
     }
+    // Add existing images to the list of moved images
+    existingImages.forEach((imageName: string) => movedImages.push(imageName));
     
     console.log(`Successfully moved ${movedImages.length} image files:`, movedImages);
 
