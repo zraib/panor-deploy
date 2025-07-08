@@ -649,56 +649,61 @@ export default function MiniMap({
 
           {/* Connection lines - only for current scene and visible targets */}
           {currentScene.linkHotspots &&
-            currentScene.linkHotspots.length > 0 &&
-            currentScene.linkHotspots.map((hotspot, index) => {
-              const targetScene = scenes.find(s => s.id === hotspot.target);
-              if (!targetScene || targetScene.floor !== currentScene.floor)
-                return null;
+            currentScene.linkHotspots.length > 0 && (
+              <svg
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                }}
+              >
+                {currentScene.linkHotspots.map((hotspot, index) => {
+                  const targetScene = scenes.find(s => s.id === hotspot.target);
+                  if (!targetScene || targetScene.floor !== currentScene.floor)
+                    return null;
 
-              // Only show connection if target scene is visible in filtered hotspots
-              const isTargetVisible = visibleHotspots.some(
-                scene => scene.id === hotspot.target
-              );
-              if (!isTargetVisible) return null;
+                  // Only show connection if target scene is visible in filtered hotspots
+                  const isTargetVisible = visibleHotspots.some(
+                    scene => scene.id === hotspot.target
+                  );
+                  if (!isTargetVisible) return null;
 
-              const fromCoords = positionToMapCoords(currentScene.id);
-              const toCoords = positionToMapCoords(hotspot.target);
+                  const fromCoords = positionToMapCoords(currentScene.id);
+                  const toCoords = positionToMapCoords(hotspot.target);
 
-              // Skip if either point is outside expanded visible area
-              if (
-                fromCoords.x < -30 ||
-                fromCoords.x > 130 ||
-                fromCoords.y < -30 ||
-                fromCoords.y > 130 ||
-                toCoords.x < -30 ||
-                toCoords.x > 130 ||
-                toCoords.y < -30 ||
-                toCoords.y > 130
-              ) {
-                return null;
-              }
+                  // Skip if either point is outside expanded visible area
+                  if (
+                    fromCoords.x < -30 ||
+                    fromCoords.x > 130 ||
+                    fromCoords.y < -30 ||
+                    fromCoords.y > 130 ||
+                    toCoords.x < -30 ||
+                    toCoords.x > 130 ||
+                    toCoords.y < -30 ||
+                    toCoords.y > 130
+                  ) {
+                    return null;
+                  }
 
-              const deltaX = toCoords.x - fromCoords.x;
-              const deltaY = toCoords.y - fromCoords.y;
-              const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-              const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-
-              return (
-                <div
-                  key={`${currentScene.id}-${hotspot.target}-${index}`}
-                  className={styles.connectionLine}
-                  style={{
-                    left: `${fromCoords.x}%`,
-                    top: `${fromCoords.y}%`,
-                    width: `${length}%`,
-                    transform: `rotate(${angle}deg)`,
-                    transformOrigin: '0 50%',
-                    opacity: 0.6,
-                    transition: 'opacity 0.3s ease',
-                  }}
-                />
-              );
-            })}
+                  return (
+                    <line
+                      key={`${currentScene.id}-${hotspot.target}-${index}`}
+                      x1={`${fromCoords.x}%`}
+                      y1={`${fromCoords.y}%`}
+                      x2={`${toCoords.x}%`}
+                      y2={`${toCoords.y}%`}
+                      stroke='rgba(255, 255, 255, 0.3)'
+                      strokeWidth='1'
+                      opacity='0.6'
+                    />
+                  );
+                })}
+              </svg>
+            )}
 
           {/* Reset indicator */}
           {(panOffset.x !== 0 || panOffset.y !== 0 || zoomLevel !== 1) && (
