@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './ControlPanel.module.css';
 import { SceneData } from '@/types/scenes';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface ControlButtonProps {
   id: string;
@@ -86,8 +87,10 @@ export default function ControlPanel({
   onOptimize,
 }: ControlPanelProps): ReactElement {
   const router = useRouter();
+  const navigation = useNavigation();
   const [expandedPanel, setExpandedPanel] = useState<string | null>(null);
   const [hoveredPanel, setHoveredPanel] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState<boolean>(false);
 
   // Project management state
   const [projects, setProjects] = useState<Project[]>([]);
@@ -110,15 +113,18 @@ export default function ControlPanel({
   // Project management functions
   const loadProjects = async () => {
     try {
+      console.log('📂 Loading projects...');
       setProjectsLoading(true);
       const response = await fetch('/api/projects');
       if (!response.ok) {
         throw new Error('Failed to load projects');
       }
       const data = await response.json();
+      console.log('📂 Projects loaded:', data.projects);
       setProjects(data.projects);
       setProjectsError(null);
     } catch (err: any) {
+      console.error('❌ Failed to load projects:', err);
       setProjectsError(err.message);
     } finally {
       setProjectsLoading(false);
@@ -161,8 +167,35 @@ export default function ControlPanel({
     }
   };
 
-  const handleProjectSelect = (projectId: string) => {
-    router.push(`/${projectId}`);
+  const handleProjectSelect = async (projectId: string) => {
+    try {
+      console.log('🔍 handleProjectSelect called with projectId:', projectId);
+      console.log('🔍 Current router state:', {
+        pathname: router.pathname,
+        query: router.query,
+        asPath: router.asPath
+      });
+      
+      if (isNavigating) {
+        console.log('⏳ Navigation already in progress, ignoring click');
+        return;
+      }
+      
+      setIsNavigating(true);
+      setExpandedPanel(null); // Close the panel
+      console.log('🔍 Panel closed, setExpandedPanel(null) called');
+      
+      console.log('🔍 Attempting navigation with navigation hook...');
+      await navigation.navigateToProject(projectId);
+      console.log('✅ Navigation successful!');
+      
+    } catch (error) {
+      console.error('❌ Navigation failed:', error);
+      // Show user-friendly error message
+      alert(`Failed to navigate to project ${projectId}. Please try again.`);
+    } finally {
+      setIsNavigating(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -380,11 +413,13 @@ export default function ControlPanel({
                           ? '1px solid rgba(33, 150, 243, 0.5)'
                           : '1px solid rgba(255, 255, 255, 0.1)',
                       borderRadius: '6px',
-                      cursor: 'pointer',
+                      cursor: isNavigating ? 'wait' : 'pointer',
                       transition: 'all 0.2s ease',
+                      opacity: isNavigating ? 0.7 : 1,
+                      pointerEvents: isNavigating ? 'none' : 'auto',
                     }}
                     onMouseEnter={e => {
-                      if (currentProject !== project.id) {
+                      if (currentProject !== project.id && !isNavigating) {
                         e.currentTarget.style.background =
                           'rgba(255, 255, 255, 0.1)';
                         e.currentTarget.style.borderColor =
@@ -393,7 +428,7 @@ export default function ControlPanel({
                       }
                     }}
                     onMouseLeave={e => {
-                      if (currentProject !== project.id) {
+                      if (currentProject !== project.id && !isNavigating) {
                         e.currentTarget.style.background =
                           'rgba(255, 255, 255, 0.05)';
                         e.currentTarget.style.borderColor =
@@ -401,7 +436,19 @@ export default function ControlPanel({
                         e.currentTarget.style.transform = 'translateX(0px)';
                       }
                     }}
-                    onClick={() => handleProjectSelect(project.id)}
+                    onClick={(e) => {
+                      console.log('🖱️ Project clicked:', project.id, project.name);
+                      console.log('🖱️ Click event:', e);
+                      
+                      if (isNavigating) {
+                        console.log('⏳ Navigation in progress, preventing click');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                      }
+                      
+                      handleProjectSelect(project.id);
+                    }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div

@@ -8,15 +8,18 @@ import styles from '@/styles/Welcome.module.css';
 // ProjectManager moved to PanoramaViewer component
 
 // Dynamically import PanoramaViewer to avoid SSR issues with Marzipano
-const PanoramaViewer = dynamic(() => import('@/components/viewer/PanoramaViewer'), {
-  ssr: false,
-  loading: (): ReactElement => (
-    <div id='loading'>
-      <div className='loader'></div>
-      <div>Loading panoramas...</div>
-    </div>
-  ),
-});
+const PanoramaViewer = dynamic(
+  () => import('@/components/viewer/PanoramaViewer'),
+  {
+    ssr: false,
+    loading: (): ReactElement => (
+      <div id='loading'>
+        <div className='loader'></div>
+        <div>Loading panoramas...</div>
+      </div>
+    ),
+  }
+);
 
 interface ConfigData {
   scenes: Array<{ id: string; name: string; [key: string]: any }>;
@@ -213,7 +216,7 @@ export default function Home(): ReactElement {
 
             {hasProjects && (
               <div className={styles.projectList}>
-                {projects.map((project) => (
+                {projects.map(project => (
                   <div
                     key={project.id}
                     className={styles.projectCard}
@@ -221,10 +224,12 @@ export default function Home(): ReactElement {
                   >
                     <div className={styles.projectName}>{project.name}</div>
                     <div className={styles.projectInfo}>
-                      {project.sceneCount} scene{project.sceneCount !== 1 ? 's' : ''}
+                      {project.sceneCount} scene
+                      {project.sceneCount !== 1 ? 's' : ''}
                     </div>
                     <div className={styles.projectInfo}>
-                      Updated: {new Date(project.updatedAt).toLocaleDateString()}
+                      Updated:{' '}
+                      {new Date(project.updatedAt).toLocaleDateString()}
                     </div>
                   </div>
                 ))}
