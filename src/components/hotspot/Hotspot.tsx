@@ -59,7 +59,7 @@ export default function Hotspot({
   // Effect for creating and cleaning up the root
   useEffect(() => {
     isUnmounting.current = false;
-    
+
     if (element) {
       // Create a unique container inside the element
       if (!containerRef.current) {
@@ -68,7 +68,7 @@ export default function Hotspot({
         containerRef.current.style.height = '100%';
         element.appendChild(containerRef.current);
       }
-      
+
       // Create root on our container, not the provided element
       if (!rootRef.current && containerRef.current) {
         rootRef.current = createRoot(containerRef.current);
@@ -78,7 +78,7 @@ export default function Hotspot({
     // Cleanup function
     return () => {
       isUnmounting.current = true;
-      
+
       // Clean up root
       if (rootRef.current) {
         const root = rootRef.current;
@@ -91,7 +91,7 @@ export default function Hotspot({
           }
         }, 0);
       }
-      
+
       // Clean up container
       if (containerRef.current && containerRef.current.parentNode) {
         containerRef.current.parentNode.removeChild(containerRef.current);

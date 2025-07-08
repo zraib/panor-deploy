@@ -107,3 +107,19 @@ export function formatFloorLabel(floor: number): string {
   if (floor > 0) return `Level ${floor}`;
   return `Basement ${Math.abs(floor)}`;
 }
+
+// Utility to convert yaw/pitch to 2D screen coordinates
+export function yawPitchToScreen(
+  yaw: number,
+  pitch: number,
+  width: number,
+  height: number,
+  fov: number
+): { x: number; y: number } {
+  // Equirectangular projection: center is (width/2, height/2)
+  // Yaw: 0 is center, positive is right; Pitch: 0 is center, positive is up
+  // fov in radians
+  const x = width / 2 + (width / fov) * yaw;
+  const y = height / 2 - (height / fov) * pitch;
+  return { x, y };
+}

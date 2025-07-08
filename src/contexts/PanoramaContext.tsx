@@ -22,11 +22,11 @@ export interface PanoramaContextValue {
     loadSceneWithProgressiveQuality: (sceneId: string, targetQuality?: number) => Promise<void>;
     switchScene: (
       sceneId: string,
-      isInitial?: boolean,
-      preserveViewDirection?: boolean,
-      clearHotspotsForScene?: ((sceneInfo: import("@/types/scenes").SceneInfo) => void) | undefined,
-      createHotspotsForScene?: ((sceneInfo: import("@/types/scenes").SceneInfo) => void) | undefined,
-      preloadAdjacentScenes?: ((sceneId: string) => Promise<void>) | undefined
+      isInitial: boolean,
+      preserveViewDirection: boolean,
+      clearHotspotsForScene: (sceneInfo: import("@/types/scenes").SceneInfo) => void,
+      createHotspotsForScene: (sceneInfo: import("@/types/scenes").SceneInfo) => void,
+      preloadAdjacentScenes: (sceneId: string) => Promise<void>
     ) => Promise<void>;
   };
   

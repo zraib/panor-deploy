@@ -189,8 +189,8 @@ export function useSceneManager({
   const switchScene = useCallback(
     async (
       sceneId: string,
-      isInitial: boolean = false,
-      preserveViewDirection: boolean = false,
+      isInitial: boolean,
+      preserveViewDirection: boolean,
       clearHotspotsForScene: (sceneInfo: SceneInfoType) => void,
       createHotspotsForScene: (sceneInfo: SceneInfoType) => void,
       preloadAdjacentScenes: (sceneId: string) => Promise<void>
