@@ -65,15 +65,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ensureDirectoryExists(tmpDir);
     
     const form = new IncomingForm({
-      maxFileSize: 200 * 1024 * 1024, // 200MB per file
-      maxTotalFileSize: 2 * 1024 * 1024 * 1024, // 2GB total
       maxFields: 1000,
-      maxFieldsSize: 20 * 1024 * 1024, // 20MB for fields
       allowEmptyFiles: false,
       minFileSize: 1,
       uploadDir: tmpDir,
       keepExtensions: true,
       multiples: true,
+      // Remove all size limitations
+      maxFileSize: Infinity,
+      maxTotalFileSize: Infinity,
+      maxFieldsSize: Infinity,
     });
     
     const { fields, files } = await new Promise<{ fields: any; files: any }>((resolve, reject) => {
@@ -88,6 +89,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const projectDir = path.join(publicDir, projectId);
     const imagesDir = path.join(projectDir, 'images');
     const dataDir = path.join(projectDir, 'data');
+
+    const deleteAll = fields.deleteAll && fields.deleteAll[0] === 'true';
+
+    if (deleteAll) {
+      if (fs.existsSync(imagesDir)) {
+        fs.rmSync(imagesDir, { recursive: true, force: true });
+      }
+      if (fs.existsSync(dataDir)) {
+        fs.rmSync(dataDir, { recursive: true, force: true });
+      }
+    }
     
     ensureDirectoryExists(projectDir);
     ensureDirectoryExists(imagesDir);
@@ -95,20 +107,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Handle CSV file
     const csvFile = Array.isArray(files.csv) ? files.csv[0] : files.csv;
-    if (!csvFile) {
+    const existingCsv = fields.existing_csv ? fields.existing_csv[0] : null;
+    let csvDestPath = '';
+
+    if (csvFile) {
+      tempFilesToCleanup.push(csvFile);
+      csvDestPath = path.join(dataDir, 'pano-poses.csv');
+      await moveFile(csvFile.filepath, csvDestPath);
+    } else if (existingCsv) {
+      csvDestPath = path.join(dataDir, existingCsv);
+    } else {
       return res.status(400).json({ error: 'CSV file is required' });
     }
-    tempFilesToCleanup.push(csvFile);
-
-    const csvDestPath = path.join(dataDir, 'pano-poses.csv');
-    await moveFile(csvFile.filepath, csvDestPath);
+    
+    // Verify CSV file was moved successfully
+    if (!fs.existsSync(csvDestPath)) {
+      throw new Error(`Failed to move CSV file to ${csvDestPath}`);
+    }
+    console.log(`CSV file successfully moved to: ${csvDestPath}`);
 
     // Handle image files
-    const imageFiles = Array.isArray(files.images) ? files.images : [files.images];
-    if (!imageFiles || imageFiles.length === 0) {
+    const imageFiles = Array.isArray(files.images) ? files.images : (files.images ? [files.images] : []);
+    const existingImages = fields.existing_images ? (Array.isArray(fields.existing_images) ? fields.existing_images : [fields.existing_images]) : [];
+
+    if (imageFiles.length === 0 && existingImages.length === 0) {
       return res.status(400).json({ error: 'At least one image file is required' });
     }
-    tempFilesToCleanup.push(files.images);
+    if (imageFiles.length > 0) {
+        tempFilesToCleanup.push(files.images);
+    }
 
     // Check for overwrite flag
     const allowOverwrite = fields.overwrite && fields.overwrite[0] === 'true';
@@ -137,16 +164,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    const movedImages: string[] = [];
     for (const imageFile of imageFiles) {
       if (imageFile && imageFile.originalFilename) {
         const imageDestPath = path.join(imagesDir, imageFile.originalFilename);
         await moveFile(imageFile.filepath, imageDestPath);
+        
+        // Verify image file was moved successfully
+        if (!fs.existsSync(imageDestPath)) {
+          throw new Error(`Failed to move image file to ${imageDestPath}`);
+        }
+        movedImages.push(imageFile.originalFilename);
       }
     }
+    // Add existing images to the list of moved images
+    existingImages.forEach((imageName: string) => movedImages.push(imageName));
+    
+    console.log(`Successfully moved ${movedImages.length} image files:`, movedImages);
 
+    // Add a small delay to ensure all file operations are completed
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Final verification before running config script
+    console.log(`Final verification for project ${projectId}:`);
+    console.log(`- CSV exists: ${fs.existsSync(csvDestPath)}`);
+    console.log(`- Images directory exists: ${fs.existsSync(imagesDir)}`);
+    console.log(`- Images in directory: ${fs.readdirSync(imagesDir).length}`);
+    
     // Run the configuration generation script for this specific project
     try {
-      const { stdout, stderr } = await execAsync(`npm run generate-config -- --project "${projectId}"`, {
+      console.log(`Starting configuration generation for project: ${projectId}`);
+      const { stdout, stderr } = await execAsync(`node scripts/node/generate-config.js --project "${projectId}"`, {
         cwd: process.cwd(),
       });
       
@@ -160,12 +208,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         projectId,
         scriptOutput: stdout
       });
-    } catch (scriptError) {
+    } catch (scriptError: any) {
       console.error('Script execution error:', scriptError);
-      res.status(200).json({ 
-        message: `Files uploaded successfully to project "${projectId}", but configuration generation failed. Please run "npm run generate-config -- --project \"${projectId}\"" manually.`,
+      
+      // Provide more specific error messages based on the script error
+      let errorDetails = 'Unknown configuration error';
+      if (scriptError.message) {
+        if (scriptError.message.includes('CSV file not found')) {
+          errorDetails = 'CSV file was not properly uploaded or moved';
+        } else if (scriptError.message.includes('python')) {
+          errorDetails = 'Python or required packages (numpy) are not installed';
+        } else if (scriptError.message.includes('Permission denied')) {
+          errorDetails = 'File permission error - check directory permissions';
+        } else {
+          errorDetails = scriptError.message;
+        }
+      }
+      
+      res.status(500).json({ 
+        error: 'Configuration generation failed',
+        message: `Files uploaded successfully to project "${projectId}", but configuration generation failed: ${errorDetails}`,
         projectId,
-        error: scriptError
+        details: process.env.NODE_ENV === 'development' ? scriptError.message : undefined,
+        manualCommand: `node scripts/node/generate-config.js --project "${projectId}"`
       });
     }
 
@@ -179,17 +244,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let errorMessage = 'Internal server error during file upload';
     let statusCode = 500;
     
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      errorMessage = 'One or more files exceed the maximum size limit of 200MB per file.';
-      statusCode = 413;
-    } else if (error.code === 'LIMIT_FILE_COUNT') {
-      errorMessage = 'Too many files uploaded. Please reduce the number of files.';
-      statusCode = 413;
-    } else if (error.code === 'LIMIT_FIELD_VALUE') {
-      errorMessage = 'Form data is too large. Please reduce file sizes.';
+    if (error.code === 1009 || error.httpCode === 413) {
+      errorMessage = 'File upload failed due to size restrictions. Please try with smaller files.';
       statusCode = 413;
     } else if (error.message && error.message.includes('timeout')) {
-      errorMessage = 'Upload timeout. Please try uploading fewer files at once or reduce file sizes.';
+      errorMessage = 'Upload timeout. Please try again.';
       statusCode = 408;
     } else if (error.message && error.message.includes('ENOSPC')) {
       errorMessage = 'Server storage is full. Please contact administrator.';
@@ -197,6 +256,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else if (error.message && error.message.includes('EMFILE')) {
       errorMessage = 'Too many files being processed. Please try again in a moment.';
       statusCode = 503;
+    } else if (error.code && error.code >= 1000 && error.code <= 1999) {
+      errorMessage = `File upload error: ${error.message || 'Unknown formidable error'}`;
+      statusCode = 400;
     }
     
     res.status(statusCode).json({ 

@@ -1,7 +1,7 @@
 'use client';
 
 import Script from 'next/script';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import MiniMap from './MiniMap';
 import LoadingScreen from '../utility/LoadingScreen';
 import ControlPanel from '../ui/ControlPanel';
@@ -39,6 +39,37 @@ export default function PanoramaViewer({
     handleMarzipanoLoad,
     handleRetry,
   } = usePanoramaManager({ projectId, initialSceneId, closePanels: closePanelsFunc || undefined });
+
+  // Cleanup effect to properly destroy viewer when component unmounts
+  useEffect(() => {
+    return () => {
+      // Cleanup Marzipano viewer
+      if (refs.viewerRef.current) {
+        try {
+          refs.viewerRef.current.destroy();
+        } catch (error) {
+          console.warn('Error destroying Marzipano viewer:', error);
+        }
+        refs.viewerRef.current = null;
+      }
+
+      // Clear all scenes
+      refs.scenesRef.current = {};
+
+      // Clear any pending timeouts
+      if (refs.hotspotTimeoutRef.current) {
+        clearTimeout(refs.hotspotTimeoutRef.current);
+        refs.hotspotTimeoutRef.current = null;
+      }
+
+      // Clear the panorama container
+      if (refs.panoRef.current) {
+        refs.panoRef.current.innerHTML = '';
+      }
+
+      console.log('PanoramaViewer cleanup completed');
+    };
+  }, []); // Empty dependency array - only run on unmount
 
   if (state.error) {
     return <LoadingScreen error={state.error} onRetry={handleRetry} />;

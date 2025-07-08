@@ -67,14 +67,19 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
       </div>
       <div className={styles.content}>
         {/* Create Project Button */}
-        <Link
-          href='/upload'
+        <button
           className={styles.actionButton}
-          onClick={onPanelClose}
+          onClick={() => {
+            console.log('🔄 Create New Project clicked');
+            onPanelClose();
+            console.log('🔄 Panel closed, navigating to upload...');
+            // Force full page navigation to ensure immediate rendering
+            window.location.href = '/upload';
+          }}
           style={{ marginBottom: '16px' }}
         >
           + Create New Project
-        </Link>
+        </button>
 
         {/* Error Display */}
         {projectsError && (
@@ -203,11 +208,12 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <Link
-                    href={`/upload?project=${encodeURIComponent(project.id)}`}
+                  <button
                     onClick={e => {
                       e.stopPropagation();
                       onPanelClose();
+                      // Force full page navigation to ensure immediate rendering
+                      window.location.href = `/upload?project=${encodeURIComponent(project.id)}`;
                     }}
                     style={{
                       padding: '4px 6px',
@@ -225,7 +231,7 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
                     title='Edit project'
                   >
                     ✏️
-                  </Link>
+                  </button>
                   <button
                     onClick={e => {
                       e.stopPropagation();
