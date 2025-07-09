@@ -37,12 +37,15 @@ export interface POIModalProps {
   onClose: () => void;
   onSubmit: (data: POIFormData) => void;
   pendingPosition: POIPosition | null;
+  editingPOI?: POIData | null;
 }
 
 export interface POIPreviewProps {
   poi: POIData;
   projectId: string;
   onClose: () => void;
+  onEdit?: (poi: POIData) => void;
+  onDelete?: (poiId: string) => void;
 }
 
 export interface POIComponentProps {

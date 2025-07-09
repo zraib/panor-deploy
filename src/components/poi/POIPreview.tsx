@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import { POIPreviewProps } from '@/types/poi';
 import { getFileCategory } from './utils';
-import { FaTimes, FaFile, FaImage, FaVideo, FaFilePdf, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaTimes, FaFile, FaImage, FaVideo, FaFilePdf, FaExternalLinkAlt, FaEdit, FaTrash } from 'react-icons/fa';
 
-const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose }) => {
+const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit, onDelete }) => {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -16,6 +16,18 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose }) => {
   const handleImageError = () => {
     setImageError(true);
     setIsLoading(false);
+  };
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(poi);
+    }
+  };
+
+  const handleDelete = () => {
+    if (onDelete && window.confirm(`Are you sure you want to delete "${poi.name}"? This action cannot be undone.`)) {
+      onDelete(poi.id);
+    }
   };
 
   const getContentPath = () => {
@@ -168,12 +180,33 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose }) => {
               Position: Yaw {poi.position.yaw.toFixed(2)}°, Pitch {poi.position.pitch.toFixed(2)}°
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-          >
-            <FaTimes size={20} />
-          </button>
+          <div className="flex items-center space-x-2">
+            {onEdit && (
+              <button
+                onClick={handleEdit}
+                className="text-blue-500 hover:text-blue-700 transition-colors p-2 rounded-md hover:bg-blue-50"
+                title="Edit POI"
+              >
+                <FaEdit size={16} />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={handleDelete}
+                className="text-red-500 hover:text-red-700 transition-colors p-2 rounded-md hover:bg-red-50"
+                title="Delete POI"
+              >
+                <FaTrash size={16} />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-md hover:bg-gray-50"
+              title="Close"
+            >
+              <FaTimes size={16} />
+            </button>
+          </div>
         </div>
 
         <div className="p-4">

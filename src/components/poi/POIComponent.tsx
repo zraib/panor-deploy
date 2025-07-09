@@ -338,6 +338,9 @@ const POIComponent: React.FC<POIComponentProps> = ({
   const savePOI = async (data: POIFormData) => {
     console.log('savePOI called with data:', data);
     
+    const isEditing = !!(data as any).id;
+    const editingId = (data as any).id;
+    
     // Use position from form data (stored in modal) as primary source
     const currentPendingPOI = data.position || pendingPOI || pendingPOIRef.current;
     if (!currentPendingPOI) {
@@ -358,7 +361,7 @@ const POIComponent: React.FC<POIComponentProps> = ({
       throw new Error(`Invalid POI position: ${error}`);
     }
 
-    const poiId = uuidv4();
+    const poiId = isEditing ? editingId : uuidv4();
     const timestamp = new Date().toISOString();
     
     let contentPath = data.content;
@@ -398,7 +401,7 @@ const POIComponent: React.FC<POIComponentProps> = ({
       contentPath = uniqueFilename;
     }
 
-    const newPOI: POIData = {
+    const poiData: POIData = {
       id: poiId,
       panoramaId: currentPanoramaId,
       name: data.name.trim(),
@@ -406,17 +409,17 @@ const POIComponent: React.FC<POIComponentProps> = ({
       position: currentPendingPOI,
       type: data.type,
       content: contentPath,
-      createdAt: timestamp,
+      createdAt: isEditing ? (selectedPOI?.createdAt || timestamp) : timestamp,
       updatedAt: timestamp
     };
 
-    const requestPayload = { ...newPOI, projectId };
-    console.log('POI Save Request Payload:', requestPayload);
+    const requestPayload = { ...poiData, projectId };
+    console.log(`POI ${isEditing ? 'Update' : 'Save'} Request Payload:`, requestPayload);
     console.log('Project ID:', projectId);
     console.log('Current Panorama ID:', currentPanoramaId);
 
-    // Save POI data
-    const saveResponse = await fetch('/api/poi/save', {
+    // Save or update POI data
+    const saveResponse = await fetch(isEditing ? '/api/poi/update' : '/api/poi/save', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -426,25 +429,30 @@ const POIComponent: React.FC<POIComponentProps> = ({
 
     if (!saveResponse.ok) {
       const errorData = await saveResponse.text();
-      console.error('Save POI API Error:', {
+      console.error(`${isEditing ? 'Update' : 'Save'} POI API Error:`, {
         status: saveResponse.status,
         statusText: saveResponse.statusText,
         response: errorData
       });
-      throw new Error(`Failed to save POI data: ${saveResponse.status} ${saveResponse.statusText}`);
+      throw new Error(`Failed to ${isEditing ? 'update' : 'save'} POI data: ${saveResponse.status} ${saveResponse.statusText}`);
     }
 
     // Update local state
-    setPois(prev => [...prev, newPOI]);
-    
-    // Notify parent component
-    if (onPOICreated) {
-      onPOICreated(newPOI);
+    if (isEditing) {
+      setPois(prev => prev.map(poi => poi.id === poiId ? poiData : poi));
+    } else {
+      setPois(prev => [...prev, poiData]);
+      
+      // Notify parent component for new POIs only
+      if (onPOICreated) {
+        onPOICreated(poiData);
+      }
     }
 
     // Clear pending POI and close modal
     setPendingPOI(null);
     pendingPOIRef.current = null;
+    setSelectedPOI(null);
     setShowModal(false);
   };
 
@@ -456,6 +464,42 @@ const POIComponent: React.FC<POIComponentProps> = ({
   const handlePreviewClose = () => {
     setShowPreview(false);
     setSelectedPOI(null);
+  };
+
+  const handleEditPOI = (poi: POIData) => {
+    // Close preview and open modal with POI data for editing
+    setShowPreview(false);
+    setSelectedPOI(poi);
+    setPendingPOI(poi.position);
+    setShowModal(true);
+  };
+
+  const handleDeletePOI = async (poiId: string) => {
+    try {
+      const response = await fetch('/api/poi/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ poiId, projectId })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete POI: ${response.status}`);
+      }
+
+      // Update local state
+      setPois(prev => prev.filter(poi => poi.id !== poiId));
+      
+      // Close preview
+      setShowPreview(false);
+      setSelectedPOI(null);
+      
+      toast.success('POI deleted successfully');
+    } catch (error) {
+      console.error('Error deleting POI:', error);
+      toast.error('Failed to delete POI');
+    }
   };
 
   // Store POI hotspot elements and references
@@ -678,6 +722,7 @@ const POIComponent: React.FC<POIComponentProps> = ({
           onClose={handleModalClose}
           onSubmit={savePOI}
           pendingPosition={pendingPOI || pendingPOIRef.current}
+          editingPOI={selectedPOI}
         />
       )}
       
@@ -686,6 +731,8 @@ const POIComponent: React.FC<POIComponentProps> = ({
           poi={selectedPOI}
           projectId={projectId}
           onClose={handlePreviewClose}
+          onEdit={handleEditPOI}
+          onDelete={handleDeletePOI}
         />
       )}
     </>

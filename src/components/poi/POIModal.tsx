@@ -11,7 +11,8 @@ const POIModal: React.FC<POIModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  pendingPosition
+  pendingPosition,
+  editingPOI
 }) => {
   const [formData, setFormData] = useState<POIFormData>({
     name: '',
@@ -23,18 +24,36 @@ const POIModal: React.FC<POIModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [storedPosition, setStoredPosition] = useState<POIPosition | null>(null);
   
-  // Store the pending position when modal opens
+  // Store the pending position when modal opens or pre-fill form when editing
   useEffect(() => {
-    if (isOpen && pendingPosition && !storedPosition) {
-      console.log('Modal position lock:', pendingPosition);
-      setStoredPosition(pendingPosition);
+    if (isOpen) {
+      if (editingPOI) {
+        // Pre-fill form for editing
+        setFormData({
+          name: editingPOI.name,
+          description: editingPOI.description,
+          type: editingPOI.type,
+          content: editingPOI.content
+        });
+        setStoredPosition(editingPOI.position);
+      } else if (pendingPosition && !storedPosition) {
+        console.log('Modal position lock:', pendingPosition);
+        setStoredPosition(pendingPosition);
+      }
     }
-  }, [isOpen, pendingPosition, storedPosition]);
+  }, [isOpen, pendingPosition, storedPosition, editingPOI]);
   
-  // Clear stored position when modal closes
+  // Clear stored position and form when modal closes
   useEffect(() => {
     if (!isOpen) {
       setStoredPosition(null);
+      setFormData({
+        name: '',
+        description: '',
+        type: 'file',
+        content: ''
+      });
+      setSelectedFile(null);
     }
   }, [isOpen]);
 
@@ -124,6 +143,11 @@ const POIModal: React.FC<POIModalProps> = ({
         position: storedPosition
       };
       
+      // Add POI ID for editing
+      if (editingPOI) {
+        (submitData as any).id = editingPOI.id;
+      }
+      
       console.log('Submitting POI data:', submitData);
       await onSubmit(submitData);
       
@@ -136,16 +160,16 @@ const POIModal: React.FC<POIModalProps> = ({
       });
       setSelectedFile(null);
       
-      toast.success('POI created successfully!');
+      toast.success(editingPOI ? 'POI updated successfully!' : 'POI created successfully!');
       // Note: Modal will be closed by parent component after successful save
     } catch (error) {
-      console.error('Error creating POI:', error);
+      console.error(`Error ${editingPOI ? 'updating' : 'creating'} POI:`, error);
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
         name: error.name
       });
-      toast.error(`Failed to create POI: ${error.message}`);
+      toast.error(`Failed to ${editingPOI ? 'update' : 'create'} POI: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -168,7 +192,7 @@ const POIModal: React.FC<POIModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <FaMapPin className="text-blue-500" />
-            <h2 className="text-xl font-semibold text-gray-900">Create POI</h2>
+            <h2 className="text-xl font-semibold text-gray-900">{editingPOI ? 'Edit POI' : 'Create POI'}</h2>
           </div>
           <button
             onClick={onClose}
