@@ -4,7 +4,7 @@ import React, { ReactElement, useEffect } from 'react';
 import styles from './ControlPanel.module.css';
 import { SceneData } from '@/types/scenes';
 import { ControlButton } from './ControlButton';
-import { ProjectsPanel, FloorSelectorPanel, PerformanceMonitorPanel, POIManagementPanel } from './panels';
+import { ProjectsPanel, FloorSelectorPanel, PerformanceMonitorPanel, POIManagementPanelWithModal } from './panels';
 import { ProjectsIcon, FloorsIcon, PerformanceIcon, POIIcon } from './icons';
 import { POIData } from '@/types/poi';
 import { usePanelState } from '../../hooks/usePanelState';
@@ -30,7 +30,8 @@ interface ControlPanelProps {
   projectId?: string;
   currentPanoramaId?: string | null;
   onPOIEdit?: (poi: POIData) => void;
-  onPOIDelete?: (poiId: string) => void;
+  onPOIDelete?: (poiId: string | POIData) => void;
+  onPOINavigate?: (panoramaId: string) => void;
   
   // Panel control props
   onClosePanels?: (closePanelsFunc: () => void) => void;
@@ -47,6 +48,7 @@ export default function ControlPanel({
   currentPanoramaId,
   onPOIEdit,
   onPOIDelete,
+  onPOINavigate,
   onClosePanels,
 }: ControlPanelProps): ReactElement {
   const {
@@ -107,12 +109,13 @@ export default function ControlPanel({
           onMouseLeave={handleMouseLeave}
           icon={<POIIcon />}
         >
-          <POIManagementPanel
+          <POIManagementPanelWithModal
             projectId={projectId}
             currentPanoramaId={currentPanoramaId}
             onPanelClose={closePanels}
             onPOIEdit={onPOIEdit}
             onPOIDelete={onPOIDelete}
+            onPOINavigate={onPOINavigate}
           />
         </ControlButton>
       )}

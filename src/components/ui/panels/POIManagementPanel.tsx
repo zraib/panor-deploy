@@ -3,81 +3,81 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../ControlPanel.module.css';
 import { POIData } from '@/types/poi';
+import ConfirmationModal from '../ConfirmationModal';
 
 interface POIManagementPanelProps {
   projectId: string;
   currentPanoramaId: string;
   onPanelClose: () => void;
   onPOIEdit?: (poi: POIData) => void;
-  onPOIDelete?: (poiId: string) => void;
+  onPOIDelete?: (poiId: string | POIData) => void;
+  onPOINavigate?: (panoramaId: string) => void;
 }
 
-export function POIManagementPanel({
-  projectId,
-  currentPanoramaId,
-  onPanelClose,
-  onPOIEdit,
-  onPOIDelete,
-}: POIManagementPanelProps) {
-  const [pois, setPois] = useState<POIData[]>([]);
+export const POIManagementPanel = React.forwardRef<
+  { updatePOIList: (poiId: string) => void },
+  POIManagementPanelProps
+>((
+  {
+    projectId,
+    currentPanoramaId,
+    onPanelClose,
+    onPOIEdit,
+    onPOIDelete,
+    onPOINavigate,
+  },
+  ref
+) => {
+  const [allPois, setAllPois] = useState<POIData[]>([]);
+  const [filteredPois, setFilteredPois] = useState<POIData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Load POIs for current panorama
+  // Load all POIs for the project
   const loadPOIs = async () => {
     try {
       setLoading(true);
       setError(null);
       const response = await fetch(
-        `/api/poi/load?projectId=${encodeURIComponent(projectId)}&panoramaId=${encodeURIComponent(currentPanoramaId)}`
+        `/api/poi/load?projectId=${encodeURIComponent(projectId)}`
       );
 
       if (response.ok) {
         const data = await response.json();
-        setPois(data.pois || []);
+        setAllPois(data.pois || []);
       } else if (response.status === 404) {
         // No POIs found, start with empty array
-        setPois([]);
+        setAllPois([]);
       } else {
         throw new Error('Failed to load POIs');
       }
     } catch (err) {
       console.error('Error loading POIs:', err);
       setError('Failed to load POIs');
-      setPois([]);
+      setAllPois([]);
     } finally {
       setLoading(false);
     }
   };
 
   // Delete POI
-  const handleDeletePOI = async (poiId: string) => {
-    try {
-      const response = await fetch('/api/poi/delete', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          projectId,
-          panoramaId: currentPanoramaId,
-          poiId,
-        }),
-      });
-
-      if (response.ok) {
-        setPois(prev => prev.filter(poi => poi.id !== poiId));
-        if (onPOIDelete) {
-          onPOIDelete(poiId);
-        }
-      } else {
-        throw new Error('Failed to delete POI');
-      }
-    } catch (err) {
-      console.error('Error deleting POI:', err);
-      setError('Failed to delete POI');
+  const handleDeletePOI = (e: React.MouseEvent, poi: POIData) => {
+    e.stopPropagation();
+    if (typeof onPOIDelete === 'function') {
+      onPOIDelete(poi);
     }
   };
+
+  // Update local state when POI is deleted externally
+  const updatePOIList = (deletedPoiId: string) => {
+    setAllPois(prev => prev.filter(poi => poi.id !== deletedPoiId));
+  };
+
+  // Expose updatePOIList method through ref
+  React.useImperativeHandle(ref, () => ({
+    updatePOIList,
+  }), []);
 
   // Handle POI edit
   const handleEditPOI = (poi: POIData) => {
@@ -87,12 +87,33 @@ export function POIManagementPanel({
     onPanelClose();
   };
 
-  // Load POIs when component mounts or panorama changes
+  // Handle POI navigation
+  const handleNavigateToPOI = (poi: POIData) => {
+    if (onPOINavigate) {
+      onPOINavigate(poi.panoramaId);
+    }
+    onPanelClose();
+  };
+
+  // Filter POIs based on search term
   useEffect(() => {
-    if (projectId && currentPanoramaId) {
+    if (!searchTerm.trim()) {
+      setFilteredPois(allPois);
+    } else {
+      const filtered = allPois.filter(poi => 
+        poi.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (poi.description && poi.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+      setFilteredPois(filtered);
+    }
+  }, [allPois, searchTerm]);
+
+  // Load POIs when component mounts
+  useEffect(() => {
+    if (projectId) {
       loadPOIs();
     }
-  }, [projectId, currentPanoramaId]);
+  }, [projectId]);
 
   // Get POI type icon
   const getPOITypeIcon = (type: string) => {
@@ -182,9 +203,29 @@ export function POIManagementPanel({
 
       <div className={styles.content}>
         <p className={styles.description}>
-          Manage Points of Interest for the current panorama. Right-click on the
+          Manage all Points of Interest in your project. Right-click on any
           panorama to create new POIs.
         </p>
+
+        {/* Search Bar */}
+        <div style={{ marginBottom: '16px' }}>
+          <input
+            type="text"
+            placeholder="Search POIs by name or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '6px',
+              color: 'white',
+              fontSize: '13px',
+              outline: 'none',
+            }}
+          />
+        </div>
 
         {loading && (
           <div
@@ -206,7 +247,41 @@ export function POIManagementPanel({
 
         {!loading && !error && (
           <>
-            {pois.length === 0 ? (
+            {/* POI Count Info */}
+            {allPois.length > 0 && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: 'rgba(255, 255, 255, 0.6)', 
+                marginBottom: '12px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span>
+                  {searchTerm ? 
+                    `${filteredPois.length} of ${allPois.length} POIs` : 
+                    `${allPois.length} POI${allPois.length !== 1 ? 's' : ''} total`
+                  }
+                </span>
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Clear search
+                  </button>
+                )}
+              </div>
+            )}
+
+            {filteredPois.length === 0 ? (
               <div
                 style={{
                   textAlign: 'center',
@@ -214,26 +289,54 @@ export function POIManagementPanel({
                   color: 'rgba(255, 255, 255, 0.5)',
                 }}
               >
-                No POIs found for this panorama.
-                <br />
-                Right-click on the panorama to create one.
+                {searchTerm ? (
+                  <>
+                    No POIs found matching "{searchTerm}".
+                    <br />
+                    Try a different search term.
+                  </>
+                ) : allPois.length === 0 ? (
+                  <>
+                    No POIs found in this project.
+                    <br />
+                    Right-click on any panorama to create one.
+                  </>
+                ) : (
+                  'No POIs to display.'
+                )}
               </div>
             ) : (
               <div
                 style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
               >
-                {pois.map(poi => (
+                {filteredPois.map(poi => (
                   <div
                     key={poi.id}
+                    onClick={() => handleNavigateToPOI(poi)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
                       padding: '8px',
-                      background: 'rgba(255, 255, 255, 0.05)',
+                      background: poi.panoramaId === currentPanoramaId ? 'rgba(74, 144, 226, 0.2)' : 'rgba(255, 255, 255, 0.05)',
                       borderRadius: '6px',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      border: poi.panoramaId === currentPanoramaId ? '1px solid rgba(74, 144, 226, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
                     }}
+                    onMouseEnter={(e) => {
+                      if (poi.panoramaId !== currentPanoramaId) {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (poi.panoramaId !== currentPanoramaId) {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                      }
+                    }}
+                    title={`Click to navigate to ${poi.name} in scene ${poi.panoramaId}`}
                   >
                     <div style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                       {getPOITypeIcon(poi.type)}
@@ -251,6 +354,18 @@ export function POIManagementPanel({
                       >
                         {poi.name}
                       </div>
+                      <div
+                        style={{
+                          fontSize: '11px',
+                          color: 'rgba(255, 255, 255, 0.5)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          marginBottom: '2px'
+                        }}
+                      >
+                        📍 Scene: {poi.panoramaId}
+                      </div>
                       {poi.description && (
                         <div
                           style={{
@@ -267,7 +382,10 @@ export function POIManagementPanel({
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
-                        onClick={() => handleEditPOI(poi)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditPOI(poi);
+                        }}
                         style={{
                           background: 'rgba(255, 255, 255, 0.1)',
                           border: 'none',
@@ -304,7 +422,7 @@ export function POIManagementPanel({
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleDeletePOI(poi.id)}
+                        onClick={(e) => handleDeletePOI(e, poi)}
                         style={{
                           background: 'rgba(255, 107, 107, 0.2)',
                           border: 'none',
@@ -357,5 +475,69 @@ export function POIManagementPanel({
         )}
       </div>
     </div>
+  );
+});
+
+// Render the confirmation modal outside the component to center it on the page
+export function POIManagementPanelWithModal(props: POIManagementPanelProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [poiToDelete, setPoiToDelete] = useState<POIData | null>(null);
+  const panelRef = React.useRef<{ updatePOIList: (poiId: string) => void }>(null);
+
+  const handleDeletePOI = (poiId: string | POIData) => {
+    // If it's a string, we need to find the POI object
+    if (typeof poiId === 'string') {
+      // For string IDs, we can't show a confirmation modal without the POI object
+      // So we'll call the parent's onPOIDelete directly
+      if (props.onPOIDelete) {
+        props.onPOIDelete(poiId);
+      }
+      return;
+    }
+    
+    // If it's a POIData object, show the confirmation modal
+    setPoiToDelete(poiId);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!poiToDelete) return;
+
+    // Update the panel's local state immediately
+    panelRef.current?.updatePOIList(poiToDelete.id);
+    
+    // Call the parent's onPOIDelete - it will handle the API call and toast messages
+    if (props.onPOIDelete) {
+      props.onPOIDelete(poiToDelete.id);
+    }
+    
+    // Close the modal
+    setShowDeleteConfirm(false);
+    setPoiToDelete(null);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setPoiToDelete(null);
+  };
+
+  return (
+    <>
+      <POIManagementPanel
+        ref={panelRef}
+        {...props}
+        onPOIDelete={handleDeletePOI}
+      />
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        title="Delete POI"
+        message={poiToDelete ? `Are you sure you want to delete "${poiToDelete.name}"? This action cannot be undone.` : ''}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        variant="danger"
+      />
+    </>
   );
 }

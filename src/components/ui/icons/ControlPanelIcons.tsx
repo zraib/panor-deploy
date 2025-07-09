@@ -8,11 +8,7 @@ interface IconProps {
   color?: string;
 }
 
-export function ProjectsIcon({
-  width = 16,
-  height = 16,
-  color = 'white',
-}: IconProps) {
+export function ProjectsIcon({ width = 16, height = 16, color = 'white' }: IconProps) {
   return (
     <svg
       width={width}
@@ -31,11 +27,7 @@ export function ProjectsIcon({
   );
 }
 
-export function FloorsIcon({
-  width = 16,
-  height = 16,
-  color = 'white',
-}: IconProps) {
+export function FloorsIcon({ width = 16, height = 16, color = 'white' }: IconProps) {
   return (
     <svg
       width={width}
@@ -55,11 +47,7 @@ export function FloorsIcon({
   );
 }
 
-export function PerformanceIcon({
-  width = 16,
-  height = 16,
-  color = 'white',
-}: IconProps) {
+export function PerformanceIcon({ width = 16, height = 16, color = 'white' }: IconProps) {
   return (
     <svg
       width={width}
@@ -79,11 +67,7 @@ export function PerformanceIcon({
   );
 }
 
-export function POIIcon({
-  width = 16,
-  height = 16,
-  color = 'white',
-}: IconProps) {
+export function POIIcon({ width = 16, height = 16, color = 'white' }: IconProps) {
   return (
     <svg
       width={width}
