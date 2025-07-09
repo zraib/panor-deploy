@@ -3,11 +3,23 @@
 import React, { useState } from 'react';
 import { POIPreviewProps } from '@/types/poi';
 import { getFileCategory } from './utils';
-import { FaTimes, FaFile, FaImage, FaVideo, FaFilePdf, FaExternalLinkAlt, FaEdit, FaTrash } from 'react-icons/fa';
+import {
+  FaTimes,
+  FaFile,
+  FaImage,
+  FaVideo,
+  FaFilePdf,
+  FaExternalLinkAlt,
+  FaEdit,
+  FaTrash,
+} from 'react-icons/fa';
+import ConfirmationModal from '../ui/ConfirmationModal';
+import styles from './POIPreview.module.css';
 
 const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit, onDelete }) => {
-  const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleImageLoad = () => {
     setIsLoading(false);
@@ -25,9 +37,18 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
   };
 
   const handleDelete = () => {
-    if (onDelete && window.confirm(`Are you sure you want to delete "${poi.name}"? This action cannot be undone.`)) {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (onDelete) {
       onDelete(poi.id);
     }
+    setShowDeleteConfirm(false);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
   };
 
   const getContentPath = () => {
@@ -53,15 +74,15 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
   const renderContent = () => {
     if (poi.type === 'iframe') {
       return (
-        <div className="relative w-full h-96">
+        <div className={styles.iframeContainer}>
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className={styles.loadingSpinner}>
+              <div className={styles.spinner}></div>
             </div>
           )}
           <iframe
             src={poi.content}
-            className="w-full h-full border-0 rounded-lg"
+            className={styles.iframe}
             title={poi.name}
             onLoad={handleImageLoad}
             sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
@@ -70,10 +91,10 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
             href={poi.content}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors"
+            className={styles.externalLinkButton}
             title="Open in new tab"
           >
-            <FaExternalLinkAlt className="text-gray-600" size={12} />
+            <FaExternalLinkAlt size={12} />
           </a>
         </div>
       );
@@ -87,21 +108,21 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
 
     if (category === 'image') {
       return (
-        <div className="relative">
+        <div className={styles.imageContainer}>
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className={styles.imageLoadingContainer}>
+              <div className={styles.spinner}></div>
             </div>
           )}
           {imageError ? (
-            <div className="flex flex-col items-center justify-center h-64 bg-gray-100 rounded-lg">
-              <FaImage className="text-gray-400 mb-2" size={48} />
-              <p className="text-gray-500">Failed to load image</p>
+            <div className={styles.errorContainer}>
+              <FaImage className={styles.errorIcon} size={48} />
+              <p className={styles.errorText}>Failed to load image</p>
               <a
                 href={contentPath}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2 text-blue-600 hover:text-blue-800 underline"
+                className={styles.errorLink}
               >
                 Open file directly
               </a>
@@ -110,7 +131,7 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
             <img
               src={contentPath}
               alt={poi.name}
-              className="w-full max-h-96 object-contain rounded-lg"
+              className={styles.previewImage}
               onLoad={handleImageLoad}
               onError={handleImageError}
             />
@@ -121,16 +142,16 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
 
     if (category === 'video') {
       return (
-        <div className="relative">
+        <div className={styles.videoContainer}>
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className={styles.videoLoadingContainer}>
+              <div className={styles.spinner}></div>
             </div>
           )}
           <video
             src={contentPath}
             controls
-            className="w-full max-h-96 rounded-lg"
+            className={styles.previewVideo}
             onLoadedData={handleImageLoad}
             onError={handleImageError}
           >
@@ -142,14 +163,14 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
 
     // For PDFs and other files, show download link
     return (
-      <div className="flex flex-col items-center justify-center h-32 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-        {renderFileIcon(category)}
-        <p className="mt-2 text-sm text-gray-600">{poi.content}</p>
+      <div className={styles.fileContainer}>
+        <div className={styles.fileIcon}>{renderFileIcon(category)}</div>
+        <p className={styles.fileName}>{poi.content}</p>
         <a
           href={contentPath}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+          target='_blank'
+          rel='noopener noreferrer'
+          className={styles.openFileButton}
         >
           Open File
         </a>
@@ -171,20 +192,17 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
   };
 
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center p-4 pointer-events-none">
-      <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-xl max-w-2xl w-full max-h-[75vh] overflow-y-auto pointer-events-auto border border-gray-300">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">{poi.name}</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Position: Yaw {poi.position.yaw.toFixed(2)}°, Pitch {poi.position.pitch.toFixed(2)}°
-            </p>
+    <div className={styles.previewOverlay}>
+      <div className={styles.previewContainer}>
+        <div className={styles.previewHeader}>
+          <div className={styles.headerInfo}>
+            <h2 className={styles.previewTitle}>{poi.name}</h2>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className={styles.headerActions}>
             {onEdit && (
               <button
                 onClick={handleEdit}
-                className="text-blue-500 hover:text-blue-700 transition-colors p-2 rounded-md hover:bg-blue-50"
+                className={`${styles.actionButton} ${styles.editButton}`}
                 title="Edit POI"
               >
                 <FaEdit size={16} />
@@ -193,7 +211,7 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
             {onDelete && (
               <button
                 onClick={handleDelete}
-                className="text-red-500 hover:text-red-700 transition-colors p-2 rounded-md hover:bg-red-50"
+                className={`${styles.actionButton} ${styles.deleteButton}`}
                 title="Delete POI"
               >
                 <FaTrash size={16} />
@@ -201,7 +219,7 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
             )}
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-md hover:bg-gray-50"
+              className={`${styles.actionButton} ${styles.closeButton}`}
               title="Close"
             >
               <FaTimes size={16} />
@@ -209,27 +227,42 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
           </div>
         </div>
 
-        <div className="p-4">
+        <div className={styles.previewContent}>
           {poi.description && (
-            <div className="mb-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Description</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">{poi.description}</p>
+            <div className={styles.descriptionSection}>
+              <h3 className={styles.sectionTitle}>
+                Description
+              </h3>
+              <p className={styles.descriptionText}>
+                {poi.description}
+              </p>
             </div>
           )}
 
-          <div className="mb-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Content</h3>
+          <div className={styles.contentSection}>
+            <h3 className={styles.sectionTitle}>Content</h3>
             {renderContent()}
           </div>
 
-          <div className="text-xs text-gray-500 border-t pt-3">
-            <p>Created: {new Date(poi.createdAt).toLocaleString()}</p>
+          <div className={styles.previewFooter}>
+            <p className={styles.footerText}>Created: {new Date(poi.createdAt).toLocaleString()}</p>
             {poi.updatedAt !== poi.createdAt && (
-              <p>Updated: {new Date(poi.updatedAt).toLocaleString()}</p>
+              <p className={styles.footerText}>Updated: {new Date(poi.updatedAt).toLocaleString()}</p>
             )}
           </div>
         </div>
       </div>
+      
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        title="Delete POI"
+        message={`Are you sure you want to delete "${poi.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        variant="danger"
+      />
     </div>
   );
 };

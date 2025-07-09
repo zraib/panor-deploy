@@ -7,7 +7,7 @@ import LoadingScreen from '../utility/LoadingScreen';
 import ControlPanel from '../ui/ControlPanel';
 import PanoramaLogo from './PanoramaLogo';
 import TapHint from './TapHint';
-import ControlsHint from './ControlsHint';
+// import ControlsHint from './ControlsHint';
 import PanoramaContainer from './PanoramaContainer';
 import HotspotRenderer from './HotspotRenderer';
 import POIComponent from '../poi/POIComponent';
@@ -24,12 +24,14 @@ export default function PanoramaViewer({
   projectId,
   initialSceneId,
 }: PanoramaViewerProps = {}) {
-  const [closePanelsFunc, setClosePanelsFunc] = useState<(() => void) | null>(null);
-  
+  const [closePanelsFunc, setClosePanelsFunc] = useState<(() => void) | null>(
+    null
+  );
+
   const handleClosePanels = useCallback((closePanels: () => void) => {
     setClosePanelsFunc(() => closePanels);
   }, []);
-  
+
   const {
     state,
     refs,
@@ -38,7 +40,11 @@ export default function PanoramaViewer({
     handlePanoClick,
     handleMarzipanoLoad,
     handleRetry,
-  } = usePanoramaManager({ projectId, initialSceneId, closePanels: closePanelsFunc || undefined });
+  } = usePanoramaManager({
+    projectId,
+    initialSceneId,
+    closePanels: closePanelsFunc || undefined,
+  });
 
   // Cleanup effect to properly destroy viewer when component unmounts
   useEffect(() => {
@@ -128,15 +134,15 @@ export default function PanoramaViewer({
               viewerSize={{ width: 800, height: 600 }} // You may want to get actual viewer size
               viewerRef={refs.viewerRef}
               panoRef={refs.panoRef}
-              onPOICreated={(poi) => console.log('POI created:', poi)}
+              onPOICreated={poi => console.log('POI created:', poi)}
             />
           </>
         )}
 
-      <ControlsHint />
-      
+      {/* <ControlsHint /> */}
+
       <ToastContainer
-        position="top-right"
+        position='bottom-left'
         autoClose={3000}
         hideProgressBar={false}
         newestOnTop={false}
@@ -145,7 +151,19 @@ export default function PanoramaViewer({
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="light"
+        theme='dark'
+        toastStyle={{
+          background: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '8px',
+          color: '#fff',
+          fontSize: '14px',
+          fontWeight: '500',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
+        }}
+
       />
     </>
   );

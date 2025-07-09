@@ -3,25 +3,43 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { renderToString } from 'react-dom/server';
 import { v4 as uuidv4 } from 'uuid';
-import { POIComponentProps, POIData, POIFormData, POIPosition } from '@/types/poi';
-import { screenToYawPitch, screenToYawPitchRaycast, validateViewAngles, generateUniqueFilename } from './utils';
+import {
+  POIComponentProps,
+  POIData,
+  POIFormData,
+  POIPosition,
+} from '@/types/poi';
+import {
+  screenToYawPitch,
+  screenToYawPitchRaycast,
+  validateViewAngles,
+  generateUniqueFilename,
+} from './utils';
 import POIContextMenu from './POIContextMenu';
 import POIModal from './POIModal';
 import POIPreview from './POIPreview';
-import { FaMapPin, FaImage, FaVideo, FaFilePdf, FaFile, FaGlobe } from 'react-icons/fa';
+import {
+  FaMapPin,
+  FaImage,
+  FaVideo,
+  FaFilePdf,
+  FaFile,
+  FaGlobe,
+} from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import styles from './POIComponent.module.css';
 
 // Function to determine the appropriate icon based on POI type and content
 const getPOIIcon = (poi: POIData): React.ReactElement => {
-  const iconProps = { size: 32, style: { color: '#007bff' } };
-  
+  const iconProps = { size: 32, style: { color: '#fff' } };
+
   if (poi.type === 'iframe') {
     return <FaGlobe {...iconProps} />;
   }
-  
+
   if (poi.type === 'file' && poi.content) {
     const extension = poi.content.toLowerCase().split('.').pop();
-    
+
     switch (extension) {
       case 'mp4':
       case 'avi':
@@ -29,7 +47,7 @@ const getPOIIcon = (poi: POIData): React.ReactElement => {
       case 'wmv':
       case 'webm':
         return <FaVideo {...iconProps} />;
-      
+
       case 'jpg':
       case 'jpeg':
       case 'png':
@@ -37,15 +55,15 @@ const getPOIIcon = (poi: POIData): React.ReactElement => {
       case 'bmp':
       case 'webp':
         return <FaImage {...iconProps} />;
-      
+
       case 'pdf':
         return <FaFilePdf {...iconProps} />;
-      
+
       default:
         return <FaFile {...iconProps} />; // Default fallback
     }
   }
-  
+
   return <FaMapPin {...iconProps} />; // Default fallback
 };
 
@@ -81,10 +99,7 @@ const POIComponent: React.FC<POIComponentProps> = ({
           }
         }
         
-        // Remove style element
-        if (debugHotspotRef.current.style && debugHotspotRef.current.style.parentNode) {
-          debugHotspotRef.current.style.parentNode.removeChild(debugHotspotRef.current.style);
-        }
+        // Style is now handled by CSS module, no cleanup needed
       } catch (error) {
         console.warn('Failed to clear debug marker:', error);
       }
@@ -109,30 +124,8 @@ const POIComponent: React.FC<POIComponentProps> = ({
        clearDebugMarker();
        
        // Create debug marker element
-       const element = document.createElement('div');
-       element.style.cssText = `
-         width: 20px;
-         height: 20px;
-         background: red;
-         border: 2px solid white;
-         border-radius: 50%;
-         transform: translate(-50%, -50%);
-         pointer-events: none;
-         z-index: 1000;
-         box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
-         animation: pulse 1s infinite;
-       `;
-       
-       // Add pulsing animation
-       const style = document.createElement('style');
-       style.textContent = `
-         @keyframes pulse {
-           0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-           50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
-           100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-         }
-       `;
-       document.head.appendChild(style);
+        const element = document.createElement('div');
+        element.className = styles.debugMarker;
        
        // Create hotspot
        const hotspot = hotspotContainer.createHotspot(element, {
@@ -140,7 +133,7 @@ const POIComponent: React.FC<POIComponentProps> = ({
          pitch: position.pitch * (Math.PI / 180)
        });
        
-       debugHotspotRef.current = { hotspot, element, style };
+       debugHotspotRef.current = { hotspot, element };
        setDebugMarker(position);
        
        // Auto-remove after 3 seconds
@@ -537,86 +530,23 @@ const POIComponent: React.FC<POIComponentProps> = ({
         try {
           // Create DOM element for POI marker
           const element = document.createElement('div');
-          element.className = 'poi-marker';
-          element.style.cssText = `
-            cursor: pointer;
-            transform: translate(-50%, -50%);
-            pointer-events: auto;
-            z-index: 10;
-          `;
+          element.className = styles.poiMarkerBase;
           
           // Get the appropriate icon for this POI
           const iconComponent = getPOIIcon(poi);
           const iconHtml = renderToString(iconComponent);
           
           // Create POI marker content with custom icon
-            element.innerHTML = `
-              <style>
-                @keyframes lightPass {
-                  0% { box-shadow: 0 0 0 3px #007bff, 0 0 10px rgba(0, 212, 255, 0.8); }
-                  25% { box-shadow: 0 0 0 3px #00d4ff, 0 0 15px rgba(0, 212, 255, 1); }
-                  50% { box-shadow: 0 0 0 3px #007bff, 0 0 10px rgba(0, 212, 255, 0.8); }
-                  75% { box-shadow: 0 0 0 3px #00d4ff, 0 0 15px rgba(0, 212, 255, 1); }
-                  100% { box-shadow: 0 0 0 3px #007bff, 0 0 10px rgba(0, 212, 255, 0.8); }
-                }
-                .poi-marker {
-                  position: relative;
-                  width: 60px;
-                  height: 70px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  border-radius: 8px;
-                  background: rgba(255, 255, 255, 0.95);
-                  animation: lightPass 2s infinite;
-                }
-                .poi-tooltip {
-                  position: absolute;
-                  top: 65px;
-                  left: 50%;
-                  transform: translateX(-50%) translateY(8px);
-                  background: rgba(255, 255, 255, 0.98);
-                  color: #2c3e50;
-                  font-size: 12px;
-                  font-weight: 400;
-                  padding: 6px 10px;
-                  border-radius: 6px;
-                  white-space: nowrap;
-                  pointer-events: none;
-                  opacity: 0;
-                  visibility: hidden;
-                  transition: all 0.25s ease-out;
-                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-                  border: 1px solid rgba(0, 0, 0, 0.08);
-                  letter-spacing: 0.3px;
-                }
-                .poi-tooltip::before {
-                  content: '';
-                  position: absolute;
-                  top: -4px;
-                  left: 50%;
-                  transform: translateX(-50%);
-                  width: 0;
-                  height: 0;
-                  border-left: 4px solid transparent;
-                  border-right: 4px solid transparent;
-                  border-bottom: 4px solid rgba(255, 255, 255, 0.98);
-                }
-                .poi-marker:hover .poi-tooltip {
-                  opacity: 1;
-                  visibility: visible;
-                  transform: translateX(-50%) translateY(0);
-                }
-              </style>
-              <div class="poi-marker">
-                <div style="display: flex; align-items: center; justify-content: center; width: 54px; height: 54px;">
-                  ${iconHtml}
-                </div>
-                <div class="poi-tooltip">
-                  ${poi.name}
-                </div>
+          element.innerHTML = `
+            <div class="${styles.poiMarker}">
+              <div class="${styles.poiIconContainer}">
+                ${iconHtml}
               </div>
-            `;
+              <div class="${styles.poiTooltip}">
+                ${poi.name}
+              </div>
+            </div>
+          `;
 
           // Add click handler
           element.addEventListener('click', (e) => {
@@ -699,12 +629,7 @@ const POIComponent: React.FC<POIComponentProps> = ({
       {/* Container reference for POI positioning */}
        <div 
          ref={containerRef}
-         className="absolute inset-0"
-         style={{ 
-           pointerEvents: 'none',
-           background: 'transparent',
-           zIndex: 5
-         }}
+         className={styles.poiContainer}
        />
       
       {/* POI markers are now handled by Marzipano's hotspot system */}

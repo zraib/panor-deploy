@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import { POIContextMenuProps } from '@/types/poi';
 import { FaMapPin, FaTimes } from 'react-icons/fa';
+import styles from './POIContextMenu.module.css';
 
 const POIContextMenu: React.FC<POIContextMenuProps> = ({
   position,
@@ -42,29 +43,28 @@ const POIContextMenu: React.FC<POIContextMenuProps> = ({
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 min-w-[180px]"
+      className={styles.contextMenu}
       style={{
         left: `${position.x}px`,
-        top: `${position.y}px`,
-        transform: 'translate(-50%, -10px)'
+        top: `${position.y}px`
       }}
     >
-      <div className="py-2">
+      <div className={styles.menuContent}>
         <button
           onClick={handleCreatePOI}
-          className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-colors"
+          className={`${styles.menuItem} ${styles.createButton}`}
         >
-          <FaMapPin className="text-blue-500" />
+          <FaMapPin className={styles.createIcon} />
           Create POI
         </button>
         
-        <div className="border-t border-gray-100 my-1" />
+        <div className={styles.divider} />
         
         <button
           onClick={onClose}
-          className="w-full px-4 py-2 text-left text-sm text-gray-500 hover:bg-gray-100 flex items-center gap-2 transition-colors"
+          className={`${styles.menuItem} ${styles.cancelButton}`}
         >
-          <FaTimes className="text-gray-400" />
+          <FaTimes className={styles.cancelIcon} />
           Cancel
         </button>
       </div>

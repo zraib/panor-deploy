@@ -1,0 +1,88 @@
+/* === POI Context Menu Styles === */
+
+/* Context Menu Container */
+.contextMenu {
+  position: fixed;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 180px;
+  transform: translate(-50%, -10px);
+}
+
+/* Menu Content */
+.menuContent {
+  padding: 0.5rem 0;
+}
+
+/* Menu Items */
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 10px 14px;
+  
+  color: #fff;
+  
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: left;
+  border-radius: 8px;
+}
+
+.menuItem:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Create POI Button */
+.createButton {
+  color: #fff;
+}
+
+.createButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.createIcon {
+  color: #fff;
+}
+
+/* Cancel Button */
+.cancelButton {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.cancelButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.cancelIcon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Divider */
+.divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 0.25rem 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .contextMenu {
+    min-width: 160px;
+  }
+  
+  .menuItem {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+}
