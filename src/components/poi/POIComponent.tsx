@@ -54,6 +54,28 @@ const getPOIIcon = (poi: POIData): React.ReactElement => {
       case 'gif':
       case 'bmp':
       case 'webp':
+      case 'svg':
+      case 'tiff':
+      case 'tif':
+      case 'ico':
+      case 'heic':
+      case 'heif':
+      case 'avif':
+      case 'jfif':
+      case 'pjpeg':
+      case 'pjp':
+      case 'apng':
+      case 'raw':
+      case 'cr2':
+      case 'nef':
+      case 'arw':
+      case 'dng':
+      case 'orf':
+      case 'rw2':
+      case 'pef':
+      case 'sr2':
+      case 'raf':
+      case 'x3f':
         return <FaImage {...iconProps} />;
 
       case 'pdf':
