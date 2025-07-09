@@ -140,7 +140,12 @@ const POIModal: React.FC<POIModalProps> = ({
       // Note: Modal will be closed by parent component after successful save
     } catch (error) {
       console.error('Error creating POI:', error);
-      toast.error('Failed to create POI. Please try again.');
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      toast.error(`Failed to create POI: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -158,7 +163,7 @@ const POIModal: React.FC<POIModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-2">
@@ -190,7 +195,7 @@ const POIModal: React.FC<POIModalProps> = ({
               id="name"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
               placeholder="Enter POI name"
               required
               disabled={isSubmitting}
@@ -206,7 +211,7 @@ const POIModal: React.FC<POIModalProps> = ({
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 bg-white"
               placeholder="Enter POI description"
               required
               disabled={isSubmitting}
@@ -291,7 +296,7 @@ const POIModal: React.FC<POIModalProps> = ({
                 id="url"
                 value={formData.content}
                 onChange={(e) => handleInputChange('content', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
                 placeholder="https://example.com"
                 required
                 disabled={isSubmitting}

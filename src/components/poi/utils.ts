@@ -4,6 +4,7 @@ import { POIPosition } from '@/types/poi';
 
 /**
  * Convert screen coordinates to panorama yaw/pitch angles
+ * Uses simplified but more accurate calculation based on Marzipano's coordinate system
  * @param clientX - Mouse X coordinate relative to viewport
  * @param clientY - Mouse Y coordinate relative to viewport
  * @param viewerWidth - Width of the panorama viewer
@@ -22,28 +23,104 @@ export const screenToYawPitch = (
   currentPitch: number,
   currentFov: number
 ): POIPosition => {
-  // Normalize screen coordinates to [-1, 1] range
-  const normalizedX = (clientX / viewerWidth) * 2 - 1;
-  const normalizedY = -(clientY / viewerHeight) * 2 + 1;
+  // Convert to normalized device coordinates [-1, 1]
+  const ndcX = (2 * clientX / viewerWidth) - 1;
+  const ndcY = (2 * clientY / viewerHeight) - 1; // Don't flip Y axis - let Marzipano handle orientation
   
-  // Calculate the angular offset from the center of the view
-  const fovRadians = (currentFov * Math.PI) / 180;
+  // Calculate aspect ratio
   const aspectRatio = viewerWidth / viewerHeight;
   
-  // Calculate horizontal and vertical angular offsets
-  const horizontalFov = fovRadians;
-  const verticalFov = fovRadians / aspectRatio;
+  // Convert FOV to radians and calculate half angles
+  const fovRad = currentFov * Math.PI / 180;
+  const halfFovY = fovRad / 2;
+  const halfFovX = Math.atan(Math.tan(halfFovY) * aspectRatio);
   
-  const deltaYaw = normalizedX * (horizontalFov / 2) * (180 / Math.PI);
-  const deltaPitch = -normalizedY * (verticalFov) * (180 / Math.PI);
+  // Calculate view-space angles from center
+  const viewYaw = ndcX * halfFovX;
+  const viewPitch = ndcY * halfFovY;
   
-  // Add the offsets to the current view direction
-  const targetYaw = normalizeYaw(currentYaw + deltaYaw);
-  const targetPitch = clampPitch(currentPitch + deltaPitch);
+  // Convert current view angles to radians
+  const currentYawRad = currentYaw * Math.PI / 180;
+  const currentPitchRad = currentPitch * Math.PI / 180;
   
-  return { 
-    yaw: parseFloat(targetYaw.toFixed(2)),
-    pitch: parseFloat(targetPitch.toFixed(2))
+  // Simple additive approach that works better with Marzipano's coordinate system
+  let targetYaw = currentYaw + (viewYaw * 180 / Math.PI);
+  let targetPitch = currentPitch + (viewPitch * 180 / Math.PI);
+  
+  // Normalize angles
+  targetYaw = normalizeYaw(targetYaw);
+  targetPitch = clampPitch(targetPitch);
+  
+  return {
+    yaw: parseFloat(targetYaw.toFixed(4)),
+    pitch: parseFloat(targetPitch.toFixed(4))
+  };
+};
+
+/**
+ * Alternative coordinate conversion using ray casting approach
+ * This can be used as a fallback if the simple approach doesn't work
+ */
+export const screenToYawPitchRaycast = (
+  clientX: number,
+  clientY: number,
+  viewerWidth: number,
+  viewerHeight: number,
+  currentYaw: number,
+  currentPitch: number,
+  currentFov: number
+): POIPosition => {
+  // Convert to normalized coordinates
+  const x = (clientX / viewerWidth - 0.5) * 2;
+  const y = (clientY / viewerHeight - 0.5) * 2; // Don't flip Y axis - consistent with simple method
+  
+  // Calculate field of view in radians
+  const fovRad = currentFov * Math.PI / 180;
+  const aspectRatio = viewerWidth / viewerHeight;
+  
+  // Calculate the ray direction in view space
+  const tanHalfFov = Math.tan(fovRad / 2);
+  const rayX = x * tanHalfFov * aspectRatio;
+  const rayY = y * tanHalfFov;
+  const rayZ = -1; // Forward direction
+  
+  // Normalize the ray
+  const rayLength = Math.sqrt(rayX * rayX + rayY * rayY + rayZ * rayZ);
+  const normalizedRayX = rayX / rayLength;
+  const normalizedRayY = rayY / rayLength;
+  const normalizedRayZ = rayZ / rayLength;
+  
+  // Convert current view to radians
+  const yawRad = currentYaw * Math.PI / 180;
+  const pitchRad = currentPitch * Math.PI / 180;
+  
+  // Apply view rotation to ray (yaw then pitch)
+  const cosYaw = Math.cos(yawRad);
+  const sinYaw = Math.sin(yawRad);
+  const cosPitch = Math.cos(pitchRad);
+  const sinPitch = Math.sin(pitchRad);
+  
+  // Rotate around Y axis (yaw)
+  const rotatedX1 = normalizedRayX * cosYaw - normalizedRayZ * sinYaw;
+  const rotatedY1 = normalizedRayY;
+  const rotatedZ1 = normalizedRayX * sinYaw + normalizedRayZ * cosYaw;
+  
+  // Rotate around X axis (pitch)
+  const finalX = rotatedX1;
+  const finalY = rotatedY1 * cosPitch - rotatedZ1 * sinPitch;
+  const finalZ = rotatedY1 * sinPitch + rotatedZ1 * cosPitch;
+  
+  // Convert to spherical coordinates
+  const targetYawRad = Math.atan2(finalX, finalZ);
+  const targetPitchRad = Math.asin(Math.max(-1, Math.min(1, finalY)));
+  
+  // Convert to degrees
+  const targetYaw = normalizeYaw(targetYawRad * 180 / Math.PI);
+  const targetPitch = clampPitch(targetPitchRad * 180 / Math.PI);
+  
+  return {
+    yaw: parseFloat(targetYaw.toFixed(4)),
+    pitch: parseFloat(targetPitch.toFixed(4))
   };
 };
 

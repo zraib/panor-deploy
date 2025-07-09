@@ -28,8 +28,31 @@ export default async function handler(
     const { projectId, ...newPOI }: POIData & { projectId: string } = req.body;
 
     // Validate required fields
-    if (!projectId || !newPOI.id || !newPOI.panoramaId || !newPOI.name || !newPOI.position) {
-      return res.status(400).json({ error: 'Missing required fields (including projectId)' });
+    console.log('POI Save API - Received data:', { projectId, newPOI });
+    
+    if (!projectId) {
+      console.log('Missing projectId');
+      return res.status(400).json({ error: 'Missing projectId' });
+    }
+    if (!newPOI.id) {
+      console.log('Missing POI id');
+      return res.status(400).json({ error: 'Missing POI id' });
+    }
+    if (!newPOI.panoramaId) {
+      console.log('Missing panoramaId');
+      return res.status(400).json({ error: 'Missing panoramaId' });
+    }
+    if (!newPOI.name) {
+      console.log('Missing POI name');
+      return res.status(400).json({ error: 'Missing POI name' });
+    }
+    if (!newPOI.description) {
+      console.log('Missing POI description');
+      return res.status(400).json({ error: 'Missing POI description' });
+    }
+    if (!newPOI.position) {
+      console.log('Missing POI position');
+      return res.status(400).json({ error: 'Missing POI position' });
     }
 
     // Validate position

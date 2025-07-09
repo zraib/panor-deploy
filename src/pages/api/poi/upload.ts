@@ -35,17 +35,15 @@ export default async function handler(
       keepExtensions: true,
       maxFileSize: 10 * 1024 * 1024, // 10MB limit
       filter: ({ mimetype }) => {
-        // Allow images, PDFs, and videos
-        const allowedTypes = [
+        return [
           'image/jpeg',
-          'image/jpg',
+          'image/jpg', 
           'image/png',
           'image/gif',
           'application/pdf',
           'video/mp4',
           'video/webm'
-        ];
-        return allowedTypes.includes(mimetype || '');
+        ].includes(mimetype || '');
       }
     });
 
@@ -80,8 +78,18 @@ export default async function handler(
       return res.status(409).json({ error: 'File already exists' });
     }
 
-    // Move the file
-    fs.renameSync(file.filepath, finalPath);
+    // Move the file (handle cross-drive moves)
+    try {
+      fs.renameSync(file.filepath, finalPath);
+    } catch (renameError: any) {
+      // If rename fails (e.g., cross-drive move), copy and delete
+      if (renameError.code === 'EXDEV') {
+        fs.copyFileSync(file.filepath, finalPath);
+        fs.unlinkSync(file.filepath);
+      } else {
+        throw renameError;
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -97,10 +105,26 @@ export default async function handler(
         return res.status(413).json({ error: 'File too large. Maximum size is 10MB.' });
       }
       if (error.message.includes('filter')) {
-        return res.status(415).json({ error: 'Unsupported file type.' });
+        return res.status(415).json({ error: 'Unsupported file type. Please upload images (JPG, PNG, GIF), PDFs, or videos (MP4, WebM).' });
       }
     }
     
-    res.status(500).json({ error: 'Upload failed' });
+    // Check for formidable error codes
+    if (error && typeof error === 'object' && 'code' in error) {
+      if (error.code === 1003) {
+        return res.status(415).json({ 
+          error: 'Unsupported file type. Please upload images (JPG, PNG, GIF), PDFs, or videos (MP4, WebM).',
+          details: 'The file type was not recognized as a valid media file.'
+        });
+      }
+      if (error.code === 1009) {
+        return res.status(413).json({ error: 'File too large. Maximum size is 10MB.' });
+      }
+    }
+    
+    res.status(500).json({ 
+      error: 'Upload failed',
+      details: error instanceof Error ? error.message : 'Unknown error occurred'
+    });
   }
 }

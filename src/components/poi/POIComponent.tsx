@@ -1,19 +1,22 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { renderToString } from 'react-dom/server';
 import { v4 as uuidv4 } from 'uuid';
 import { POIComponentProps, POIData, POIFormData, POIPosition } from '@/types/poi';
-import { screenToYawPitch, validateViewAngles, generateUniqueFilename } from './utils';
+import { screenToYawPitch, screenToYawPitchRaycast, validateViewAngles, generateUniqueFilename } from './utils';
 import POIContextMenu from './POIContextMenu';
 import POIModal from './POIModal';
 import POIPreview from './POIPreview';
-import { FaMapPin } from 'react-icons/fa';
+import { FaMapPin, FaImage, FaVideo, FaFilePdf, FaFile, FaGlobe } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 // Function to determine the appropriate icon based on POI type and content
-const getPOIIcon = (poi: POIData): string => {
+const getPOIIcon = (poi: POIData): React.ReactElement => {
+  const iconProps = { size: 32, style: { color: '#007bff' } };
+  
   if (poi.type === 'iframe') {
-    return '/assets/svg/html.ico';
+    return <FaGlobe {...iconProps} />;
   }
   
   if (poi.type === 'file' && poi.content) {
@@ -25,7 +28,7 @@ const getPOIIcon = (poi: POIData): string => {
       case 'mov':
       case 'wmv':
       case 'webm':
-        return '/assets/svg/video.ico';
+        return <FaVideo {...iconProps} />;
       
       case 'jpg':
       case 'jpeg':
@@ -33,17 +36,17 @@ const getPOIIcon = (poi: POIData): string => {
       case 'gif':
       case 'bmp':
       case 'webp':
-        return '/assets/svg/jpg.ico';
+        return <FaImage {...iconProps} />;
       
       case 'pdf':
-        return '/assets/svg/pdf.ico';
+        return <FaFilePdf {...iconProps} />;
       
       default:
-        return '/assets/svg/boomerang.svg'; // Default fallback
+        return <FaFile {...iconProps} />; // Default fallback
     }
   }
   
-  return '/assets/svg/boomerang.svg'; // Default fallback
+  return <FaMapPin {...iconProps} />; // Default fallback
 };
 
 const POIComponent: React.FC<POIComponentProps> = ({
@@ -61,8 +64,94 @@ const POIComponent: React.FC<POIComponentProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [selectedPOI, setSelectedPOI] = useState<POIData | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [debugMarker, setDebugMarker] = useState<POIPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pendingPOIRef = useRef<POIPosition | null>(null);
+  const debugHotspotRef = useRef<any>(null);
+  
+  // Clear debug marker
+  const clearDebugMarker = useCallback(() => {
+    if (debugHotspotRef.current && viewerRef.current) {
+      try {
+        const scene = viewerRef.current.scene();
+        if (scene) {
+          const hotspotContainer = scene.hotspotContainer();
+          if (hotspotContainer && debugHotspotRef.current.hotspot) {
+            hotspotContainer.destroyHotspot(debugHotspotRef.current.hotspot);
+          }
+        }
+        
+        // Remove style element
+        if (debugHotspotRef.current.style && debugHotspotRef.current.style.parentNode) {
+          debugHotspotRef.current.style.parentNode.removeChild(debugHotspotRef.current.style);
+        }
+      } catch (error) {
+        console.warn('Failed to clear debug marker:', error);
+      }
+      
+      debugHotspotRef.current = null;
+    }
+    setDebugMarker(null);
+  }, [viewerRef]);
+   
+   // Create temporary debug marker to verify positioning accuracy
+   const createDebugMarker = useCallback((position: POIPosition) => {
+     if (!viewerRef.current) return;
+     
+     try {
+       const scene = viewerRef.current.scene();
+       if (!scene) return;
+       
+       const hotspotContainer = scene.hotspotContainer();
+       if (!hotspotContainer) return;
+       
+       // Clear existing debug marker
+       clearDebugMarker();
+       
+       // Create debug marker element
+       const element = document.createElement('div');
+       element.style.cssText = `
+         width: 20px;
+         height: 20px;
+         background: red;
+         border: 2px solid white;
+         border-radius: 50%;
+         transform: translate(-50%, -50%);
+         pointer-events: none;
+         z-index: 1000;
+         box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+         animation: pulse 1s infinite;
+       `;
+       
+       // Add pulsing animation
+       const style = document.createElement('style');
+       style.textContent = `
+         @keyframes pulse {
+           0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+           50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
+           100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+         }
+       `;
+       document.head.appendChild(style);
+       
+       // Create hotspot
+       const hotspot = hotspotContainer.createHotspot(element, {
+         yaw: position.yaw * (Math.PI / 180),
+         pitch: position.pitch * (Math.PI / 180)
+       });
+       
+       debugHotspotRef.current = { hotspot, element, style };
+       setDebugMarker(position);
+       
+       // Auto-remove after 3 seconds
+       setTimeout(() => {
+         clearDebugMarker();
+       }, 3000);
+       
+     } catch (error) {
+       console.error('Failed to create debug marker:', error);
+     }
+   }, [viewerRef, clearDebugMarker]);
 
   // Load POIs on component mount and when panorama changes
   useEffect(() => {
@@ -72,6 +161,7 @@ const POIComponent: React.FC<POIComponentProps> = ({
       setPendingPOI(null);
       pendingPOIRef.current = null;
       setShowContextMenu(false);
+      clearDebugMarker();
     }
   }, [currentPanoramaId, projectId]);
 
@@ -118,12 +208,42 @@ const POIComponent: React.FC<POIComponentProps> = ({
       }
 
       const rect = panoContainer.getBoundingClientRect();
+      
+      // Use more precise coordinate calculation
+      // Account for any padding or borders in the container
       const relativeX = e.clientX - rect.left;
       const relativeY = e.clientY - rect.top;
+      
+      // Ensure coordinates are within bounds
+      const clampedX = Math.max(0, Math.min(rect.width, relativeX));
+      const clampedY = Math.max(0, Math.min(rect.height, relativeY));
 
-      const { yaw, pitch } = screenToYawPitch(
-        relativeX,
-        relativeY,
+      console.log('Right-click coordinates:', {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        rectLeft: rect.left,
+        rectTop: rect.top,
+        rectWidth: rect.width,
+        rectHeight: rect.height,
+        relativeX: clampedX,
+        relativeY: clampedY,
+        viewParams
+      });
+
+      // Test both coordinate conversion methods
+      const position1 = screenToYawPitch(
+        clampedX,
+        clampedY,
+        rect.width,
+        rect.height,
+        viewParams.yaw,
+        viewParams.pitch,
+        viewParams.fov
+      );
+      
+      const position2 = screenToYawPitchRaycast(
+        clampedX,
+        clampedY,
         rect.width,
         rect.height,
         viewParams.yaw,
@@ -131,12 +251,26 @@ const POIComponent: React.FC<POIComponentProps> = ({
         viewParams.fov
       );
 
-      const position = { yaw, pitch };
-      console.log('Setting pendingPOI:', position);
-      setPendingPOI(position);
-      pendingPOIRef.current = position; // Backup in ref
-      setContextMenuPos({ x: e.clientX, y: e.clientY });
-      setShowContextMenu(true);
+      console.log('Coordinate conversion comparison:', {
+        simple: position1,
+        raycast: position2,
+        difference: {
+          yaw: Math.abs(position1.yaw - position2.yaw),
+          pitch: Math.abs(position1.pitch - position2.pitch)
+        }
+      });
+      
+      // Use the simple method by default, but this can be easily switched
+       const position = position1;
+       console.log('Using POI position:', position);
+       
+       // Create temporary debug marker to verify positioning
+       createDebugMarker(position);
+       
+       setPendingPOI(position);
+       pendingPOIRef.current = position; // Backup in ref
+       setContextMenuPos({ x: e.clientX, y: e.clientY });
+       setShowContextMenu(true);
     } catch (error) {
       console.error('Error calculating POI position:', error);
       toast.error('Failed to calculate POI position. Please try again.');
@@ -191,6 +325,7 @@ const POIComponent: React.FC<POIComponentProps> = ({
     setShowContextMenu(false);
     setPendingPOI(null);
     pendingPOIRef.current = null;
+    clearDebugMarker();
   };
 
   const handleModalClose = () => {
@@ -244,7 +379,20 @@ const POIComponent: React.FC<POIComponentProps> = ({
       });
       
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload file');
+        const uploadErrorData = await uploadResponse.text();
+        console.error('File Upload API Error:', {
+          status: uploadResponse.status,
+          statusText: uploadResponse.statusText,
+          response: uploadErrorData
+        });
+        
+        // Try to parse error response for better user feedback
+        try {
+          const errorJson = JSON.parse(uploadErrorData);
+          throw new Error(errorJson.error || `Failed to upload file: ${uploadResponse.status} ${uploadResponse.statusText}`);
+        } catch (parseError) {
+          throw new Error(`Failed to upload file: ${uploadResponse.status} ${uploadResponse.statusText}`);
+        }
       }
       
       contentPath = uniqueFilename;
@@ -262,17 +410,28 @@ const POIComponent: React.FC<POIComponentProps> = ({
       updatedAt: timestamp
     };
 
+    const requestPayload = { ...newPOI, projectId };
+    console.log('POI Save Request Payload:', requestPayload);
+    console.log('Project ID:', projectId);
+    console.log('Current Panorama ID:', currentPanoramaId);
+
     // Save POI data
     const saveResponse = await fetch('/api/poi/save', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ ...newPOI, projectId })
+      body: JSON.stringify(requestPayload)
     });
 
     if (!saveResponse.ok) {
-      throw new Error('Failed to save POI data');
+      const errorData = await saveResponse.text();
+      console.error('Save POI API Error:', {
+        status: saveResponse.status,
+        statusText: saveResponse.statusText,
+        response: errorData
+      });
+      throw new Error(`Failed to save POI data: ${saveResponse.status} ${saveResponse.statusText}`);
     }
 
     // Update local state
@@ -301,6 +460,8 @@ const POIComponent: React.FC<POIComponentProps> = ({
 
   // Store POI hotspot elements and references
   const poiHotspotsRef = useRef<{ poi: POIData; element: HTMLElement; hotspot: any }[]>([]);
+
+
 
   // Create POI hotspots using Marzipano's hotspot system
   const createPOIHotspots = useCallback(() => {
@@ -340,7 +501,8 @@ const POIComponent: React.FC<POIComponentProps> = ({
           `;
           
           // Get the appropriate icon for this POI
-          const iconPath = getPOIIcon(poi);
+          const iconComponent = getPOIIcon(poi);
+          const iconHtml = renderToString(iconComponent);
           
           // Create POI marker content with custom icon
             element.innerHTML = `
@@ -402,7 +564,9 @@ const POIComponent: React.FC<POIComponentProps> = ({
                 }
               </style>
               <div class="poi-marker">
-                <img src="${iconPath}" width="54" height="54" alt="${poi.name}" style="object-fit: contain;" />
+                <div style="display: flex; align-items: center; justify-content: center; width: 54px; height: 54px;">
+                  ${iconHtml}
+                </div>
                 <div class="poi-tooltip">
                   ${poi.name}
                 </div>
@@ -481,8 +645,9 @@ const POIComponent: React.FC<POIComponentProps> = ({
   useEffect(() => {
     return () => {
       clearPOIHotspots();
+      clearDebugMarker();
     };
-  }, [clearPOIHotspots]);
+  }, [clearPOIHotspots, clearDebugMarker]);
 
   return (
     <>

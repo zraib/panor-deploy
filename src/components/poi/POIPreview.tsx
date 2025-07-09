@@ -159,8 +159,8 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-30 flex items-center justify-center p-4 pointer-events-none">
+      <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-xl max-w-2xl w-full max-h-[75vh] overflow-y-auto pointer-events-auto border border-gray-300">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">{poi.name}</h2>

@@ -80,6 +80,11 @@ export function useViewerEvents({
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent): void => {
       if (e.key === ' ') {
+        // Don't prevent default if user is typing in an input field
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return;
+        }
         e.preventDefault();
         toggleHotspots();
       }
