@@ -107,7 +107,7 @@ const POIModal: React.FC<POIModalProps> = ({
       return;
     }
     
-    if (formData.type === 'file' && !selectedFile) {
+    if (formData.type === 'file' && !selectedFile && !editingPOI) {
       toast.error('Please select a file to upload.');
       return;
     }
@@ -164,12 +164,15 @@ const POIModal: React.FC<POIModalProps> = ({
       // Note: Modal will be closed by parent component after successful save
     } catch (error) {
       console.error(`Error ${editingPOI ? 'updating' : 'creating'} POI:`, error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
-      toast.error(`Failed to ${editingPOI ? 'update' : 'create'} POI: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
+      toast.error(`Failed to ${editingPOI ? 'update' : 'create'} POI: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -279,8 +282,22 @@ const POIModal: React.FC<POIModalProps> = ({
           {formData.type === 'file' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                File Upload *
+                File Upload {editingPOI ? '' : '*'}
               </label>
+              
+              {/* Show existing file info when editing */}
+              {editingPOI && editingPOI.type === 'file' && !selectedFile && (
+                <div className="mb-3 p-3 bg-gray-50 rounded-lg border">
+                  <div className="flex items-center gap-2">
+                    <FaFile className="text-blue-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Current file: {editingPOI.content}</p>
+                      <p className="text-xs text-gray-500">Click below to replace with a new file (optional)</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div
                 {...getRootProps()}
                 className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
@@ -295,11 +312,14 @@ const POIModal: React.FC<POIModalProps> = ({
                   <div>
                     <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
                     <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                    {editingPOI && (
+                      <p className="text-xs text-blue-600 mt-1">This will replace the current file</p>
+                    )}
                   </div>
                 ) : (
                   <div>
                     <p className="text-sm text-gray-600">
-                      {isDragActive ? 'Drop the file here' : 'Drag & drop a file here, or click to select'}
+                      {isDragActive ? 'Drop the file here' : editingPOI ? 'Drag & drop a new file here, or click to select' : 'Drag & drop a file here, or click to select'}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       Supports: Images, PDFs, Videos (max 10MB)
@@ -342,7 +362,10 @@ const POIModal: React.FC<POIModalProps> = ({
               className="flex-1 px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Creating...' : 'Create POI'}
+              {isSubmitting 
+                ? (editingPOI ? 'Updating...' : 'Creating...') 
+                : (editingPOI ? 'Update POI' : 'Create POI')
+              }
             </button>
           </div>
         </form>

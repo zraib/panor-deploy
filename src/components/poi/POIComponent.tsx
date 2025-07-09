@@ -358,7 +358,8 @@ const POIComponent: React.FC<POIComponentProps> = ({
     try {
       validateViewAngles(currentPendingPOI.yaw, currentPendingPOI.pitch);
     } catch (error) {
-      throw new Error(`Invalid POI position: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Invalid POI position: ${errorMessage}`);
     }
 
     const poiId = isEditing ? editingId : uuidv4();
