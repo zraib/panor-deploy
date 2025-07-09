@@ -265,6 +265,53 @@
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
 }
 
+/* === POI Management Panel Specific Styles === */
+.poiManagementContent {
+  padding: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+  /* Custom Scrollbar Styling - matching POIModal */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+.projectsContent {
+  padding: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+  /* Custom Scrollbar Styling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+.poiManagementContent::-webkit-scrollbar,
+.projectsContent::-webkit-scrollbar {
+  width: 8px;
+}
+
+.poiManagementContent::-webkit-scrollbar-track,
+.projectsContent::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.poiManagementContent::-webkit-scrollbar-thumb,
+.projectsContent::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.poiManagementContent::-webkit-scrollbar-thumb:hover,
+.projectsContent::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.poiManagementContent::-webkit-scrollbar-thumb:active,
+.projectsContent::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.4);
+}
+
 /* === Responsive Design === */
 @media (max-width: 768px) {
   .controlPanel {
@@ -296,6 +343,12 @@
   }
 
   .content {
+    padding: 14px;
+  }
+
+  .poiManagementContent,
+  .projectsContent {
+    max-height: 300px;
     padding: 14px;
   }
 }
