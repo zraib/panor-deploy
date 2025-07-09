@@ -10,6 +10,7 @@ interface MiniMapProps {
   viewer: any; // Marzipano viewer
   onSelectScene: (sceneId: string) => void;
   rotationAngle: number;
+  poiSceneCounts?: Record<string, number>;
 }
 
 interface Position {
@@ -23,6 +24,7 @@ export default function MiniMap({
   viewer,
   onSelectScene,
   rotationAngle,
+  poiSceneCounts = {},
 }: MiniMapProps) {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -628,6 +630,7 @@ export default function MiniMap({
           {visibleHotspots.map(scene => {
             const coords = positionToMapCoords(scene.id);
             const isCurrentScene = scene.id === currentScene.id;
+            const hasPOIs = (poiSceneCounts[scene.id] || 0) > 0;
 
             // More generous visibility bounds to show hotspots when zoomed
             const isVisible =
@@ -640,7 +643,7 @@ export default function MiniMap({
               <div
                 key={scene.id}
                 onClick={e => handleHotspotClick(scene.id, e)}
-                className={`${styles.sceneHotspot} scene-hotspot ${isCurrentScene ? styles.current : styles.other}`}
+                className={`${styles.sceneHotspot} scene-hotspot ${isCurrentScene ? styles.current : styles.other} ${hasPOIs && !isCurrentScene ? styles.poiPulse : ''}`}
                 style={{
                   left: `${coords.x}%`,
                   top: `${coords.y}%`,

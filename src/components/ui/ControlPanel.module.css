@@ -65,7 +65,7 @@
   position: absolute;
   top: 0;
   right: 60px;
-  min-width: 220px;
+  min-width: 250px;
   /* Add padding to create a "bridge" for the mouse */
   padding-right: 12px; /* Adjust as needed to cover the gap */
 }

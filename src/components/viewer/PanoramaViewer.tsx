@@ -28,11 +28,34 @@ export default function PanoramaViewer({
   const [closePanelsFunc, setClosePanelsFunc] = useState<(() => void) | null>(
     null
   );
+  const [poiSceneCounts, setPoiSceneCounts] = useState<Record<string, number>>({});
   const hotspotRendererRef = useRef<HotspotRendererRef>(null);
 
   const handleClosePanels = useCallback((closePanels: () => void) => {
     setClosePanelsFunc(() => closePanels);
   }, []);
+
+  // Fetch POI scene counts
+  const fetchPOISceneCounts = useCallback(async () => {
+    if (!projectId) {
+      setPoiSceneCounts({});
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/poi/scene-counts?projectId=${encodeURIComponent(projectId)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPoiSceneCounts(data.sceneCounts || {});
+      } else {
+        console.warn('Failed to fetch POI scene counts for MiniMap:', response.status);
+        setPoiSceneCounts({});
+      }
+    } catch (error) {
+      console.error('Error fetching POI scene counts for MiniMap:', error);
+      setPoiSceneCounts({});
+    }
+  }, [projectId]);
 
   const handlePOICreated = useCallback((poi: POIData) => {
     console.log('POI created:', poi);
@@ -40,7 +63,14 @@ export default function PanoramaViewer({
     if (hotspotRendererRef.current) {
       hotspotRendererRef.current.refreshPOISceneCounts();
     }
-  }, []);
+    // Also refresh local POI scene counts for MiniMap
+    fetchPOISceneCounts();
+  }, [fetchPOISceneCounts]);
+
+  // Fetch POI scene counts when projectId changes
+  useEffect(() => {
+    fetchPOISceneCounts();
+  }, [fetchPOISceneCounts]);
 
   const {
     state,
@@ -129,6 +159,7 @@ export default function PanoramaViewer({
               viewer={refs.viewerRef.current}
               onSelectScene={navigateToScene}
               rotationAngle={state.rotationAngle}
+              poiSceneCounts={poiSceneCounts}
             />
 
             <HotspotRenderer
