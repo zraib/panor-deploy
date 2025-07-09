@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import Hotspot from '../hotspot/Hotspot';
 import { SceneInfo as SceneInfoType } from '@/types/scenes';
 
@@ -7,14 +7,54 @@ interface HotspotRendererProps {
   scenesRef: React.MutableRefObject<Record<string, SceneInfoType>>;
   hotspotsVisible: boolean;
   onNavigate: (sceneId: string, sourceHotspotYaw?: number) => Promise<void>;
+  projectId?: string;
 }
 
-const HotspotRenderer: React.FC<HotspotRendererProps> = React.memo(({
+export interface HotspotRendererRef {
+  refreshPOISceneCounts: () => void;
+}
+
+const HotspotRenderer = React.memo(forwardRef<HotspotRendererRef, HotspotRendererProps>(({
   currentScene,
   scenesRef,
   hotspotsVisible,
   onNavigate,
-}) => {
+  projectId,
+}, ref) => {
+  const [poiSceneCounts, setPoiSceneCounts] = useState<Record<string, number>>({});
+
+  // Function to fetch POI scene counts
+  const fetchPoiSceneCounts = async () => {
+    if (!projectId) {
+      setPoiSceneCounts({});
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/poi/scene-counts?projectId=${encodeURIComponent(projectId)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPoiSceneCounts(data.sceneCounts || {});
+      } else {
+        console.warn('Failed to fetch POI scene counts:', response.status);
+        setPoiSceneCounts({});
+      }
+    } catch (error) {
+      console.error('Error fetching POI scene counts:', error);
+      setPoiSceneCounts({});
+    }
+  };
+
+  // Expose refresh function through ref
+  useImperativeHandle(ref, () => ({
+    refreshPOISceneCounts: fetchPoiSceneCounts,
+  }), [projectId]);
+
+  // Fetch POI scene counts when projectId changes
+  useEffect(() => {
+    fetchPoiSceneCounts();
+  }, [projectId]);
+
   if (!currentScene || !scenesRef.current[currentScene]) {
     return null;
   }
@@ -27,6 +67,9 @@ const HotspotRenderer: React.FC<HotspotRendererProps> = React.memo(({
         const hotspotData = sceneInfo.data?.linkHotspots[index];
         if (!hotspotData) return null;
 
+        // Check if the target scene has POIs
+        const targetHasPOIs = (poiSceneCounts[hotspotData.target] || 0) > 0;
+
         return (
           <Hotspot
             key={`${currentScene}-${index}-${hotspotData.target}`}
@@ -34,18 +77,20 @@ const HotspotRenderer: React.FC<HotspotRendererProps> = React.memo(({
             data={hotspotData}
             visible={hotspotsVisible}
             onNavigate={onNavigate}
+            hasPOIs={targetHasPOIs}
           />
         );
       })}
     </>
   );
-}, (prevProps, nextProps) => {
+}), (prevProps, nextProps) => {
   // Re-render only if essential props change
   return (
     prevProps.currentScene === nextProps.currentScene &&
     prevProps.hotspotsVisible === nextProps.hotspotsVisible &&
     prevProps.scenesRef === nextProps.scenesRef &&
-    prevProps.onNavigate === nextProps.onNavigate
+    prevProps.onNavigate === nextProps.onNavigate &&
+    prevProps.projectId === nextProps.projectId
   );
 });
 

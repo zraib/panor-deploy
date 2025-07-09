@@ -1,7 +1,7 @@
 'use client';
 
 import Script from 'next/script';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import MiniMap from './MiniMap';
 import LoadingScreen from '../utility/LoadingScreen';
 import ControlPanel from '../ui/ControlPanel';
@@ -9,11 +9,12 @@ import PanoramaLogo from './PanoramaLogo';
 import TapHint from './TapHint';
 // import ControlsHint from './ControlsHint';
 import PanoramaContainer from './PanoramaContainer';
-import HotspotRenderer from './HotspotRenderer';
+import HotspotRenderer, { HotspotRendererRef } from './HotspotRenderer';
 import POIComponent from '../poi/POIComponent';
 import { usePanoramaManager } from '@/hooks/usePanoramaManager';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { POIData } from '@/types/poi';
 
 interface PanoramaViewerProps {
   projectId?: string;
@@ -27,9 +28,18 @@ export default function PanoramaViewer({
   const [closePanelsFunc, setClosePanelsFunc] = useState<(() => void) | null>(
     null
   );
+  const hotspotRendererRef = useRef<HotspotRendererRef>(null);
 
   const handleClosePanels = useCallback((closePanels: () => void) => {
     setClosePanelsFunc(() => closePanels);
+  }, []);
+
+  const handlePOICreated = useCallback((poi: POIData) => {
+    console.log('POI created:', poi);
+    // Refresh POI scene counts to update hotspot icons immediately
+    if (hotspotRendererRef.current) {
+      hotspotRendererRef.current.refreshPOISceneCounts();
+    }
   }, []);
 
   const {
@@ -122,10 +132,12 @@ export default function PanoramaViewer({
             />
 
             <HotspotRenderer
+              ref={hotspotRendererRef}
               currentScene={state.currentScene}
               scenesRef={refs.scenesRef}
               hotspotsVisible={state.hotspotsVisible}
               onNavigate={navigateToScene}
+              projectId={projectId}
             />
 
             <POIComponent
@@ -134,7 +146,7 @@ export default function PanoramaViewer({
               viewerSize={{ width: 800, height: 600 }} // You may want to get actual viewer size
               viewerRef={refs.viewerRef}
               panoRef={refs.panoRef}
-              onPOICreated={poi => console.log('POI created:', poi)}
+              onPOICreated={handlePOICreated}
             />
           </>
         )}

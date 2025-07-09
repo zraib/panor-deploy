@@ -10,6 +10,7 @@ interface HotspotProps {
   data: LinkHotspot;
   visible: boolean;
   onNavigate: (_sceneId: string, _sourceHotspotYaw: number) => void;
+  hasPOIs?: boolean;
 }
 
 // This is the actual React component that will be rendered.
@@ -19,11 +20,13 @@ export function HotspotComponent({
   data,
   onNavigate,
   style,
+  hasPOIs,
 }: {
   visible: boolean;
   data: LinkHotspot;
   onNavigate: (_sceneId: string, _sourceHotspotYaw: number) => void;
   style: React.CSSProperties;
+  hasPOIs?: boolean;
 }) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -34,7 +37,7 @@ export function HotspotComponent({
 
   return (
     <div
-      className={`${styles.hotspot} ${visible || isHovered ? styles.visible : ''}`}
+      className={`${styles.hotspot} ${visible || isHovered ? styles.visible : ''} ${hasPOIs ? styles.poiGlow : ''}`}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -51,6 +54,7 @@ export default function Hotspot({
   data,
   visible,
   onNavigate,
+  hasPOIs,
 }: HotspotProps) {
   const rootRef = useRef<Root | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -144,6 +148,7 @@ export default function Hotspot({
           data={data}
           onNavigate={onNavigate}
           style={hotspotStyle}
+          hasPOIs={hasPOIs}
         />
       );
     }
