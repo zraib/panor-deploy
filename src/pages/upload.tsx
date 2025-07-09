@@ -7,6 +7,7 @@ export default function Upload() {
   const router = useRouter();
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [referrerUrl, setReferrerUrl] = useState<string>('/');
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<string[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -35,6 +36,25 @@ export default function Upload() {
     csv: File | null;
     images: File[];
   }>({ csv: null, images: [] });
+
+  // This effect captures referrer information for smart back navigation
+  useEffect(() => {
+    const referrer = document.referrer;
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromProject = urlParams.get('from');
+    const fromScene = urlParams.get('scene');
+
+    if (fromProject && fromScene) {
+      setReferrerUrl(`/${fromProject}?scene=${fromScene}`);
+    } else if (fromProject) {
+      setReferrerUrl(`/${fromProject}`);
+    } else if (editingProjectId) {
+      setReferrerUrl(`/${editingProjectId}`);
+    } else if (referrer && referrer.includes(window.location.origin)) {
+      const referrerPath = referrer.replace(window.location.origin, '');
+      setReferrerUrl(referrerPath || '/');
+    }
+  }, [editingProjectId]);
 
   // This effect handles project editing mode
   useEffect(() => {
@@ -384,7 +404,10 @@ export default function Upload() {
   };
 
   const handleSubmit = async (
-    event: FormEvent<HTMLFormElement> & { _overwriteMode?: boolean, _deleteAllMode?: boolean }
+    event: FormEvent<HTMLFormElement> & {
+      _overwriteMode?: boolean;
+      _deleteAllMode?: boolean;
+    }
   ) => {
     event.preventDefault();
     setMessage('');
@@ -622,12 +645,21 @@ export default function Upload() {
       </div>
       <div className={styles.content}>
         <div className={styles.header}>
-          <Link
-            href={editingProjectId ? `/${editingProjectId}` : '/'}
+          <button
+            onClick={() => {
+              if (window.history.length > 1) {
+                router.back();
+              } else {
+                const targetUrl = editingProjectId
+                  ? `/${editingProjectId}`
+                  : referrerUrl;
+                router.push(targetUrl);
+              }
+            }}
             className={styles.backLink}
           >
             ← Back to Panorama Viewer
-          </Link>
+          </button>
         </div>
 
         <h1 className={styles.title}>
@@ -733,30 +765,33 @@ export default function Upload() {
             )}
           </div>
 
-          {isEditMode && (existingFiles.csv || existingFiles.images.length > 0) && (
-            <div className={styles.formGroup}>
-              <div className={styles.fileList}>
-                <div className={styles.fileListHeader}>
-                  <p className={styles.fileListTitle}>Current Project Files</p>
-                  <button
-                    type='button'
-                    onClick={() => setShowExistingFiles(!showExistingFiles)}
-                    className={styles.toggleButton}
-                  >
-                    {showExistingFiles ? '▼ Hide' : '▶ Show'}
-                  </button>
+          {isEditMode &&
+            (existingFiles.csv || existingFiles.images.length > 0) && (
+              <div className={styles.formGroup}>
+                <div className={styles.fileList}>
+                  <div className={styles.fileListHeader}>
+                    <p className={styles.fileListTitle}>
+                      Current Project Files
+                    </p>
+                    <button
+                      type='button'
+                      onClick={() => setShowExistingFiles(!showExistingFiles)}
+                      className={styles.toggleButton}
+                    >
+                      {showExistingFiles ? '▼ Hide' : '▶ Show'}
+                    </button>
+                  </div>
+                  {showExistingFiles && (
+                    <ul className={styles.fileListItems}>
+                      {existingFiles.csv && <li>{existingFiles.csv}</li>}
+                      {existingFiles.images.map((imageName, index) => (
+                        <li key={index}>{imageName}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-                {showExistingFiles && (
-                  <ul className={styles.fileListItems}>
-                    {existingFiles.csv && <li>{existingFiles.csv}</li>}
-                    {existingFiles.images.map((imageName, index) => (
-                      <li key={index}>{imageName}</li>
-                    ))}
-                  </ul>
-                )}
               </div>
-            </div>
-          )}
+            )}
 
           <button
             type='submit'
