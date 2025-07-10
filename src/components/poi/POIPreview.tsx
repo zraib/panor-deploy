@@ -84,8 +84,49 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
     }
   };
 
+  const decodeHtmlEntities = (text: string) => {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  };
+
+  const getIframeContent = () => {
+    const content = poi.content.trim();
+    
+    // If it's HTML iframe code, extract src or render directly
+    if (content.toLowerCase().startsWith('<iframe')) {
+      // Decode HTML entities first
+      const decodedContent = decodeHtmlEntities(content);
+      
+      // Try to extract src attribute from decoded content
+      const srcMatch = decodedContent.match(/src=["']([^"']+)["']/i);
+      if (srcMatch) {
+        return {
+          src: srcMatch[1],
+          html: decodedContent,
+          isHtml: true
+        };
+      }
+      // If no src found, render as HTML
+      return {
+        src: null,
+        html: decodedContent,
+        isHtml: true
+      };
+    }
+    
+    // It's a direct URL
+    return {
+      src: content,
+      html: null,
+      isHtml: false
+    };
+  };
+
   const renderContent = () => {
     if (poi.type === 'iframe') {
+      const iframeContent = getIframeContent();
+      
       return (
         <div className={styles.iframeContainer}>
           {isLoading && (
@@ -93,22 +134,31 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
               <div className={styles.spinner}></div>
             </div>
           )}
-          <iframe
-            src={poi.content}
-            className={styles.iframe}
-            title={poi.name}
-            onLoad={handleImageLoad}
-            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-          />
-          <a
-            href={poi.content}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.externalLinkButton}
-            title="Open in new tab"
-          >
-            <FaExternalLinkAlt size={12} />
-          </a>
+          {iframeContent.isHtml && iframeContent.html ? (
+            <div 
+              dangerouslySetInnerHTML={{ __html: iframeContent.html }}
+              className={styles.iframeWrapper}
+            />
+          ) : (
+            <iframe
+              src={iframeContent.src || poi.content}
+              className={styles.iframe}
+              title={poi.name}
+              onLoad={handleImageLoad}
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            />
+          )}
+          {iframeContent.src && (
+            <a
+              href={iframeContent.src}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.externalLinkButton}
+              title="Open in new tab"
+            >
+              <FaExternalLinkAlt size={12} />
+            </a>
+          )}
         </div>
       );
     }
