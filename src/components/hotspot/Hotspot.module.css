@@ -4,18 +4,21 @@
     --hotspot-bg-color-hover: rgba(255, 255, 255, 0.9);
     --distance-bg-color: rgba(0, 0, 0, 0.8);
     --distance-text-color: white;
+    --zoom-offset-x: 0%;
+    --zoom-offset-y: 0%;
 
     width: calc(var(--hotspot-base-size) * var(--scale-factor, 1));
     height: calc(var(--hotspot-base-size) * var(--scale-factor, 1));
     cursor: pointer;
     position: relative;
     opacity: 0;
-    /* Removed transition and transform for abrupt appearance */
+    transform: translate(var(--zoom-offset-x), var(--zoom-offset-y));
+    /* Removed transition for abrupt appearance */
     }
     
     .hotspot.visible {
         opacity: 1;
-        transform: scale(1);
+        transform: translate(var(--zoom-offset-x), var(--zoom-offset-y)) scale(1);
     }
     
 
