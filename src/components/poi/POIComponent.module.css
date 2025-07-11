@@ -13,13 +13,13 @@
 .debugMarker {
   width: 20px;
   height: 20px;
-  background: #fff;
-  border: 2px solid rgba(0, 0, 0, 0.8);
+  background: var(--text-primary);
+  border: 2px solid var(--bg-primary);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 1000;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+  box-shadow: var(--shadow-md);
   animation: debugPulse 1s infinite;
 }
 
@@ -49,19 +49,19 @@
 /* POI Marker Animation */
 @keyframes lightPass {
   0% { 
-    box-shadow: 0 0 0 3px #fff, 0 0 10px rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 0 3px var(--text-primary), var(--shadow-md);
   }
   25% { 
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 0 15px rgba(255, 255, 255, 1);
+    box-shadow: 0 0 0 3px var(--border-primary), var(--shadow-lg);
   }
   50% { 
-    box-shadow: 0 0 0 3px #fff, 0 0 10px rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 0 3px var(--text-primary), var(--shadow-md);
   }
   75% { 
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 0 15px rgba(255, 255, 255, 1);
+    box-shadow: 0 0 0 3px var(--border-primary), var(--shadow-lg);
   }
   100% { 
-    box-shadow: 0 0 0 3px #fff, 0 0 10px rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 0 3px var(--text-primary), var(--shadow-md);
   }
 }
 
@@ -74,19 +74,19 @@
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--bg-modal);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-secondary);
   animation: lightPass 2s infinite;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-lg);
 }
 
 .poiMarker:hover {
-  background: rgba(0, 0, 0, 0.85);
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  background: var(--bg-overlay);
+  border-color: var(--border-primary);
+  box-shadow: var(--shadow-xl);
   transform: translateY(-1px);
 }
 
@@ -105,10 +105,10 @@
   top: 65px;
   left: 50%;
   transform: translateX(-50%) translateY(8px);
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--bg-modal);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  color: #fff;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
   padding: 10px 14px;
@@ -118,8 +118,8 @@
   opacity: 0;
   visibility: hidden;
   transition: all 0.25s ease-out;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-tertiary);
   letter-spacing: 0.3px;
   z-index: 1001;
 }
@@ -134,7 +134,7 @@
   height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
-  border-bottom: 4px solid rgba(0, 0, 0, 0.65);
+  border-bottom: 4px solid var(--bg-modal);
 }
 
 .poiMarker:hover .poiTooltip {

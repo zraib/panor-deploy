@@ -1,0 +1,104 @@
+/* Navigation Component - Invisible/Transparent */
+.navigation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-fixed);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  pointer-events: none;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  transition: all var(--transition-normal);
+}
+
+.container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Logo Styles */
+.logo {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.logoImage {
+  width: 32px;
+  height: 32px;
+  transition: all var(--transition-normal);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.logoImage:hover {
+  transform: scale(1.1) rotate(5deg);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.logoText {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  text-decoration: none;
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: all var(--transition-normal);
+  cursor: pointer;
+  user-select: none;
+}
+
+.logoText:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* Theme Toggle Wrapper */
+.themeToggleWrapper {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .navigation {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+  
+  .logoText {
+    font-size: var(--font-size-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .navigation {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .logoText {
+    font-size: var(--font-size-base);
+  }
+}
+
+/* Optional: Add subtle background on hover for better visibility */
+.navigation:hover {
+  background: var(--bg-surface);
+  backdrop-filter: var(--backdrop-blur-sm);
+  -webkit-backdrop-filter: var(--backdrop-blur-sm);
+  opacity: 0.05;
+}
+
+/* Ensure proper layering */
+.navigation * {
+  position: relative;
+  z-index: 1;
+}

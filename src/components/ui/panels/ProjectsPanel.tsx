@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from '../ControlPanel.module.css';
+import projectStyles from './ProjectsPanel.module.css';
 import { useProjectsManager } from '../../../hooks/useProjectsManager';
 import { useNavigation } from '../../../hooks/useNavigation';
 import ConfirmationModal from '../ConfirmationModal';
@@ -60,7 +61,7 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
           >
             <path
               d='M22 19C22 19.6 21.6 20 21 20H3C2.4 20 2 19.6 2 19V5C2 4.4 2.4 4 3 4H7L9 6H21C21.6 6 22 6.4 22 7V19Z'
-              stroke='white'
+              stroke='currentColor'
               strokeWidth='2'
               fill='none'
             />
@@ -100,16 +101,7 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
             {projectsError}
             <button
               onClick={loadProjects}
-              style={{
-                marginLeft: '8px',
-                padding: '2px 6px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                border: 'none',
-                borderRadius: '4px',
-                color: 'white',
-                fontSize: '11px',
-                cursor: 'pointer',
-              }}
+              className={projectStyles.retryButton}
             >
               Retry
             </button>
@@ -118,66 +110,23 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
 
         {/* Projects List */}
         {projectsLoading ? (
-          <div
-            style={{
-              padding: '12px',
-              textAlign: 'center',
-              color: 'rgba(255, 255, 255, 0.7)',
-              fontSize: '13px',
-            }}
-          >
+          <div className={projectStyles.loadingText}>
             Loading projects...
           </div>
         ) : projects.length === 0 ? (
-          <div
-            style={{
-              padding: '12px',
-              textAlign: 'center',
-              color: 'rgba(255, 255, 255, 0.7)',
-              fontSize: '13px',
-            }}
-          >
+          <div className={projectStyles.emptyText}>
             No projects yet
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className={projectStyles.projectsList}>
             {projects.map((project: Project) => (
               <div
                 key={project.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  marginBottom: '6px',
-                  background:
-                    currentProject === project.id
-                      ? 'rgba(33, 150, 243, 0.3)'
-                      : 'rgba(255, 255, 255, 0.05)',
-                  border:
-                    currentProject === project.id
-                      ? '1px solid rgba(33, 150, 243, 0.5)'
-                      : '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  cursor: isNavigating ? 'wait' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  opacity: isNavigating ? 0.7 : 1,
-                  pointerEvents: isNavigating ? 'none' : 'auto',
-                }}
-                onMouseEnter={e => {
-                  if (currentProject !== project.id && !isNavigating) {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                    e.currentTarget.style.transform = 'translateX(2px)';
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (currentProject !== project.id && !isNavigating) {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                    e.currentTarget.style.transform = 'translateX(0px)';
-                  }
-                }}
+                className={`${projectStyles.projectItem} ${
+                  currentProject === project.id ? projectStyles.active : ''
+                } ${
+                  isNavigating ? projectStyles.navigating : ''
+                }`}
                 onClick={(e) => {
                   if (isNavigating) {
                     e.preventDefault();
@@ -187,30 +136,15 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
                   handleProjectSelect(project.id, onPanelClose);
                 }}
               >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      color: 'white',
-                      marginBottom: '2px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
+                <div className={projectStyles.projectInfo}>
+                  <div className={projectStyles.projectName}>
                     {project.name}
                   </div>
-                  <div
-                    style={{
-                      fontSize: '11px',
-                      color: 'rgba(255, 255, 255, 0.6)',
-                    }}
-                  >
+                  <div className={projectStyles.projectMeta}>
                     {formatDate(project.updatedAt)} • {project.sceneCount} scenes
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
+                <div className={projectStyles.projectActions}>
                   <button
                     onClick={e => {
                       e.stopPropagation();
@@ -218,17 +152,7 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
                       // Force full page navigation to ensure immediate rendering
                       window.location.href = `/upload?project=${encodeURIComponent(project.id)}`;
                     }}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      border: 'none',
-                      borderRadius: '4px',
-                      padding: '4px',
-                      cursor: 'pointer',
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
+                    className={projectStyles.editButton}
                     title='Edit project'
                   >
                     <svg
@@ -260,22 +184,11 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
                       setShowDeleteConfirm(true);
                     }}
                     disabled={deleting === project.id}
-                    style={{
-                      background: 'rgba(255, 107, 107, 0.2)',
-                      border: 'none',
-                      borderRadius: '4px',
-                      padding: '4px',
-                      cursor: deleting === project.id ? 'not-allowed' : 'pointer',
-                      color: '#ff6b6b',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: deleting === project.id ? 0.5 : 1,
-                    }}
+                    className={projectStyles.deleteButton}
                     title='Delete project'
                   >
                     {deleting === project.id ? (
-                      <div style={{ width: '12px', height: '12px', fontSize: '10px' }}>...</div>
+                      <div className={projectStyles.loadingDots}>...</div>
                     ) : (
                       <svg
                         width='12'

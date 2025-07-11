@@ -3,45 +3,45 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: white;
+    color: var(--text-primary);
     text-align: center;
-    z-index: 2000;
+    z-index: var(--z-toast);
 }
 
 .loader {
-    width: 60px;
-    height: 60px;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    border-top-color: white;
+    width: var(--spacing-4xl);
+    height: var(--spacing-4xl);
+    border: 3px solid var(--border-secondary);
+    border-top-color: var(--text-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
+    margin: 0 auto var(--spacing-xl);
 }
 
 .text {
-    font-size: 16px;
+    font-size: var(--font-size-base);
 }
 
 .error {
     max-width: 600px;
-    padding: 20px;
+    padding: var(--spacing-xl);
 }
 
 .errorTitle {
-    color: #ff6b6b;
-    font-size: 18px;
-    margin-bottom: 20px;
+    color: var(--color-error);
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-xl);
 }
 
 .errorMessage {
-    margin-top: 10px;
-    font-size: 14px;
-    color: #fff;
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
     opacity: 0.8;
 }
 
 .helpSection {
-    margin-top: 20px;
+    margin-top: var(--spacing-xl);
     text-align: left;
     max-width: 400px;
     margin-left: auto;
@@ -49,19 +49,19 @@
 }
 
 .helpTitle {
-    font-size: 16px;
-    margin-bottom: 10px;
-    color: white;
+    font-size: var(--font-size-base);
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
 }
 
 .helpList {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     line-height: 1.8;
-    padding-left: 20px;
+    padding-left: var(--spacing-xl);
 }
 
 .helpList a {
-    color: white;
+    color: var(--text-primary);
     text-decoration: none;
 }
 
@@ -70,34 +70,34 @@
 }
 
 .browserInfo {
-    margin-top: 20px;
-    font-size: 12px;
+    margin-top: var(--spacing-xl);
+    font-size: var(--font-size-xs);
     opacity: 0.6;
 }
 
 .diagnostics {
-    margin-top: 15px;
+    margin-top: var(--spacing-lg);
     text-align: left;
 }
 
 .diagnostics summary {
     cursor: pointer;
-    font-size: 14px;
-    color: #ffd93d;
-    margin-bottom: 10px;
+    font-size: var(--font-size-sm);
+    color: var(--color-warning);
+    margin-bottom: var(--spacing-sm);
     user-select: none;
 }
 
 .diagnostics summary:hover {
-    color: #ffed4e;
+    color: var(--color-accent);
 }
 
 .diagnosticsContent {
-    background: rgba(0, 0, 0, 0.3);
-    padding: 10px;
-    border-radius: 4px;
-    font-size: 11px;
-    color: #ccc;
+    background: var(--bg-surface);
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-2xs);
+    color: var(--text-muted);
     overflow-x: auto;
     white-space: pre-wrap;
     word-break: break-all;
@@ -106,24 +106,26 @@
 }
 
 .retryButton {
-    margin-top: 20px;
-    padding: 12px 24px;
-    background: #4CAF50;
-    color: white;
+    margin-top: var(--spacing-xl);
+    padding: var(--spacing-md) var(--spacing-2xl);
+    background: var(--color-success);
+    color: var(--text-primary);
     border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: var(--transition-normal);
 }
 
 .retryButton:hover {
-    background: #45a049;
+    background: var(--color-success);
+    opacity: 0.9;
 }
 
 .retryButton:active {
-    background: #3d8b40;
+    background: var(--color-success);
+    opacity: 0.8;
 }
 
 @keyframes spin {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import styles from '@/styles/Upload.module.css';
+import poiStyles from '@/styles/POIManagement.module.css';
 import { POIData } from '@/types/poi';
 import POIFileManager, { exportPOI } from '@/components/poi/POIFileManager';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
@@ -272,7 +273,7 @@ export default function POIManagement() {
   };
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} page-with-cityscape`}>
       {/* Logo */}
       <div className={styles.logoContainer}>
         <img
@@ -438,23 +439,17 @@ export default function POIManagement() {
         {/* POI List */}
         {isLoading ? (
           <div className={styles.form}>
-            <div
-              style={{ textAlign: 'center', padding: '40px', color: '#e2e8f0' }}
-            >
+            <div className={styles.loadingContainer}>
               <div style={{ fontSize: '2rem', marginBottom: '16px' }}>🔄</div>
               <div>Loading POI data...</div>
             </div>
           </div>
         ) : filteredProjectPOIs.length === 0 ? (
           <div className={styles.form}>
-            <div
-              style={{ textAlign: 'center', padding: '40px', color: '#e2e8f0' }}
-            >
+            <div className={styles.loadingContainer}>
               <div style={{ fontSize: '2rem', marginBottom: '16px' }}>📍</div>
               <div>No POIs found</div>
-              <div
-                style={{ fontSize: '0.9rem', marginTop: '8px', opacity: 0.7 }}
-              >
+              <div className={styles.inputHint}>
                 {searchTerm
                   ? 'Try adjusting your search terms'
                   : 'Create some POIs in your panorama projects'}
@@ -469,74 +464,39 @@ export default function POIManagement() {
               style={{ marginBottom: '24px' }}
             >
               <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  padding: '16px 0',
-                  borderBottom: '2px solid rgba(255, 255, 255, 0.15)',
-                  marginBottom: '20px',
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => toggleProjectDetails(project.projectId)}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderBottomColor =
-                    'rgba(59, 130, 246, 0.4)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderBottomColor =
-                    'rgba(255, 255, 255, 0.15)';
-                }}
+                className={poiStyles.projectHeader}
+              onClick={() => toggleProjectDetails(project.projectId)}
               >
                 <div>
-                  <h3
-                    style={{ margin: 0, color: '#e2e8f0', fontSize: '1.2rem' }}
-                  >
+                  <h3 className={poiStyles.projectTitle}>
                     {project.projectName}
                   </h3>
-                  <div
-                    style={{
-                      fontSize: '0.9rem',
-                      color: 'rgba(255, 255, 255, 0.6)',
-                      marginTop: '4px',
-                    }}
-                  >
+                  <div className={poiStyles.projectInfo}>
                     {project.pois.length} POI
                     {project.pois.length !== 1 ? 's' : ''} •{' '}
                     {project.sceneCount} scene
                     {project.sceneCount !== 1 ? 's' : ''}
                   </div>
                 </div>
-                <div
-                  style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
-                >
+                <div className={poiStyles.projectActions}>
                   <button
-                    onClick={e => {
-                      e.stopPropagation();
-                      handleExportAllPOIs(project.projectId, project.projectName);
-                    }}
-                    className={styles.backLink}
-                    style={{ 
-                      fontSize: '0.85rem', 
-                      padding: '6px 12px',
-                      background: 'rgba(34, 197, 94, 0.2)',
-                      borderColor: 'rgba(34, 197, 94, 0.4)',
-                      color: '#22c55e'
-                    }}
-                    title={`Export all ${project.pois.length} POIs from this project`}
-                  >
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleExportAllPOIs(project.projectId, project.projectName);
+                      }}
+                      className={`${styles.backLink} ${poiStyles.exportAllButton}`}
+                      title={`Export all ${project.pois.length} POIs from this project`}
+                    >
                     📦 Export All
                   </button>
                   <Link
-                    href={`/${project.projectId}`}
-                    className={styles.backLink}
-                    style={{ fontSize: '0.85rem', padding: '6px 12px' }}
-                    onClick={e => e.stopPropagation()}
-                  >
+                      href={`/${project.projectId}`}
+                      className={`${styles.backLink} ${poiStyles.viewProjectButton}`}
+                      onClick={e => e.stopPropagation()}
+                    >
                     View Project
                   </Link>
-                  <span style={{ color: '#e2e8f0', fontSize: '1.2rem' }}>
+                  <span className={poiStyles.expandIcon}>
                     {showDetails[project.projectId] ? '▼' : '▶'}
                   </span>
                 </div>
@@ -547,94 +507,29 @@ export default function POIManagement() {
                   {project.pois.map(poi => (
                     <div
                       key={poi.id}
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                        borderRadius: '12px',
-                        padding: '20px',
-                        transition: 'all 0.3s ease',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background =
-                          'rgba(255, 255, 255, 0.12)';
-                        e.currentTarget.style.borderColor =
-                          'rgba(255, 255, 255, 0.25)';
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow =
-                          '0 4px 16px rgba(0, 0, 0, 0.15)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background =
-                          'rgba(255, 255, 255, 0.08)';
-                        e.currentTarget.style.borderColor =
-                          'rgba(255, 255, 255, 0.15)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow =
-                          '0 2px 8px rgba(0, 0, 0, 0.1)';
-                      }}
+                      className={poiStyles.poiCard}
                     >
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          marginBottom: '12px',
-                        }}
-                      >
-                        <div style={{ flex: 1 }}>
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              marginBottom: '8px',
-                            }}
-                          >
-                            <span style={{ fontSize: '1.2rem' }}>
+                      <div className={poiStyles.poiCardContent}>
+                        <div className={poiStyles.poiCardInfo}>
+                          <div className={poiStyles.poiHeader}>
+                            <span className={poiStyles.poiIcon}>
                               {getFileIcon(poi.type)}
                             </span>
-                            <h4
-                              style={{
-                                margin: 0,
-                                color: '#e2e8f0',
-                                fontSize: '1rem',
-                              }}
-                            >
+                            <h4 className={poiStyles.poiTitle}>
                               {poi.name}
                             </h4>
                             <span
-                              style={{
-                                background:
-                                  poi.type === 'file'
-                                    ? 'rgba(34, 197, 94, 0.2)'
-                                    : 'rgba(59, 130, 246, 0.2)',
-                                color:
-                                  poi.type === 'file' ? '#10b981' : '#3b82f6',
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.75rem',
-                                fontWeight: '600',
-                              }}
+                              className={`${poiStyles.poiTypeTag} ${
+                                poi.type === 'file' ? poiStyles.poiTypeFile : poiStyles.poiTypeLink
+                              }`}
                             >
                               {poi.type.toUpperCase()}
                             </span>
                           </div>
-                          <p
-                            style={{
-                              margin: '0 0 8px 0',
-                              color: 'rgba(255, 255, 255, 0.7)',
-                              fontSize: '0.9rem',
-                            }}
-                          >
+                          <p className={poiStyles.poiDescription}>
                             {poi.description}
                           </p>
-                          <div
-                            style={{
-                              fontSize: '0.8rem',
-                              color: 'rgba(255, 255, 255, 0.5)',
-                            }}
-                          >
+                          <div className={poiStyles.poiMeta}>
                             <div>📍 Panorama: {poi.panoramaId}</div>
                             <div>📅 Created: {formatDate(poi.createdAt)}</div>
                             {poi.content && (
@@ -642,60 +537,16 @@ export default function POIManagement() {
                             )}
                           </div>
                         </div>
-                        <div
-                            style={{
-                              display: 'flex',
-                              gap: '12px',
-                              marginLeft: '16px',
-                              flexWrap: 'wrap',
-                            }}
-                          >
+                        <div className={poiStyles.poiActions}>
                             <Link
                               href={`/${project.projectId}?scene=${poi.panoramaId}`}
-                              className={styles.backLink}
-                              style={{
-                                fontSize: '0.9rem',
-                                padding: '10px 18px',
-                                borderRadius: '8px',
-                                transition: 'all 0.2s ease',
-                                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
-                              }}
-                              onMouseEnter={e => {
-                                e.currentTarget.style.transform =
-                                  'translateY(-1px)';
-                                e.currentTarget.style.boxShadow =
-                                  '0 4px 12px rgba(16, 185, 129, 0.4)';
-                              }}
-                              onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow =
-                                  '0 2px 6px rgba(16, 185, 129, 0.3)';
-                              }}
+                              className={`${styles.backLink} ${poiStyles.viewButton}`}
                             >
                               👁️ View
                             </Link>
                             <button
                               onClick={() => handleExportPOI(poi, project.projectId)}
-                              style={{
-                                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                                color: 'white',
-                                border: 'none',
-                                padding: '10px 18px',
-                                borderRadius: '8px',
-                                fontSize: '0.9rem',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)',
-                              }}
-                              onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'translateY(-1px)';
-                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
-                              }}
-                              onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 2px 6px rgba(59, 130, 246, 0.3)';
-                              }}
+                              className={poiStyles.exportButton}
                             >
                               📤 Export
                             </button>
@@ -704,44 +555,7 @@ export default function POIManagement() {
                                 handleDeletePOI(project.projectId, poi.id, poi.name)
                               }
                               disabled={deletingPOI === poi.id}
-                              style={{
-                                background:
-                                  deletingPOI === poi.id
-                                    ? 'rgba(107, 114, 128, 0.5)'
-                                    : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                                color: 'white',
-                                border: 'none',
-                                padding: '10px 18px',
-                                borderRadius: '8px',
-                                fontSize: '0.9rem',
-                                fontWeight: '600',
-                                cursor:
-                                  deletingPOI === poi.id
-                                    ? 'not-allowed'
-                                    : 'pointer',
-                                opacity: deletingPOI === poi.id ? 0.6 : 1,
-                                transition: 'all 0.2s ease',
-                                boxShadow:
-                                  deletingPOI === poi.id
-                                    ? 'none'
-                                    : '0 2px 6px rgba(239, 68, 68, 0.3)',
-                              }}
-                              onMouseEnter={e => {
-                                if (deletingPOI !== poi.id) {
-                                  e.currentTarget.style.transform =
-                                    'translateY(-1px)';
-                                  e.currentTarget.style.boxShadow =
-                                    '0 4px 12px rgba(239, 68, 68, 0.4)';
-                                }
-                              }}
-                              onMouseLeave={e => {
-                                if (deletingPOI !== poi.id) {
-                                  e.currentTarget.style.transform =
-                                    'translateY(0)';
-                                  e.currentTarget.style.boxShadow =
-                                    '0 2px 6px rgba(239, 68, 68, 0.3)';
-                                }
-                              }}
+                              className={poiStyles.deleteButton}
                             >
                               {deletingPOI === poi.id
                                 ? '⏳ Deleting...'

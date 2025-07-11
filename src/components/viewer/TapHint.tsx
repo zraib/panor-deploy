@@ -18,7 +18,7 @@ const TapHint: React.FC<TapHintProps> = React.memo(
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.8);
-            color: white;
+            color: var(--text-primary);
             padding: 12px 24px;
             border-radius: 24px;
             font-size: 14px;

@@ -33,7 +33,7 @@ const PanoramaContainer: React.FC<PanoramaContainerProps> = React.memo(({ panoRe
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          color: white;
+          color: var(--text-primary);
           font-size: 14px;
           font-weight: 500;
           text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);

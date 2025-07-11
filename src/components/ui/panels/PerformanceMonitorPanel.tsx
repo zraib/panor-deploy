@@ -39,14 +39,14 @@ export function PerformanceMonitorPanel({
           >
             <path
               d='M3 3V21H21'
-              stroke='white'
+              stroke='currentColor'
               strokeWidth='2'
               strokeLinecap='round'
               strokeLinejoin='round'
             />
             <path
               d='M9 9L12 6L16 10L20 6'
-              stroke='white'
+              stroke='currentColor'
               strokeWidth='2'
               strokeLinecap='round'
               strokeLinejoin='round'

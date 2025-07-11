@@ -1,0 +1,130 @@
+.retryButton {
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: var(--bg-surface);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.loadingText {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.emptyText {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.projectsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.projectItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.projectItem.active {
+  background: rgba(33, 150, 243, 0.3);
+  border: 1px solid rgba(33, 150, 243, 0.5);
+}
+
+.projectItem:hover:not(.active) {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-hover);
+  transform: translateX(2px);
+}
+
+.projectItem.navigating {
+  opacity: 0.7;
+  cursor: wait;
+  pointer-events: none;
+}
+
+.projectInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.projectName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectMeta {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.projectActions {
+  display: flex;
+  gap: 4px;
+}
+
+.editButton {
+  background: var(--bg-surface);
+  border: none;
+  border-radius: 4px;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editButton:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.deleteButton {
+  background: rgba(255, 107, 107, 0.2);
+  border: none;
+  border-radius: 4px;
+  padding: 4px;
+  cursor: pointer;
+  color: #ff6b6b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deleteButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background: rgba(255, 107, 107, 0.3);
+}
+
+.loadingDots {
+  width: 12px;
+  height: 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+}

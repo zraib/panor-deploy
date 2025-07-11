@@ -38,19 +38,19 @@ export function FloorSelectorPanel({
           >
             <path
               d='M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V7'
-              stroke='white'
+              stroke='currentColor'
               strokeWidth='2'
               fill='none'
             />
             <path
               d='M21 7L12 2L3 7'
-              stroke='white'
+              stroke='currentColor'
               strokeWidth='2'
               fill='none'
             />
             <path
               d='M9 21V12H15V21'
-              stroke='white'
+              stroke='currentColor'
               strokeWidth='2'
               fill='none'
             />

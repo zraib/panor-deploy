@@ -8,7 +8,7 @@ interface IconProps {
   color?: string;
 }
 
-export function ProjectsIcon({ width = 16, height = 16, color = 'white' }: IconProps) {
+export function ProjectsIcon({ width = 16, height = 16, color = 'currentColor' }: IconProps) {
   return (
     <svg
       width={width}
@@ -27,7 +27,7 @@ export function ProjectsIcon({ width = 16, height = 16, color = 'white' }: IconP
   );
 }
 
-export function FloorsIcon({ width = 16, height = 16, color = 'white' }: IconProps) {
+export function FloorsIcon({ width = 16, height = 16, color = 'currentColor' }: IconProps) {
   return (
     <svg
       width={width}
@@ -47,7 +47,7 @@ export function FloorsIcon({ width = 16, height = 16, color = 'white' }: IconPro
   );
 }
 
-export function PerformanceIcon({ width = 16, height = 16, color = 'white' }: IconProps) {
+export function PerformanceIcon({ width = 16, height = 16, color = 'currentColor' }: IconProps) {
   return (
     <svg
       width={width}
@@ -67,7 +67,7 @@ export function PerformanceIcon({ width = 16, height = 16, color = 'white' }: Ic
   );
 }
 
-export function POIIcon({ width = 16, height = 16, color = 'white' }: IconProps) {
+export function POIIcon({ width = 16, height = 16, color = 'currentColor' }: IconProps) {
   return (
     <svg
       width={width}

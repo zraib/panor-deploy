@@ -447,7 +447,9 @@ export default function Upload() {
         setPOIImportMessage(`✅ ${result.message}`);
         setPOIFile(null);
         // Clear the file input
-        const fileInput = document.getElementById('poiFile') as HTMLInputElement;
+        const fileInput = document.getElementById(
+          'poiFile'
+        ) as HTMLInputElement;
         if (fileInput) {
           fileInput.value = '';
         }
@@ -459,9 +461,9 @@ export default function Upload() {
       console.error('POI import error:', error);
       setPOIImportMessage('❌ Failed to import POI data. Please try again.');
     } finally {
-       setIsImportingPOI(false);
-     }
-   };
+      setIsImportingPOI(false);
+    }
+  };
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement> & {
@@ -695,7 +697,7 @@ export default function Upload() {
   };
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} page-with-cityscape`}>
       <div className={styles.logoContainer}>
         <img
           src='/assets/svg/primezone-logo.svg'
@@ -854,62 +856,74 @@ export default function Upload() {
             )}
 
           {/* POI Import Section */}
-          {(uploadSuccess || isEditMode) && (createdProjectId || editingProjectId) && (
-            <div className={styles.formGroup}>
-              <div className={styles.poiImportSection}>
-                <h3 className={styles.sectionTitle}>📍 Import POI Data (Optional)</h3>
-                <p className={styles.inputHint}>
-                  Import Points of Interest from a previously exported POI file (.json or .zip format).
-                </p>
-                
-                <div className={styles.poiImportControls}>
-                  <label htmlFor='poiFile' className={styles.label}>
-                    📎 POI File:
-                  </label>
-                  <input
-                    type='file'
-                    id='poiFile'
-                    name='poiFile'
-                    accept='.json,.zip'
-                    onChange={handlePOIFileChange}
-                    className={styles.fileInput}
-                  />
-                  {poiFile && (
-                    <div className={styles.fileInfo}>
-                      Selected: {poiFile.name} ({Math.round(poiFile.size / 1024)} KB)
+          {(uploadSuccess || isEditMode) &&
+            (createdProjectId || editingProjectId) && (
+              <div className={styles.formGroup}>
+                <div className={styles.poiImportSection}>
+                  <h3 className={styles.sectionTitle}>
+                    📍 Import POI Data (Optional)
+                  </h3>
+                  <p className={styles.inputHint}>
+                    Import Points of Interest from a previously exported POI
+                    file (.json or .zip format).
+                  </p>
+
+                  <div className={styles.poiImportControls}>
+                    <label htmlFor='poiFile' className={styles.label}>
+                      📎 POI File:
+                    </label>
+                    <input
+                      type='file'
+                      id='poiFile'
+                      name='poiFile'
+                      accept='.json,.zip'
+                      onChange={handlePOIFileChange}
+                      className={styles.fileInput}
+                    />
+                    {poiFile && (
+                      <div className={styles.fileInfo}>
+                        Selected: {poiFile.name} (
+                        {Math.round(poiFile.size / 1024)} KB)
+                      </div>
+                    )}
+
+                    <button
+                      type='button'
+                      onClick={handlePOIImport}
+                      disabled={!poiFile || isImportingPOI}
+                      className={`${styles.poiImportButton} ${
+                        !poiFile || isImportingPOI
+                          ? styles.submitButtonDisabled
+                          : ''
+                      }`}
+                    >
+                      {isImportingPOI && (
+                        <span className={styles.loadingSpinner}></span>
+                      )}
+                      {isImportingPOI
+                        ? '📤 Importing...'
+                        : '📥 Import POI Data'}
+                    </button>
+                  </div>
+
+                  {poiImportMessage && (
+                    <div
+                      className={`${styles.message} ${
+                        poiImportMessage.includes('❌') ||
+                        poiImportMessage.includes('failed')
+                          ? styles.messageError
+                          : poiImportMessage.includes('✅')
+                            ? styles.messageSuccess
+                            : styles.messageInfo
+                      }`}
+                      style={{ marginTop: '12px', fontSize: '0.9rem' }}
+                    >
+                      {poiImportMessage}
                     </div>
                   )}
-                  
-                  <button
-                    type='button'
-                    onClick={handlePOIImport}
-                    disabled={!poiFile || isImportingPOI}
-                    className={`${styles.poiImportButton} ${
-                      !poiFile || isImportingPOI ? styles.submitButtonDisabled : ''
-                    }`}
-                  >
-                    {isImportingPOI && <span className={styles.loadingSpinner}></span>}
-                    {isImportingPOI ? '📤 Importing...' : '📥 Import POI Data'}
-                  </button>
                 </div>
-                
-                {poiImportMessage && (
-                  <div
-                    className={`${styles.message} ${
-                      poiImportMessage.includes('❌') || poiImportMessage.includes('failed')
-                        ? styles.messageError
-                        : poiImportMessage.includes('✅')
-                        ? styles.messageSuccess
-                        : styles.messageInfo
-                    }`}
-                    style={{ marginTop: '12px', fontSize: '0.9rem' }}
-                  >
-                    {poiImportMessage}
-                  </div>
-                )}
               </div>
-            </div>
-          )}
+            )}
 
           <button
             type='submit'

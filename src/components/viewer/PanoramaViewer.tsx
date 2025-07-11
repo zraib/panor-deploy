@@ -11,6 +11,7 @@ import TapHint from './TapHint';
 import PanoramaContainer from './PanoramaContainer';
 import HotspotRenderer, { HotspotRendererRef } from './HotspotRenderer';
 import POIComponent, { POIComponentRef } from '../poi/POIComponent';
+
 import { usePanoramaManager } from '@/hooks/usePanoramaManager';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -271,7 +272,7 @@ export default function PanoramaViewer({
           WebkitBackdropFilter: 'blur(12px)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: '8px',
-          color: '#fff',
+          color: 'var(--text-primary)',
           fontSize: '14px',
           fontWeight: '500',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',

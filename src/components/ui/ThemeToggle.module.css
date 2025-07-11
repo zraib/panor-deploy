@@ -1,0 +1,76 @@
+/* Theme Toggle Component */
+.themeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: var(--spacing-sm) var(--spacing-md);
+  transition: all var(--transition-normal);
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  backdrop-filter: var(--backdrop-blur-sm);
+  -webkit-backdrop-filter: var(--backdrop-blur-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.themeToggle:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.themeToggle:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.themeToggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.icon {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--transition-normal);
+}
+
+.themeToggle:hover .icon {
+  transform: scale(1.1);
+}
+
+.label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  transition: color var(--transition-normal);
+}
+
+.themeToggle:hover .label {
+  color: var(--text-primary);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .themeToggle {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  .label {
+    display: none;
+  }
+}

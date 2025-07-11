@@ -2,13 +2,13 @@
 
 .minimap {
   user-select: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transition: var(--transition-slow);
+  box-shadow: var(--shadow-lg);
 }
 
 .minimap:hover {
-  border-color: rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  border-color: var(--border-hover) !important;
+  box-shadow: var(--shadow-xl);
 }
 
 .minimap.dragging {
@@ -29,20 +29,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  font-size: 12px;
-  color: white;
-  font-weight: 500;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px 10px 0 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+  background: var(--bg-surface);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 .minimapContent {
   position: relative;
   width: 100%;
-  height: calc(100% - 40px);
+  height: calc(100% - var(--spacing-4xl));
   overflow: hidden;
-  border-radius: 0 0 10px 10px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   cursor: grab;
   /* Improve performance for smooth panning */
   will-change: transform;
@@ -60,9 +60,9 @@
   right: 0;
   bottom: 0;
   background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-  background-size: 20px 20px;
+    linear-gradient(var(--bg-surface-hover) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-surface-hover) 1px, transparent 1px);
+  background-size: var(--spacing-xl) var(--spacing-xl);
   opacity: 0.5;
 }
 
@@ -70,8 +70,8 @@
   position: absolute;
   border-radius: 50%;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: var(--transition-normal);
+  box-shadow: var(--shadow-sm);
   /* Improve rendering performance */
   will-change: transform, opacity;
   transform: translateZ(0);
@@ -82,33 +82,34 @@
 }
 
 .sceneHotspot.current {
-  background: #ff4444 !important;
-  border: 2px solid white !important;
-  width: 12px;
-  height: 12px;
+  background: var(--color-error) !important;
+  border: 2px solid var(--text-primary) !important;
+  width: var(--spacing-md);
+  height: var(--spacing-md);
   z-index: 20;
   animation: pulse 2s infinite;
 }
 
 .sceneHotspot.other {
-  background: #4CAF50;
-  border: 1.5px solid white;
-  width: 8px;
-  height: 8px;
+  background: var(--color-success);
+  border: 1.5px solid var(--text-primary);
+  width: var(--spacing-sm);
+  height: var(--spacing-sm);
   z-index: 5;
 }
 
 .sceneHotspot.other:hover {
-  background: #66BB6A !important;
+  background: var(--color-success) !important;
+  opacity: 0.8;
 }
 
 .directionIndicator {
   position: absolute;
-  width: 60px;
-  height: 60px;
+  width: var(--spacing-4xl);
+  height: var(--spacing-4xl);
   pointer-events: none;
   z-index: 9;
-  transition: transform 0.1s linear, opacity 0.2s ease;
+  transition: transform 0.1s linear, opacity var(--transition-normal);
   /* Improve rendering performance */
   will-change: transform, opacity;
   transform: translateZ(0);
@@ -116,7 +117,7 @@
 
 .directionArrow {
   position: absolute;
-  top: -40px;
+  top: calc(-1 * var(--spacing-4xl));
   left: 50%;
   transform: translateX(-50%);
   width: 140px;
@@ -150,56 +151,56 @@
 .connectionLine {
   position: absolute;
   height: 1px;
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--border-muted);
   transform-origin: 0 50%;
   pointer-events: none;
   z-index: 1;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition-normal);
 }
 
 .compassRose {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 32px;
-  height: 32px;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  width: var(--spacing-3xl);
+  height: var(--spacing-3xl);
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--bg-modal);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  color: white;
-  font-weight: bold;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+  border: var(--border-muted);
   z-index: 20;
 }
 
 .zoomIndicator {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 500;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  bottom: var(--spacing-sm);
+  right: var(--spacing-sm);
+  background: var(--bg-modal);
+  color: var(--text-primary);
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  border: var(--border-muted);
   z-index: 20;
 }
 
 .hotspotCounter {
    position: absolute;
-  bottom: 8px;
-  left: 8px;
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 500;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  bottom: var(--spacing-sm);
+  left: var(--spacing-sm);
+  background: var(--bg-modal);
+  color: var(--text-primary);
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  border: var(--border-muted);
   z-index: 20;
 }
 
@@ -208,17 +209,17 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.85);
-  color: white;
-  padding: 6px 10px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 500;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--bg-modal);
+  color: var(--text-primary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  border: var(--border-muted);
   z-index: 30;
   animation: navigationPulse 1.5s ease-in-out infinite;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  backdrop-filter: var(--backdrop-blur-sm);
+  box-shadow: var(--shadow-sm);
 }
 
 @keyframes navigationPulse {
@@ -237,8 +238,8 @@
 
 .resetIndicator {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: var(--spacing-sm);
+  left: var(--spacing-sm);
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -246,12 +247,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: #333;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: var(--border-muted);
   z-index: 25;
-  transition: all 0.2s ease;
+  transition: var(--transition-normal);
 }
 
 .resetIndicator:hover {
@@ -261,19 +262,19 @@
 
 .scrollHint {
   position: absolute;
-  bottom: 8px;
+  bottom: var(--spacing-sm);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 10px;
+  background: var(--bg-modal);
+  color: var(--text-primary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-2xs);
   white-space: nowrap;
   opacity: 0.7;
   pointer-events: none;
   z-index: 20;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--transition-slow);
 }
 
 .minimap:hover .scrollHint {
@@ -283,31 +284,31 @@
 .minimizeButton {
   background: none;
   border: none;
-  color: white;
+  color: var(--text-primary);
   cursor: pointer;
-  font-size: 14px;
-  padding: 4px 6px;
-  border-radius: 4px;
-  transition: background 0.2s ease;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-xs);
+  border-radius: var(--border-radius-sm);
+  transition: background var(--transition-normal);
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
+  min-width: var(--spacing-2xl);
+  height: var(--spacing-2xl);
 }
 
 .minimizeButton:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--bg-surface-hover);
 }
 
 .minimized {
-  width: 60px !important;
-  height: 60px !important;
+  width: var(--spacing-4xl) !important;
+  height: var(--spacing-4xl) !important;
 }
 
 .minimized .minimapHeader {
   border-bottom: none;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   justify-content: center;
 }
 
@@ -358,41 +359,41 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .minimap {
-    right: 10px !important;
-    bottom: 10px !important;
+    right: var(--spacing-sm) !important;
+    bottom: var(--spacing-sm) !important;
   }
   
   .minimapHeader {
-    padding: 6px 8px;
+    padding: var(--spacing-xs) var(--spacing-sm);
     font-size: 11px;
   }
   
   .compassRose {
     width: 28px;
     height: 28px;
-    font-size: 10px;
+    font-size: var(--font-size-2xs);
   }
   
   .sceneHotspot.current {
-    width: 14px;
-    height: 14px;
+    width: var(--spacing-sm);
+    height: var(--spacing-sm);
   }
   
   .sceneHotspot.other {
-    width: 10px;
-    height: 10px;
+    width: var(--spacing-sm);
+    height: var(--spacing-sm);
   }
   
   .zoomIndicator {
     font-size: 9px;
-    padding: 1px 6px;
+    padding: 1px var(--spacing-xs);
   }
 }
 
 @media (max-width: 480px) {
   .minimap {
-    right: 5px !important;
-    bottom: 5px !important;
+    right: var(--spacing-xs) !important;
+    bottom: var(--spacing-xs) !important;
   }
   
   .minimized {
@@ -402,36 +403,36 @@
   
   .scrollHint {
     font-size: 9px;
-    padding: 3px 6px;
+    padding: var(--spacing-xs) var(--spacing-xs);
   }
   
   .hotspotCounter {
     font-size: 9px;
-    padding: 3px 8px;
-    border-radius: 14px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-lg);
   }
   
   .hotspotCounter::before {
     font-size: 7px;
-    margin-right: 3px;
+    margin-right: var(--spacing-xs);
   }
 }
 
 /* High DPI displays */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
   .mapGrid {
-    background-size: 10px 10px;
+    background-size: var(--spacing-sm) var(--spacing-sm);
   }
 }
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .minimap {
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: var(--border-muted);
   }
   
   .minimapHeader {
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--bg-surface-hover);
   }
 }
 
@@ -480,6 +481,80 @@
 .sceneHotspot:focus {
   outline: 2px solid #ffeb3b;
   outline-offset: 2px;
+}
+
+/* Additional utility classes for inline styles */
+.minimapContainer {
+  position: fixed;
+  background: var(--bg-modal);
+  backdrop-filter: var(--backdrop-blur-sm);
+  -webkit-backdrop-filter: var(--backdrop-blur-sm);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-primary);
+  z-index: var(--z-modal);
+  transition: width var(--transition-slow), height var(--transition-slow), transform var(--transition-normal);
+}
+
+.minimapContainer.dragging {
+  cursor: grabbing;
+}
+
+.minimapContainer.hovered {
+  transform: scale(1.05);
+}
+
+.minimapContainer.notHovered {
+  transform: scale(1);
+}
+
+.minimapHeaderBorder {
+  border-bottom: var(--border-subtle);
+  cursor: move;
+}
+
+.minimapHeaderNoBorder {
+  border-bottom: none;
+  cursor: move;
+}
+
+.minimapContentGrab {
+  cursor: grab;
+}
+
+.minimapContentGrabbing {
+  cursor: grabbing;
+}
+
+.sceneHotspotPositioned {
+  transform: translate(-50%, -50%);
+  transition: opacity var(--transition-slow), transform var(--transition-normal);
+  cursor: pointer;
+}
+
+.sceneHotspotNavigating {
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.directionIndicatorPositioned {
+  transition: opacity var(--transition-normal);
+}
+
+.connectionSvg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.connectionLine {
+  stroke: var(--border-muted);
+  stroke-width: 1;
+  opacity: 0.6;
 }
 
 /* Print styles */

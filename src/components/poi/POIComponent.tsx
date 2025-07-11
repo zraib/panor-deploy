@@ -31,7 +31,7 @@ import styles from './POIComponent.module.css';
 
 // Function to determine the appropriate icon based on POI type and content
 const getPOIIcon = (poi: POIData): React.ReactElement => {
-  const iconProps = { size: 32, style: { color: '#fff' } };
+  const iconProps = { size: 32, style: { color: 'var(--text-primary)' } };
 
   if (poi.type === 'iframe') {
     return <FaGlobe {...iconProps} />;

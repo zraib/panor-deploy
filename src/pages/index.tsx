@@ -164,7 +164,7 @@ export default function Home(): ReactElement {
 
   if (loading) {
     return (
-      <div className={styles.container}>
+      <div className={`${styles.container} page-with-cityscape`}>
         <div className={styles.content}>
           <div className={styles.icon}>⏳</div>
           <h1 className={styles.title}>Loading...</h1>
@@ -184,7 +184,7 @@ export default function Home(): ReactElement {
         <PanoramaViewer projectId={selectedProject} />
       ) : (
         // Show welcome screen
-        <div className={styles.container}>
+        <div className={`${styles.container} page-with-cityscape`}>
           {/* Logo */}
           <div className={styles.logoContainer}>
             <img
