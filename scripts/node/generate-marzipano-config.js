@@ -295,7 +295,7 @@ function generateConfig(csvFile, outputFile = 'config.json', projectPath = '') {
             initialViewParameters: {
                 yaw: 0,
                 pitch: 0,
-                fov: Math.PI / 6  // 30 degrees in radians
+                fov: (65 * Math.PI) / 180  // 65 degrees in radians (50% between 30° and 100°)
             },
             linkHotspots: hotspots,
             infoHotspots: []
