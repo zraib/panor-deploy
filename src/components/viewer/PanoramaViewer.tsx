@@ -239,6 +239,7 @@ export default function PanoramaViewer({
               hotspotsVisible={state.hotspotsVisible}
               onNavigate={navigateToScene}
               projectId={projectId}
+              currentViewParams={state.currentViewParams}
             />
 
             <POIComponent

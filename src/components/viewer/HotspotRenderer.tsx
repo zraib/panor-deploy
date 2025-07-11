@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import Hotspot from '../hotspot/Hotspot';
 import { SceneInfo as SceneInfoType } from '@/types/scenes';
+import { ViewParams } from '@/hooks/usePanoramaViewer';
 
 interface HotspotRendererProps {
   currentScene: string | null;
@@ -8,6 +9,7 @@ interface HotspotRendererProps {
   hotspotsVisible: boolean;
   onNavigate: (sceneId: string, sourceHotspotYaw?: number) => Promise<void>;
   projectId?: string;
+  currentViewParams?: ViewParams | null;
 }
 
 export interface HotspotRendererRef {
@@ -20,6 +22,7 @@ const HotspotRenderer = React.memo(forwardRef<HotspotRendererRef, HotspotRendere
   hotspotsVisible,
   onNavigate,
   projectId,
+  currentViewParams,
 }, ref) => {
   const [poiSceneCounts, setPoiSceneCounts] = useState<Record<string, number>>({});
 
@@ -78,6 +81,7 @@ const HotspotRenderer = React.memo(forwardRef<HotspotRendererRef, HotspotRendere
             visible={hotspotsVisible}
             onNavigate={onNavigate}
             hasPOIs={targetHasPOIs}
+            currentViewParams={currentViewParams}
           />
         );
       })}
@@ -90,7 +94,8 @@ const HotspotRenderer = React.memo(forwardRef<HotspotRendererRef, HotspotRendere
     prevProps.hotspotsVisible === nextProps.hotspotsVisible &&
     prevProps.scenesRef === nextProps.scenesRef &&
     prevProps.onNavigate === nextProps.onNavigate &&
-    prevProps.projectId === nextProps.projectId
+    prevProps.projectId === nextProps.projectId &&
+    prevProps.currentViewParams?.fov === nextProps.currentViewParams?.fov
   );
 });
 

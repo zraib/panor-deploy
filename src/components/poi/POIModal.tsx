@@ -119,12 +119,12 @@ const POIModal: React.FC<POIModalProps> = ({
     }
 
     if (formData.type === 'iframe' && !formData.content.trim()) {
-      toast.error('Please enter a URL for the iframe content.');
+      toast.error('Please enter a URL or iframe code for the iframe content.');
       return;
     }
 
-    if (formData.type === 'iframe' && !isValidUrl(formData.content)) {
-      toast.error('Please enter a valid URL.');
+    if (formData.type === 'iframe' && !isValidUrlOrIframe(formData.content)) {
+      toast.error('Please enter a valid URL or iframe HTML code.');
       return;
     }
 
@@ -199,6 +199,21 @@ const POIModal: React.FC<POIModalProps> = ({
     } catch (_) {
       return false;
     }
+  };
+
+  const isValidUrlOrIframe = (string: string) => {
+    // Check if it's a valid URL
+    if (isValidUrl(string)) {
+      return true;
+    }
+    
+    // Check if it's iframe HTML code
+    const trimmed = string.trim();
+    if (trimmed.toLowerCase().startsWith('<iframe') && trimmed.toLowerCase().includes('</iframe>')) {
+      return true;
+    }
+    
+    return false;
   };
 
   if (!isOpen) return null;
@@ -353,18 +368,21 @@ const POIModal: React.FC<POIModalProps> = ({
           {formData.type === 'iframe' && (
             <div className={styles.formGroup}>
               <label htmlFor='url' className={styles.label}>
-                URL *
+                URL or Iframe Code *
               </label>
-              <input
-                type='url'
+              <textarea
                 id='url'
                 value={formData.content}
                 onChange={e => handleInputChange('content', e.target.value)}
-                className={styles.input}
-                placeholder='https://example.com'
+                className={styles.textarea}
+                placeholder='https://example.com or <iframe src="..." width="..." height="..."></iframe>'
+                rows={4}
                 required
                 disabled={isSubmitting}
               />
+              <p className={styles.inputHint}>
+                Enter a URL or paste iframe HTML code
+              </p>
             </div>
           )}
 

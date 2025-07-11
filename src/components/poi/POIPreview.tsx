@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { POIPreviewProps } from '@/types/poi';
 import { getFileCategory } from './utils';
 import {
@@ -15,11 +15,13 @@ import {
 } from 'react-icons/fa';
 import ConfirmationModal from '../ui/ConfirmationModal';
 import styles from './POIPreview.module.css';
+// Using iframe-based PDF viewer for better compatibility
 
 const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit, onDelete }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
 
   const handleImageLoad = () => {
     setIsLoading(false);
@@ -51,11 +53,22 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
     setShowDeleteConfirm(false);
   };
 
+  const handlePdfLoad = () => {
+    setIsLoading(false);
+    setPdfError(false);
+  };
+
+  const handlePdfError = () => {
+    setPdfError(true);
+    setIsLoading(false);
+  };
+
   const getContentPath = () => {
     if (poi.type === 'iframe') {
       return poi.content;
     }
-    return `/${projectId}/data/poi/attachments/${poi.content}`;
+    // Use API route for file serving to handle CORS and static file issues
+    return `/api/files/${projectId}/data/poi/attachments/${poi.content}`;
   };
 
   const renderFileIcon = (category: string) => {
@@ -71,8 +84,49 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
     }
   };
 
+  const decodeHtmlEntities = (text: string) => {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  };
+
+  const getIframeContent = () => {
+    const content = poi.content.trim();
+    
+    // If it's HTML iframe code, extract src or render directly
+    if (content.toLowerCase().startsWith('<iframe')) {
+      // Decode HTML entities first
+      const decodedContent = decodeHtmlEntities(content);
+      
+      // Try to extract src attribute from decoded content
+      const srcMatch = decodedContent.match(/src=["']([^"']+)["']/i);
+      if (srcMatch) {
+        return {
+          src: srcMatch[1],
+          html: decodedContent,
+          isHtml: true
+        };
+      }
+      // If no src found, render as HTML
+      return {
+        src: null,
+        html: decodedContent,
+        isHtml: true
+      };
+    }
+    
+    // It's a direct URL
+    return {
+      src: content,
+      html: null,
+      isHtml: false
+    };
+  };
+
   const renderContent = () => {
     if (poi.type === 'iframe') {
+      const iframeContent = getIframeContent();
+      
       return (
         <div className={styles.iframeContainer}>
           {isLoading && (
@@ -80,22 +134,31 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
               <div className={styles.spinner}></div>
             </div>
           )}
-          <iframe
-            src={poi.content}
-            className={styles.iframe}
-            title={poi.name}
-            onLoad={handleImageLoad}
-            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-          />
-          <a
-            href={poi.content}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.externalLinkButton}
-            title="Open in new tab"
-          >
-            <FaExternalLinkAlt size={12} />
-          </a>
+          {iframeContent.isHtml && iframeContent.html ? (
+            <div 
+              dangerouslySetInnerHTML={{ __html: iframeContent.html }}
+              className={styles.iframeWrapper}
+            />
+          ) : (
+            <iframe
+              src={iframeContent.src || poi.content}
+              className={styles.iframe}
+              title={poi.name}
+              onLoad={handleImageLoad}
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            />
+          )}
+          {iframeContent.src && (
+            <a
+              href={iframeContent.src}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.externalLinkButton}
+              title="Open in new tab"
+            >
+              <FaExternalLinkAlt size={12} />
+            </a>
+          )}
         </div>
       );
     }
@@ -161,7 +224,61 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
       );
     }
 
-    // For PDFs and other files, show download link
+    // For PDFs, show PDF viewer
+    if (category === 'pdf') {
+      return (
+        <div className={styles.pdfContainer}>
+          {isLoading && (
+            <div className={styles.pdfLoadingContainer}>
+              <div className={styles.spinner}></div>
+              <p>Loading PDF...</p>
+            </div>
+          )}
+          {pdfError ? (
+            <div className={styles.errorContainer}>
+              <FaFilePdf className={styles.errorIcon} size={48} />
+              <p className={styles.errorText}>Failed to load PDF</p>
+              <a
+                href={contentPath}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.errorLink}
+              >
+                Open PDF directly
+              </a>
+            </div>
+          ) : (
+            <>
+              <iframe
+                src={contentPath}
+                className={styles.pdfIframe}
+                title={`PDF: ${poi.name}`}
+                onLoad={handlePdfLoad}
+                onError={handlePdfError}
+                style={{
+                  width: '100%',
+                  height: '600px',
+                  border: 'none',
+                  borderRadius: '8px'
+                }}
+              />
+              <div className={styles.pdfActions}>
+                <a
+                  href={contentPath}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.openFileButton}
+                >
+                  Open in new tab
+                </a>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // For other files, show download link
     return (
       <div className={styles.fileContainer}>
         <div className={styles.fileIcon}>{renderFileIcon(category)}</div>
