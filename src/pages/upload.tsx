@@ -36,6 +36,9 @@ export default function Upload() {
     csv: File | null;
     images: File[];
   }>({ csv: null, images: [] });
+  const [poiFile, setPOIFile] = useState<File | null>(null);
+  const [poiImportMessage, setPOIImportMessage] = useState('');
+  const [isImportingPOI, setIsImportingPOI] = useState(false);
 
   // This effect captures referrer information for smart back navigation
   useEffect(() => {
@@ -402,6 +405,63 @@ export default function Upload() {
       setSelectedFiles(prev => ({ ...prev, images: fileArray }));
     }
   };
+
+  const handlePOIFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setPOIFile(file);
+    setPOIImportMessage('');
+  };
+
+  const handlePOIImport = async () => {
+    if (!poiFile) {
+      setPOIImportMessage('❌ Please select a POI file to import');
+      return;
+    }
+
+    if (!createdProjectId && !editingProjectId) {
+      setPOIImportMessage('❌ Please create or select a project first');
+      return;
+    }
+
+    const projectId = createdProjectId || editingProjectId;
+    if (!projectId) {
+      setPOIImportMessage('❌ No project selected for POI import');
+      return;
+    }
+
+    setIsImportingPOI(true);
+    setPOIImportMessage('📤 Importing POI data...');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', poiFile);
+      formData.append('projectId', projectId);
+
+      const response = await fetch('/api/poi/import-single', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setPOIImportMessage(`✅ ${result.message}`);
+        setPOIFile(null);
+        // Clear the file input
+        const fileInput = document.getElementById('poiFile') as HTMLInputElement;
+        if (fileInput) {
+          fileInput.value = '';
+        }
+      } else {
+        const errorData = await response.json();
+        setPOIImportMessage(`❌ Import failed: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('POI import error:', error);
+      setPOIImportMessage('❌ Failed to import POI data. Please try again.');
+    } finally {
+       setIsImportingPOI(false);
+     }
+   };
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement> & {
@@ -792,6 +852,64 @@ export default function Upload() {
                 </div>
               </div>
             )}
+
+          {/* POI Import Section */}
+          {(uploadSuccess || isEditMode) && (createdProjectId || editingProjectId) && (
+            <div className={styles.formGroup}>
+              <div className={styles.poiImportSection}>
+                <h3 className={styles.sectionTitle}>📍 Import POI Data (Optional)</h3>
+                <p className={styles.inputHint}>
+                  Import Points of Interest from a previously exported POI file (.json or .zip format).
+                </p>
+                
+                <div className={styles.poiImportControls}>
+                  <label htmlFor='poiFile' className={styles.label}>
+                    📎 POI File:
+                  </label>
+                  <input
+                    type='file'
+                    id='poiFile'
+                    name='poiFile'
+                    accept='.json,.zip'
+                    onChange={handlePOIFileChange}
+                    className={styles.fileInput}
+                  />
+                  {poiFile && (
+                    <div className={styles.fileInfo}>
+                      Selected: {poiFile.name} ({Math.round(poiFile.size / 1024)} KB)
+                    </div>
+                  )}
+                  
+                  <button
+                    type='button'
+                    onClick={handlePOIImport}
+                    disabled={!poiFile || isImportingPOI}
+                    className={`${styles.poiImportButton} ${
+                      !poiFile || isImportingPOI ? styles.submitButtonDisabled : ''
+                    }`}
+                  >
+                    {isImportingPOI && <span className={styles.loadingSpinner}></span>}
+                    {isImportingPOI ? '📤 Importing...' : '📥 Import POI Data'}
+                  </button>
+                </div>
+                
+                {poiImportMessage && (
+                  <div
+                    className={`${styles.message} ${
+                      poiImportMessage.includes('❌') || poiImportMessage.includes('failed')
+                        ? styles.messageError
+                        : poiImportMessage.includes('✅')
+                        ? styles.messageSuccess
+                        : styles.messageInfo
+                    }`}
+                    style={{ marginTop: '12px', fontSize: '0.9rem' }}
+                  >
+                    {poiImportMessage}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <button
             type='submit'

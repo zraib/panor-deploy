@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from '../ControlPanel.module.css';
 import { useProjectsManager } from '../../../hooks/useProjectsManager';
 import { useNavigation } from '../../../hooks/useNavigation';
+import ConfirmationModal from '../ConfirmationModal';
 
 interface Project {
   id: string;
@@ -23,6 +24,8 @@ interface ProjectsPanelProps {
 export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
   const router = useRouter();
   const navigation = useNavigation();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const {
     projects,
     projectsLoading,
@@ -253,7 +256,8 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
                   <button
                     onClick={e => {
                       e.stopPropagation();
-                      deleteProject(project.id);
+                      setProjectToDelete(project);
+                      setShowDeleteConfirm(true);
                     }}
                     disabled={deleting === project.id}
                     style={{
@@ -302,6 +306,26 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
           </div>
         )}
       </div>
+      
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        title="Delete Project"
+        message={`Are you sure you want to delete project "${projectToDelete?.name || projectToDelete?.id}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={() => {
+          if (projectToDelete) {
+            deleteProject(projectToDelete.id);
+          }
+          setShowDeleteConfirm(false);
+          setProjectToDelete(null);
+        }}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setProjectToDelete(null);
+        }}
+      />
     </div>
   );
 }

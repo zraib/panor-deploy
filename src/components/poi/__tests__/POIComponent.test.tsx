@@ -23,12 +23,18 @@ const mockViewerRef = {
       fov: () => Math.PI / 2,
     }),
   },
-};
+} as React.RefObject<any>;
+
+const mockPanoRef = {
+  current: document.createElement('div'),
+} as React.RefObject<HTMLDivElement>;
 
 const defaultProps = {
+  projectId: 'test-project',
   currentPanoramaId: 'test-panorama',
   viewerSize: { width: 800, height: 600 },
-  viewerRef: mockViewerRef as any,
+  viewerRef: mockViewerRef,
+  panoRef: mockPanoRef,
   onPOICreated: jest.fn(),
 };
 
