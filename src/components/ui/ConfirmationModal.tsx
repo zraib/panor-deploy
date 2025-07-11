@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 import styles from './ConfirmationModal.module.css';
 
@@ -33,7 +34,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     }
   };
 
-  return (
+  const modalContent = (
     <div className={styles.modalOverlay} onClick={handleOverlayClick}>
       <div className={styles.modalContainer}>
         <div className={styles.modalHeader}>
@@ -74,6 +75,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       </div>
     </div>
   );
+
+  // Render the modal at the document body level using a portal
+  return typeof document !== 'undefined' 
+    ? createPortal(modalContent, document.body)
+    : null;
 };
 
 export default ConfirmationModal;

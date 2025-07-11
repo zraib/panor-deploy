@@ -46,14 +46,6 @@ export function useProjectsManager() {
   };
 
   const deleteProject = async (projectId: string) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete project "${projectId}"? This action cannot be undone.`
-      )
-    ) {
-      return;
-    }
-
     try {
       setDeleting(projectId);
       const response = await fetch(
@@ -106,8 +98,8 @@ export function useProjectsManager() {
       
     } catch (error) {
       console.error('❌ Navigation failed:', error);
-      // Show user-friendly error message
-      alert(`Failed to navigate to project ${projectId}. Please try again.`);
+      // Set error state instead of using alert
+      setProjectsError(`Failed to navigate to project ${projectId}. Please try again.`);
       setIsNavigating(false);
     }
   };

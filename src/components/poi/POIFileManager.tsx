@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { POIData } from '@/types/poi';
 import styles from '@/styles/Upload.module.css';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 interface POIFileManagerProps {
   projectId: string;
@@ -27,6 +28,12 @@ export default function POIFileManager({
   });
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
+  const [overwriteData, setOverwriteData] = useState<{
+    file: File;
+    existingPOI: any;
+    formData: FormData;
+  } | null>(null);
 
   const handleExportPOI = async (poiId: string, poiName: string) => {
     try {
@@ -87,31 +94,15 @@ export default function POIFileManager({
 
       if (!response.ok) {
         if (response.status === 409) {
-          // POI already exists
-          const confirmOverwrite = window.confirm(
-            `POI "${result.existingPOI?.name || 'Unknown'}" already exists. Do you want to overwrite it?`
-          );
-          
-          if (confirmOverwrite) {
-            // Retry with overwrite enabled
-            formData.set('overwrite', 'true');
-            const retryResponse = await fetch('/api/poi/import-single', {
-              method: 'POST',
-              body: formData,
-            });
-            
-            const retryResult = await retryResponse.json();
-            if (!retryResponse.ok) {
-              throw new Error(retryResult.error || 'Failed to import POI');
-            }
-            
-            onPOIImported?.(retryResult.poi);
-            onSuccess?.(retryResult.message || 'POI imported successfully');
-            return;
-          } else {
-            onError?.('Import cancelled by user');
-            return;
-          }
+          // POI already exists - show confirmation modal
+          setOverwriteData({
+            file,
+            existingPOI: result.existingPOI,
+            formData
+          });
+          setShowOverwriteConfirm(true);
+          setIsImporting(false);
+          return;
         }
         throw new Error(result.error || 'Failed to import POI');
       }
@@ -124,6 +115,41 @@ export default function POIFileManager({
     } finally {
       setIsImporting(false);
     }
+  };
+
+  const handleConfirmOverwrite = async () => {
+    if (!overwriteData) return;
+
+    setIsImporting(true);
+    try {
+      // Retry with overwrite enabled
+      overwriteData.formData.set('overwrite', 'true');
+      const retryResponse = await fetch('/api/poi/import-single', {
+        method: 'POST',
+        body: overwriteData.formData,
+      });
+      
+      const retryResult = await retryResponse.json();
+      if (!retryResponse.ok) {
+        throw new Error(retryResult.error || 'Failed to import POI');
+      }
+      
+      onPOIImported?.(retryResult.poi);
+      onSuccess?.(retryResult.message || 'POI imported successfully');
+    } catch (error) {
+      console.error('Import error:', error);
+      onError?.(error instanceof Error ? error.message : 'Failed to import POI');
+    } finally {
+      setIsImporting(false);
+      setShowOverwriteConfirm(false);
+      setOverwriteData(null);
+    }
+  };
+
+  const handleCancelOverwrite = () => {
+    setShowOverwriteConfirm(false);
+    setOverwriteData(null);
+    onError?.('Import cancelled by user');
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -252,6 +278,17 @@ export default function POIFileManager({
           </ul>
         </div>
       </div>
+      
+      <ConfirmationModal
+        isOpen={showOverwriteConfirm}
+        title="POI Already Exists"
+        message={`POI "${overwriteData?.existingPOI?.name || 'Unknown'}" already exists. Do you want to overwrite it?`}
+        confirmText="Overwrite"
+        cancelText="Cancel"
+        variant="warning"
+        onConfirm={handleConfirmOverwrite}
+        onCancel={handleCancelOverwrite}
+      />
     </div>
   );
 }

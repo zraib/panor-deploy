@@ -4,6 +4,7 @@ import Link from 'next/link';
 import styles from '@/styles/Upload.module.css';
 import { POIData } from '@/types/poi';
 import POIFileManager, { exportPOI } from '@/components/poi/POIFileManager';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 interface Project {
   id: string;
@@ -36,6 +37,8 @@ export default function POIManagement() {
   const [deletingPOI, setDeletingPOI] = useState<string | null>(null);
   const [useIndividualFiles, setUseIndividualFiles] = useState(false);
   const [fileManagerMessage, setFileManagerMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [poiToDelete, setPOIToDelete] = useState<{ projectId: string; poiId: string; poiName: string } | null>(null);
 
   useEffect(() => {
     // Capture referrer information
@@ -126,23 +129,26 @@ export default function POIManagement() {
     }
   };
 
-  const handleDeletePOI = async (projectId: string, poiId: string) => {
-    if (
-      !confirm(
-        'Are you sure you want to delete this POI? This action cannot be undone.'
-      )
-    ) {
-      return;
-    }
+  const handleDeletePOI = async (projectId: string, poiId: string, poiName: string) => {
+    setPOIToDelete({ projectId, poiId, poiName });
+    setShowDeleteConfirm(true);
+  };
 
-    setDeletingPOI(poiId);
+  const confirmDeletePOI = async () => {
+    if (!poiToDelete) return;
+
+    setDeletingPOI(poiToDelete.poiId);
     try {
       const response = await fetch('/api/poi/delete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ projectId, poiId, useIndividual: useIndividualFiles }),
+        body: JSON.stringify({ 
+          projectId: poiToDelete.projectId, 
+          poiId: poiToDelete.poiId, 
+          useIndividual: useIndividualFiles 
+        }),
       });
 
       if (!response.ok) {
@@ -157,6 +163,8 @@ export default function POIManagement() {
       setMessage('❌ Failed to delete POI. Please try again.');
     } finally {
       setDeletingPOI(null);
+      setShowDeleteConfirm(false);
+      setPOIToDelete(null);
     }
   };
 
@@ -693,7 +701,7 @@ export default function POIManagement() {
                             </button>
                             <button
                               onClick={() =>
-                                handleDeletePOI(project.projectId, poi.id)
+                                handleDeletePOI(project.projectId, poi.id, poi.name)
                               }
                               disabled={deletingPOI === poi.id}
                               style={{
@@ -779,6 +787,21 @@ export default function POIManagement() {
           </ol>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+       <ConfirmationModal
+         isOpen={showDeleteConfirm}
+         onCancel={() => {
+           setShowDeleteConfirm(false);
+           setPOIToDelete(null);
+         }}
+         onConfirm={confirmDeletePOI}
+         title="Delete POI"
+         message={`Are you sure you want to delete the POI "${poiToDelete?.poiName}"? This action cannot be undone.`}
+         confirmText="Delete"
+         cancelText="Cancel"
+         variant="danger"
+       />
     </div>
   );
 }
