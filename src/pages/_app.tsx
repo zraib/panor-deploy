@@ -13,8 +13,8 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="icon" href="data:," />
       </Head>
       <div style={{ position: 'relative', minHeight: '100vh' }}>
-        <Navigation />
         <Component {...pageProps} />
+        <Navigation />
       </div>
     </>
   );

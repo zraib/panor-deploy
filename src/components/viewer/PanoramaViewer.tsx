@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import MiniMap from './MiniMap';
 import LoadingScreen from '../utility/LoadingScreen';
 import ControlPanel from '../ui/ControlPanel';
-import PanoramaLogo from './PanoramaLogo';
+// PanoramaLogo import removed
 import TapHint from './TapHint';
 // import ControlsHint from './ControlsHint';
 import PanoramaContainer from './PanoramaContainer';
@@ -143,7 +143,7 @@ export default function PanoramaViewer({
 
       {state.isLoading && <LoadingScreen />}
 
-      <PanoramaLogo />
+      {/* PanoramaLogo removed */}
       <PanoramaContainer panoRef={refs.panoRef} onPanoClick={handlePanoClick} />
       <TapHint show={state.showTapHint} />
 

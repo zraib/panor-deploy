@@ -38,20 +38,25 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className }) => {
   return (
     <button
       onClick={toggleTheme}
-      className={`${styles.themeToggle} ${className || ''}`}
+      className={`${styles.themeToggle} ${theme === 'light' ? styles.light : styles.dark} ${className || ''}`}
       aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
       title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
-      <div className={styles.iconContainer}>
-        {theme === 'light' ? (
-          <FiMoon className={styles.icon} />
-        ) : (
-          <FiSun className={styles.icon} />
-        )}
+      <div className={styles.track}>
+        <div className={`${styles.slider} ${theme === 'light' ? styles.sliderLight : styles.sliderDark}`}>
+          <div className={styles.iconContainer}>
+            {theme === 'light' ? (
+              <FiMoon className={styles.icon} />
+            ) : (
+              <FiSun className={styles.icon} />
+            )}
+          </div>
+        </div>
+        <div className={styles.trackIcons}>
+          <FiSun className={`${styles.trackIcon} ${styles.sunIcon}`} />
+          <FiMoon className={`${styles.trackIcon} ${styles.moonIcon}`} />
+        </div>
       </div>
-      <span className={styles.label}>
-        {theme === 'light' ? 'Dark' : 'Light'}
-      </span>
     </button>
   );
 };

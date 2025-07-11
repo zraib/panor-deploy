@@ -1,16 +1,15 @@
-/* Navigation Component - Invisible/Transparent */
+/* Navigation Component - Overlay */
 .navigation {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: var(--z-fixed);
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
+ 
+  pointer-events: auto;
   padding: var(--spacing-lg) var(--spacing-xl);
-  transition: all var(--transition-normal);
+
 }
 
 .container {
@@ -45,15 +44,12 @@
 .logoText {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
+  color: white;
   text-decoration: none;
-  background: var(--gradient-text);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   transition: all var(--transition-normal);
   cursor: pointer;
   user-select: none;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .logoText:hover {
@@ -89,16 +85,4 @@
   }
 }
 
-/* Optional: Add subtle background on hover for better visibility */
-.navigation:hover {
-  background: var(--bg-surface);
-  backdrop-filter: var(--backdrop-blur-sm);
-  -webkit-backdrop-filter: var(--backdrop-blur-sm);
-  opacity: 0.05;
-}
-
-/* Ensure proper layering */
-.navigation * {
-  position: relative;
-  z-index: 1;
-}
+/* Hover effects removed */

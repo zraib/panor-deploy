@@ -698,13 +698,7 @@ export default function Upload() {
 
   return (
     <div className={`${styles.container} page-with-cityscape`}>
-      <div className={styles.logoContainer}>
-        <img
-          src='/assets/svg/primezone-logo.svg'
-          alt='PrimeZone Logo'
-          className={styles.logo}
-        />
-      </div>
+      {/* Logo removed */}
       <div className={styles.content}>
         <div className={styles.header}>
           <button

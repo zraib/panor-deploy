@@ -134,13 +134,7 @@ export default function SceneViewer(): ReactElement {
   if (error) {
     return (
       <div className={styles.container}>
-        <div className={styles.logoContainer}>
-          <img
-            src='/assets/svg/primezone-logo.svg'
-            alt='PrimeZone Logo'
-            className={styles.logo}
-          />
-        </div>
+        {/* Logo removed */}
 
         <div className={styles.content}>
           <div className={styles.icon}>❌</div>
@@ -181,32 +175,7 @@ export default function SceneViewer(): ReactElement {
   if (hasPanoramas && config) {
     return (
       <div>
-        {/* Logo */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '20px',
-            left: '20px',
-            zIndex: 1100,
-            background: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            padding: '10px 10px',
-            borderRadius: '14px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
-            marginBottom: '10px',
-          }}
-        >
-          <img
-            src='/assets/svg/primezone-logo.svg'
-            alt='PrimeZone Logo'
-            style={{
-              height: '60px',
-              width: 'auto',
-              display: 'block',
-            }}
-          />
-        </div>
+        {/* Logo removed */}
 
         <PanoramaViewer
           projectId={projectId as string}

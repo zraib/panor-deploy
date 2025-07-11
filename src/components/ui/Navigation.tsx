@@ -12,10 +12,14 @@ export const Navigation: React.FC<NavigationProps> = ({ className }) => {
       <div className={styles.container}>
         {/* Logo */}
         <div className={styles.logo}>
-          <img src="/logo.svg" alt="PanoViewer Logo" className={styles.logoImage} />
+          <img
+            src='/logo.svg'
+            alt='PanoViewer Logo'
+            className={styles.logoImage}
+          />
           <span className={styles.logoText}>PanoViewer</span>
         </div>
-        
+
         {/* Theme Toggle */}
         <div className={styles.themeToggleWrapper}>
           <ThemeToggle />

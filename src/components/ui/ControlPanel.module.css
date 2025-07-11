@@ -1,7 +1,7 @@
 /* === Container === */
 .controlPanel {
   position: fixed;
-  top: calc(var(--spacing-xl) + 80px); /* Account for Navigation bar height + gap */
+  top: calc(var(--spacing-xl) + 80px); /* Account for navbar height */
   right: var(--spacing-xl);
   z-index: var(--z-dropdown);
   display: flex;

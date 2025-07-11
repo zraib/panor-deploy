@@ -130,13 +130,7 @@ export default function ProjectViewer(): ReactElement {
   if (error) {
     return (
       <div className={styles.container}>
-        <div className={styles.logoContainer}>
-          <img
-            src='/assets/svg/primezone-logo.svg'
-            alt='PrimeZone Logo'
-            className={styles.logo}
-          />
-        </div>
+        {/* Logo removed */}
 
         <div className={styles.content}>
           <div className={styles.icon}>❌</div>
