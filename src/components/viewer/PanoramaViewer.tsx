@@ -10,7 +10,7 @@ import TapHint from './TapHint';
 // import ControlsHint from './ControlsHint';
 import PanoramaContainer from './PanoramaContainer';
 import HotspotRenderer, { HotspotRendererRef } from './HotspotRenderer';
-import POIComponent from '../poi/POIComponent';
+import POIComponent, { POIComponentRef } from '../poi/POIComponent';
 import { usePanoramaManager } from '@/hooks/usePanoramaManager';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -28,8 +28,11 @@ export default function PanoramaViewer({
   const [closePanelsFunc, setClosePanelsFunc] = useState<(() => void) | null>(
     null
   );
-  const [poiSceneCounts, setPoiSceneCounts] = useState<Record<string, number>>({});
+  const [poiSceneCounts, setPoiSceneCounts] = useState<Record<string, number>>(
+    {}
+  );
   const hotspotRendererRef = useRef<HotspotRendererRef>(null);
+  const poiComponentRef = useRef<POIComponentRef>(null);
 
   const handleClosePanels = useCallback((closePanels: () => void) => {
     setClosePanelsFunc(() => closePanels);
@@ -43,12 +46,17 @@ export default function PanoramaViewer({
     }
 
     try {
-      const response = await fetch(`/api/poi/scene-counts?projectId=${encodeURIComponent(projectId)}`);
+      const response = await fetch(
+        `/api/poi/scene-counts?projectId=${encodeURIComponent(projectId)}`
+      );
       if (response.ok) {
         const data = await response.json();
         setPoiSceneCounts(data.sceneCounts || {});
       } else {
-        console.warn('Failed to fetch POI scene counts for MiniMap:', response.status);
+        console.warn(
+          'Failed to fetch POI scene counts for MiniMap:',
+          response.status
+        );
         setPoiSceneCounts({});
       }
     } catch (error) {
@@ -57,15 +65,18 @@ export default function PanoramaViewer({
     }
   }, [projectId]);
 
-  const handlePOICreated = useCallback((poi: POIData) => {
-    console.log('POI created:', poi);
-    // Refresh POI scene counts to update hotspot icons immediately
-    if (hotspotRendererRef.current) {
-      hotspotRendererRef.current.refreshPOISceneCounts();
-    }
-    // Also refresh local POI scene counts for MiniMap
-    fetchPOISceneCounts();
-  }, [fetchPOISceneCounts]);
+  const handlePOICreated = useCallback(
+    (poi: POIData) => {
+      console.log('POI created:', poi);
+      // Refresh POI scene counts to update hotspot icons immediately
+      if (hotspotRendererRef.current) {
+        hotspotRendererRef.current.refreshPOISceneCounts();
+      }
+      // Also refresh local POI scene counts for MiniMap
+      fetchPOISceneCounts();
+    },
+    [fetchPOISceneCounts]
+  );
 
   // Fetch POI scene counts when projectId changes
   useEffect(() => {
@@ -146,6 +157,64 @@ export default function PanoramaViewer({
         performanceStats={state.performanceStats}
         totalScenes={state.config?.scenes.length || 0}
         onOptimize={optimizePerformance}
+        projectId={projectId}
+        currentPanoramaId={state.currentScene}
+        onPOIEdit={poi => {
+          // Navigate to the POI's scene first, then edit
+          if (poi.panoramaId !== state.currentScene) {
+            navigateToScene(poi.panoramaId);
+            // Wait for scene to load, then edit
+            setTimeout(() => {
+              poiComponentRef.current?.editPOI(poi);
+            }, 1500);
+          } else {
+            // Already in the correct scene, edit immediately
+            poiComponentRef.current?.editPOI(poi);
+          }
+        }}
+        onPOIDelete={async (poiId) => {
+          // Extract the actual ID string from the parameter
+          const actualPoiId = typeof poiId === 'string' ? poiId : poiId.id;
+          
+          // Fetch POI data to determine which scene it belongs to
+          try {
+            const response = await fetch(`/api/poi/load?projectId=${encodeURIComponent(projectId || '')}`);
+            if (response.ok) {
+              const data = await response.json();
+              const poiToDelete = data.pois?.find((poi: any) => poi.id === actualPoiId);
+              
+              if (poiToDelete) {
+                // Navigate to the POI's scene first if needed
+                if (poiToDelete.panoramaId !== state.currentScene) {
+                  navigateToScene(poiToDelete.panoramaId);
+                  // Wait for scene to load, then delete
+                  setTimeout(() => {
+                    poiComponentRef.current?.deletePOI(actualPoiId);
+                    fetchPOISceneCounts();
+                  }, 1500);
+                } else {
+                  // Already in the correct scene, delete immediately
+                  poiComponentRef.current?.deletePOI(actualPoiId);
+                  fetchPOISceneCounts();
+                }
+              } else {
+                // POI not found, just try to delete it anyway
+                poiComponentRef.current?.deletePOI(actualPoiId);
+                fetchPOISceneCounts();
+              }
+            } else {
+              // Failed to fetch POI data, just try to delete it anyway
+              poiComponentRef.current?.deletePOI(actualPoiId);
+              fetchPOISceneCounts();
+            }
+          } catch (error) {
+            console.error('Error fetching POI data for deletion:', error);
+            // Fallback: just try to delete it anyway
+            poiComponentRef.current?.deletePOI(actualPoiId);
+            fetchPOISceneCounts();
+          }
+        }}
+        onPOINavigate={navigateToScene}
         onClosePanels={handleClosePanels}
       />
 
@@ -173,6 +242,7 @@ export default function PanoramaViewer({
             />
 
             <POIComponent
+              ref={poiComponentRef}
               projectId={projectId || 'default'}
               currentPanoramaId={state.currentScene}
               viewerSize={{ width: 800, height: 600 }} // You may want to get actual viewer size
@@ -207,7 +277,6 @@ export default function PanoramaViewer({
           fontWeight: '500',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
         }}
-
       />
     </>
   );

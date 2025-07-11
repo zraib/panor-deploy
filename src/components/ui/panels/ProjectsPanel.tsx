@@ -65,7 +65,7 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
         </div>
         <span className={styles.text}>Projects</span>
       </div>
-      <div className={styles.content}>
+      <div className={styles.projectsContent}>
         {/* Create Project Button */}
         <button
           className={styles.actionButton}
@@ -137,7 +137,7 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
             No projects yet
           </div>
         ) : (
-          <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {projects.map((project: Project) => (
               <div
                 key={project.id}
@@ -216,21 +216,39 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
                       window.location.href = `/upload?project=${encodeURIComponent(project.id)}`;
                     }}
                     style={{
-                      padding: '4px 6px',
-                      background: 'rgba(76, 175, 80, 0.8)',
+                      background: 'rgba(255, 255, 255, 0.1)',
                       border: 'none',
                       borderRadius: '4px',
-                      color: 'white',
-                      fontSize: '11px',
+                      padding: '4px',
                       cursor: 'pointer',
-                      textDecoration: 'none',
+                      color: 'rgba(255, 255, 255, 0.7)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                     title='Edit project'
                   >
-                    ✏️
+                    <svg
+                      width='12'
+                      height='12'
+                      viewBox='0 0 24 24'
+                      fill='none'
+                    >
+                      <path
+                        d='M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13'
+                        stroke='currentColor'
+                        strokeWidth='2'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      />
+                      <path
+                        d='M18.5 2.50023C18.8978 2.1024 19.4374 1.87891 20 1.87891C20.5626 1.87891 21.1022 2.1024 21.5 2.50023C21.8978 2.89805 22.1213 3.43762 22.1213 4.00023C22.1213 4.56284 21.8978 5.1024 21.5 5.50023L12 15.0002L8 16.0002L9 12.0002L18.5 2.50023Z'
+                        stroke='currentColor'
+                        strokeWidth='2'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      />
+                    </svg>
                   </button>
                   <button
                     onClick={e => {
@@ -239,18 +257,44 @@ export function ProjectsPanel({ onPanelClose }: ProjectsPanelProps) {
                     }}
                     disabled={deleting === project.id}
                     style={{
-                      padding: '4px 6px',
-                      background: 'rgba(244, 67, 54, 0.8)',
+                      background: 'rgba(255, 107, 107, 0.2)',
                       border: 'none',
                       borderRadius: '4px',
-                      color: 'white',
-                      fontSize: '11px',
+                      padding: '4px',
                       cursor: deleting === project.id ? 'not-allowed' : 'pointer',
+                      color: '#ff6b6b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       opacity: deleting === project.id ? 0.5 : 1,
                     }}
                     title='Delete project'
                   >
-                    {deleting === project.id ? '...' : '🗑️'}
+                    {deleting === project.id ? (
+                      <div style={{ width: '12px', height: '12px', fontSize: '10px' }}>...</div>
+                    ) : (
+                      <svg
+                        width='12'
+                        height='12'
+                        viewBox='0 0 24 24'
+                        fill='none'
+                      >
+                        <path
+                          d='M3 6H5H21'
+                          stroke='currentColor'
+                          strokeWidth='2'
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                        />
+                        <path
+                          d='M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z'
+                          stroke='currentColor'
+                          strokeWidth='2'
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                        />
+                      </svg>
+                    )}
                   </button>
                 </div>
               </div>

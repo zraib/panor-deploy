@@ -66,3 +66,30 @@ export function PerformanceIcon({ width = 16, height = 16, color = 'white' }: Ic
     </svg>
   );
 }
+
+export function POIIcon({ width = 16, height = 16, color = 'white' }: IconProps) {
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox='0 0 24 24'
+      fill='none'
+      xmlns='http://www.w3.org/2000/svg'
+    >
+      <path
+        d='M21 10C21 17 12 23 12 23S3 17 3 10C3 5.03 7.03 1 12 1S21 5.03 21 10Z'
+        stroke={color}
+        strokeWidth='2'
+        fill='none'
+      />
+      <circle
+        cx='12'
+        cy='10'
+        r='3'
+        stroke={color}
+        strokeWidth='2'
+        fill='none'
+      />
+    </svg>
+  );
+}

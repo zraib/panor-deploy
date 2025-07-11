@@ -54,6 +54,28 @@ const getPOIIcon = (poi: POIData): React.ReactElement => {
       case 'gif':
       case 'bmp':
       case 'webp':
+      case 'svg':
+      case 'tiff':
+      case 'tif':
+      case 'ico':
+      case 'heic':
+      case 'heif':
+      case 'avif':
+      case 'jfif':
+      case 'pjpeg':
+      case 'pjp':
+      case 'apng':
+      case 'raw':
+      case 'cr2':
+      case 'nef':
+      case 'arw':
+      case 'dng':
+      case 'orf':
+      case 'rw2':
+      case 'pef':
+      case 'sr2':
+      case 'raf':
+      case 'x3f':
         return <FaImage {...iconProps} />;
 
       case 'pdf':
@@ -67,14 +89,22 @@ const getPOIIcon = (poi: POIData): React.ReactElement => {
   return <FaMapPin {...iconProps} />; // Default fallback
 };
 
-const POIComponent: React.FC<POIComponentProps> = ({
-  projectId,
-  currentPanoramaId,
-  viewerSize,
-  viewerRef,
-  panoRef,
-  onPOICreated
-}) => {
+export interface POIComponentRef {
+  editPOI: (poi: POIData) => void;
+  deletePOI: (poiId: string) => void;
+}
+
+const POIComponent = React.forwardRef<POIComponentRef, POIComponentProps>((
+  {
+    projectId,
+    currentPanoramaId,
+    viewerSize,
+    viewerRef,
+    panoRef,
+    onPOICreated
+  },
+  ref
+) => {
   const [pois, setPois] = useState<POIData[]>([]);
   const [pendingPOI, setPendingPOI] = useState<POIPosition | null>(null);
   const [showContextMenu, setShowContextMenu] = useState(false);
@@ -616,6 +646,12 @@ const POIComponent: React.FC<POIComponentProps> = ({
     }
   }, [currentPanoramaId, pois, createPOIHotspots, clearPOIHotspots]);
 
+  // Expose methods through ref
+  React.useImperativeHandle(ref, () => ({
+    editPOI: handleEditPOI,
+    deletePOI: handleDeletePOI,
+  }), []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -663,6 +699,8 @@ const POIComponent: React.FC<POIComponentProps> = ({
       )}
     </>
   );
-};
+});
+
+POIComponent.displayName = 'POIComponent';
 
 export default POIComponent;

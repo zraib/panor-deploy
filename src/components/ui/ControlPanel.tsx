@@ -4,8 +4,9 @@ import React, { ReactElement, useEffect } from 'react';
 import styles from './ControlPanel.module.css';
 import { SceneData } from '@/types/scenes';
 import { ControlButton } from './ControlButton';
-import { ProjectsPanel, FloorSelectorPanel, PerformanceMonitorPanel } from './panels';
-import { ProjectsIcon, FloorsIcon, PerformanceIcon } from './icons';
+import { ProjectsPanel, FloorSelectorPanel, PerformanceMonitorPanel, POIManagementPanelWithModal } from './panels';
+import { ProjectsIcon, FloorsIcon, PerformanceIcon, POIIcon } from './icons';
+import { POIData } from '@/types/poi';
 import { usePanelState } from '../../hooks/usePanelState';
 
 interface PerformanceStats {
@@ -25,6 +26,13 @@ interface ControlPanelProps {
   totalScenes?: number;
   onOptimize?: () => void;
   
+  // POI Management props
+  projectId?: string;
+  currentPanoramaId?: string | null;
+  onPOIEdit?: (poi: POIData) => void;
+  onPOIDelete?: (poiId: string | POIData) => void;
+  onPOINavigate?: (panoramaId: string) => void;
+  
   // Panel control props
   onClosePanels?: (closePanelsFunc: () => void) => void;
 }
@@ -36,6 +44,11 @@ export default function ControlPanel({
   performanceStats,
   totalScenes = 0,
   onOptimize,
+  projectId,
+  currentPanoramaId,
+  onPOIEdit,
+  onPOIDelete,
+  onPOINavigate,
   onClosePanels,
 }: ControlPanelProps): ReactElement {
   const {
@@ -82,6 +95,27 @@ export default function ControlPanel({
             currentScene={currentScene}
             onFloorChange={onFloorChange}
             onPanelClose={closePanels}
+          />
+        </ControlButton>
+      )}
+
+      {/* POI Management Panel */}
+      {projectId && currentPanoramaId && (
+        <ControlButton
+          id='poi'
+          expandedPanel={expandedPanel}
+          onToggle={handlePanelToggle}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          icon={<POIIcon />}
+        >
+          <POIManagementPanelWithModal
+            projectId={projectId}
+            currentPanoramaId={currentPanoramaId}
+            onPanelClose={closePanels}
+            onPOIEdit={onPOIEdit}
+            onPOIDelete={onPOIDelete}
+            onPOINavigate={onPOINavigate}
           />
         </ControlButton>
       )}

@@ -205,10 +205,19 @@ export default function Home(): ReactElement {
                 : 'Experience immersive 360° panoramic tours of your spaces.'}
             </p>
 
-            <Link href='/upload' className={styles.uploadButton}>
-              <span className={styles.uploadIcon}>📁</span>
-              {hasProjects ? 'Upload to New Project' : 'Create First Project'}
-            </Link>
+            <div className={styles.actionButtons}>
+              <Link href='/upload' className={styles.uploadButton}>
+                <span className={styles.uploadIcon}>📁</span>
+                {hasProjects ? 'Upload to New Project' : 'Create First Project'}
+              </Link>
+              
+              {hasProjects && (
+                <Link href='/poi-management' className={styles.poiButton}>
+                  <span className={styles.uploadIcon}>📍</span>
+                  Manage POIs
+                </Link>
+              )}
+            </div>
 
             <div className={styles.supportInfo}>
               Supported formats: JPG, PNG • CSV file with poses required
