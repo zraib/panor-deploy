@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import styles from '@/styles/Upload.module.css';
 import { POIData } from '@/types/poi';
+import POIFileManager, { exportPOI } from '@/components/poi/POIFileManager';
 
 interface Project {
   id: string;
@@ -33,6 +34,8 @@ export default function POIManagement() {
     {}
   );
   const [deletingPOI, setDeletingPOI] = useState<string | null>(null);
+  const [useIndividualFiles, setUseIndividualFiles] = useState(false);
+  const [fileManagerMessage, setFileManagerMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     // Capture referrer information
@@ -69,11 +72,13 @@ export default function POIManagement() {
       const allProjectPOIs: ProjectPOIs[] = [];
       for (const project of projectsData.projects || []) {
         try {
-          const poisResponse = await fetch(
-            `/api/poi/load?projectId=${encodeURIComponent(project.id)}`
+          // Try loading from individual files first
+          const individualResponse = await fetch(
+            `/api/poi/load-individual?projectId=${encodeURIComponent(project.id)}&useIndividual=${useIndividualFiles}`
           );
-          if (poisResponse.ok) {
-            const poisData = await poisResponse.json();
+          
+          if (individualResponse.ok) {
+            const poisData = await individualResponse.json();
             if (poisData.pois && poisData.pois.length > 0) {
               allProjectPOIs.push({
                 projectId: project.id,
@@ -81,6 +86,23 @@ export default function POIManagement() {
                 pois: poisData.pois,
                 sceneCount: project.sceneCount,
               });
+              setUseIndividualFiles(poisData.source === 'individual');
+            }
+          } else {
+            // Fallback to main file
+            const poisResponse = await fetch(
+              `/api/poi/load?projectId=${encodeURIComponent(project.id)}`
+            );
+            if (poisResponse.ok) {
+              const poisData = await poisResponse.json();
+              if (poisData.pois && poisData.pois.length > 0) {
+                allProjectPOIs.push({
+                  projectId: project.id,
+                  projectName: project.name,
+                  pois: poisData.pois,
+                  sceneCount: project.sceneCount,
+                });
+              }
             }
           }
         } catch (error) {
@@ -120,7 +142,7 @@ export default function POIManagement() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ projectId, poiId }),
+        body: JSON.stringify({ projectId, poiId, useIndividual: useIndividualFiles }),
       });
 
       if (!response.ok) {
@@ -143,6 +165,60 @@ export default function POIManagement() {
       ...prev,
       [projectId]: !prev[projectId],
     }));
+  };
+
+  const handlePOIImported = (poi: POIData) => {
+    // Refresh the POI data after import
+    loadProjectsAndPOIs();
+  };
+
+  const handleExportPOI = async (poi: POIData, projectId: string) => {
+    try {
+      await exportPOI(projectId, poi.id, poi.name);
+      setFileManagerMessage({ type: 'success', text: `POI "${poi.name}" exported successfully` });
+    } catch (error) {
+      setFileManagerMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to export POI' 
+      });
+    }
+  };
+
+  const handleFileManagerMessage = (type: 'success' | 'error', text: string) => {
+    setFileManagerMessage({ type, text });
+    setTimeout(() => setFileManagerMessage(null), 5000);
+  };
+
+  const handleExportAllPOIs = async (projectId: string, projectName: string) => {
+    try {
+      const response = await fetch(`/api/poi/export-all?projectId=${encodeURIComponent(projectId)}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to export POIs');
+      }
+
+      // Create download link
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${projectId}-all-pois-export.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setFileManagerMessage({ 
+        type: 'success', 
+        text: `All POIs from "${projectName}" exported successfully` 
+      });
+    } catch (error) {
+      setFileManagerMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to export all POIs' 
+      });
+    }
   };
 
   const filteredProjectPOIs = projectPOIs.filter(project => {
@@ -214,6 +290,28 @@ export default function POIManagement() {
           </button>
           <h1 className={styles.title}>POI Management</h1>
         </div>
+
+        {fileManagerMessage && (
+          <div
+            className={`${styles.message} ${
+              fileManagerMessage.type === 'error'
+                ? styles.messageError
+                : styles.messageSuccess
+            }`}
+          >
+            {fileManagerMessage.text}
+          </div>
+        )}
+
+        {/* POI File Manager */}
+        {selectedProject !== 'all' && (
+          <POIFileManager
+            projectId={selectedProject}
+            onPOIImported={handlePOIImported}
+            onError={(error) => handleFileManagerMessage('error', error)}
+            onSuccess={(message) => handleFileManagerMessage('success', message)}
+          />
+        )}
 
         <div className={styles.form}>
           <div className={styles.label}>Point of Interest Management</div>
@@ -405,6 +503,23 @@ export default function POIManagement() {
                 <div
                   style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
                 >
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleExportAllPOIs(project.projectId, project.projectName);
+                    }}
+                    className={styles.backLink}
+                    style={{ 
+                      fontSize: '0.85rem', 
+                      padding: '6px 12px',
+                      background: 'rgba(34, 197, 94, 0.2)',
+                      borderColor: 'rgba(34, 197, 94, 0.4)',
+                      color: '#22c55e'
+                    }}
+                    title={`Export all ${project.pois.length} POIs from this project`}
+                  >
+                    📦 Export All
+                  </button>
                   <Link
                     href={`/${project.projectId}`}
                     className={styles.backLink}
@@ -520,86 +635,111 @@ export default function POIManagement() {
                           </div>
                         </div>
                         <div
-                          style={{
-                            display: 'flex',
-                            gap: '12px',
-                            marginLeft: '16px',
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          <Link
-                            href={`/${project.projectId}?scene=${poi.panoramaId}`}
-                            className={styles.backLink}
                             style={{
-                              fontSize: '0.9rem',
-                              padding: '10px 18px',
-                              borderRadius: '8px',
-                              transition: 'all 0.2s ease',
-                              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
-                            }}
-                            onMouseEnter={e => {
-                              e.currentTarget.style.transform =
-                                'translateY(-1px)';
-                              e.currentTarget.style.boxShadow =
-                                '0 4px 12px rgba(16, 185, 129, 0.4)';
-                            }}
-                            onMouseLeave={e => {
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow =
-                                '0 2px 6px rgba(16, 185, 129, 0.3)';
+                              display: 'flex',
+                              gap: '12px',
+                              marginLeft: '16px',
+                              flexWrap: 'wrap',
                             }}
                           >
-                            👁️ View
-                          </Link>
-                          <button
-                            onClick={() =>
-                              handleDeletePOI(project.projectId, poi.id)
-                            }
-                            disabled={deletingPOI === poi.id}
-                            style={{
-                              background:
-                                deletingPOI === poi.id
-                                  ? 'rgba(107, 114, 128, 0.5)'
-                                  : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                              color: 'white',
-                              border: 'none',
-                              padding: '10px 18px',
-                              borderRadius: '8px',
-                              fontSize: '0.9rem',
-                              fontWeight: '600',
-                              cursor:
-                                deletingPOI === poi.id
-                                  ? 'not-allowed'
-                                  : 'pointer',
-                              opacity: deletingPOI === poi.id ? 0.6 : 1,
-                              transition: 'all 0.2s ease',
-                              boxShadow:
-                                deletingPOI === poi.id
-                                  ? 'none'
-                                  : '0 2px 6px rgba(239, 68, 68, 0.3)',
-                            }}
-                            onMouseEnter={e => {
-                              if (deletingPOI !== poi.id) {
+                            <Link
+                              href={`/${project.projectId}?scene=${poi.panoramaId}`}
+                              className={styles.backLink}
+                              style={{
+                                fontSize: '0.9rem',
+                                padding: '10px 18px',
+                                borderRadius: '8px',
+                                transition: 'all 0.2s ease',
+                                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
+                              }}
+                              onMouseEnter={e => {
                                 e.currentTarget.style.transform =
                                   'translateY(-1px)';
                                 e.currentTarget.style.boxShadow =
-                                  '0 4px 12px rgba(239, 68, 68, 0.4)';
-                              }
-                            }}
-                            onMouseLeave={e => {
-                              if (deletingPOI !== poi.id) {
-                                e.currentTarget.style.transform =
-                                  'translateY(0)';
+                                  '0 4px 12px rgba(16, 185, 129, 0.4)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'translateY(0)';
                                 e.currentTarget.style.boxShadow =
-                                  '0 2px 6px rgba(239, 68, 68, 0.3)';
+                                  '0 2px 6px rgba(16, 185, 129, 0.3)';
+                              }}
+                            >
+                              👁️ View
+                            </Link>
+                            <button
+                              onClick={() => handleExportPOI(poi, project.projectId)}
+                              style={{
+                                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                                color: 'white',
+                                border: 'none',
+                                padding: '10px 18px',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 2px 6px rgba(59, 130, 246, 0.3)';
+                              }}
+                            >
+                              📤 Export
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleDeletePOI(project.projectId, poi.id)
                               }
-                            }}
-                          >
-                            {deletingPOI === poi.id
-                              ? '⏳ Deleting...'
-                              : '🗑️ Delete'}
-                          </button>
-                        </div>
+                              disabled={deletingPOI === poi.id}
+                              style={{
+                                background:
+                                  deletingPOI === poi.id
+                                    ? 'rgba(107, 114, 128, 0.5)'
+                                    : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                                color: 'white',
+                                border: 'none',
+                                padding: '10px 18px',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem',
+                                fontWeight: '600',
+                                cursor:
+                                  deletingPOI === poi.id
+                                    ? 'not-allowed'
+                                    : 'pointer',
+                                opacity: deletingPOI === poi.id ? 0.6 : 1,
+                                transition: 'all 0.2s ease',
+                                boxShadow:
+                                  deletingPOI === poi.id
+                                    ? 'none'
+                                    : '0 2px 6px rgba(239, 68, 68, 0.3)',
+                              }}
+                              onMouseEnter={e => {
+                                if (deletingPOI !== poi.id) {
+                                  e.currentTarget.style.transform =
+                                    'translateY(-1px)';
+                                  e.currentTarget.style.boxShadow =
+                                    '0 4px 12px rgba(239, 68, 68, 0.4)';
+                                }
+                              }}
+                              onMouseLeave={e => {
+                                if (deletingPOI !== poi.id) {
+                                  e.currentTarget.style.transform =
+                                    'translateY(0)';
+                                  e.currentTarget.style.boxShadow =
+                                    '0 2px 6px rgba(239, 68, 68, 0.3)';
+                                }
+                              }}
+                            >
+                              {deletingPOI === poi.id
+                                ? '⏳ Deleting...'
+                                : '🗑️ Delete'}
+                            </button>
+                          </div>
                       </div>
                     </div>
                   ))}

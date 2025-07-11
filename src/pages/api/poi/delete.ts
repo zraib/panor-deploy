@@ -8,8 +8,10 @@ function getProjectPOIPath(projectId: string) {
   const dataDir = path.join(process.cwd(), 'public', projectId, 'data', 'poi');
   const dataFile = path.join(dataDir, 'poi-data.json');
   const attachmentsDir = path.join(dataDir, 'attachments');
+  const individualDir = path.join(dataDir, 'individual');
+  const filesDir = path.join(dataDir, 'files');
   
-  return { dataDir, dataFile, attachmentsDir };
+  return { dataDir, dataFile, attachmentsDir, individualDir, filesDir };
 }
 
 // Helper function to delete associated file if it exists
@@ -38,63 +40,88 @@ export default async function handler(
   }
 
   try {
-    const { projectId, poiId } = req.body;
+    const projectId = Array.isArray(req.query.projectId) 
+      ? req.query.projectId[0] 
+      : req.query.projectId;
+    const id = Array.isArray(req.query.id) 
+      ? req.query.id[0] 
+      : req.query.id;
+    const useIndividual = Array.isArray(req.query.useIndividual) 
+      ? req.query.useIndividual[0] 
+      : req.query.useIndividual;
 
-    // Validate required fields
-    console.log('POI Delete API - Received data:', { projectId, poiId });
-    
-    if (!projectId) {
-      console.log('Missing projectId');
-      return res.status(400).json({ error: 'Missing projectId' });
+    if (!projectId || !id) {
+      return res.status(400).json({ error: 'Missing projectId or POI id' });
     }
-    if (!poiId) {
-      console.log('Missing poiId');
-      return res.status(400).json({ error: 'Missing poiId' });
-    }
 
-    const { dataFile } = getProjectPOIPath(projectId);
+    const { dataFile, individualDir, filesDir } = getProjectPOIPath(projectId);
+    let deletedPOI: POIData | null = null;
 
-    // Read existing POI data
-    let existingPOIs: POIData[] = [];
-    if (fs.existsSync(dataFile)) {
-      try {
-        const fileContent = fs.readFileSync(dataFile, 'utf8');
-        const parsedData = JSON.parse(fileContent);
-        existingPOIs = Array.isArray(parsedData) ? parsedData : [];
-      } catch (parseError) {
-        console.error('Error parsing existing POI data:', parseError);
-        return res.status(500).json({ error: 'Failed to parse existing POI data' });
+    // If using individual files, delete individual POI file
+    if (useIndividual === 'true') {
+      const individualFile = path.join(individualDir, `${id}.json`);
+      
+      if (fs.existsSync(individualFile)) {
+        // Read POI data before deletion
+        const fileContent = fs.readFileSync(individualFile, 'utf-8');
+        deletedPOI = JSON.parse(fileContent);
+        
+        // Delete individual POI file
+        fs.unlinkSync(individualFile);
+        
+        // Delete associated files if they exist
+        if (deletedPOI && deletedPOI.type === 'file' && deletedPOI.content) {
+          const attachmentPath = path.join(filesDir, deletedPOI.content);
+          if (fs.existsSync(attachmentPath)) {
+            fs.unlinkSync(attachmentPath);
+          }
+        }
+        
+        // Update POI index
+        const indexFile = path.join(individualDir, 'poi-index.json');
+        if (fs.existsSync(indexFile)) {
+          const indexContent = fs.readFileSync(indexFile, 'utf-8');
+          const index = JSON.parse(indexContent);
+          index.pois = index.pois.filter((poiId: string) => poiId !== id);
+          index.lastUpdated = new Date().toISOString();
+          fs.writeFileSync(indexFile, JSON.stringify(index, null, 2));
+        }
       }
     }
 
-    // Find the POI to delete
-    const poiToDelete = existingPOIs.find(poi => poi.id === poiId);
-    if (!poiToDelete) {
+    // Also remove from main file for backward compatibility
+    if (fs.existsSync(dataFile)) {
+      const fileContent = fs.readFileSync(dataFile, 'utf-8');
+      const existingPOIs: POIData[] = JSON.parse(fileContent);
+
+      // Find POI to delete
+      const poiIndex = existingPOIs.findIndex(poi => poi.id === id);
+      if (poiIndex >= 0) {
+        if (!deletedPOI) {
+          deletedPOI = existingPOIs[poiIndex];
+        }
+        
+        // Remove POI
+        existingPOIs.splice(poiIndex, 1);
+
+        // Write back to file
+        fs.writeFileSync(dataFile, JSON.stringify(existingPOIs, null, 2));
+      }
+    }
+
+    if (!deletedPOI) {
       return res.status(404).json({ error: 'POI not found' });
     }
 
-    // Delete associated file if it exists
-    deleteAssociatedFile(projectId, poiToDelete);
+    // TypeScript assertion: deletedPOI is guaranteed to be non-null here
+    const confirmedDeletedPOI: POIData = deletedPOI;
 
-    // Remove the POI from the array
-    const updatedPOIs = existingPOIs.filter(poi => poi.id !== poiId);
-
-    // Write updated data back to file
-    try {
-      fs.writeFileSync(dataFile, JSON.stringify(updatedPOIs, null, 2));
-      console.log('POI deleted successfully:', poiId);
-      
-      return res.status(200).json({ 
-        message: 'POI deleted successfully', 
-        deletedPOI: poiToDelete 
-      });
-    } catch (writeError) {
-      console.error('Error writing POI data:', writeError);
-      return res.status(500).json({ error: 'Failed to save POI data' });
-    }
-
+    res.status(200).json({
+      success: true,
+      deletedPOI: confirmedDeletedPOI
+    });
   } catch (error) {
-    console.error('POI Delete API Error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Error deleting POI:', error);
+    res.status(500).json({ error: 'Failed to delete POI' });
   }
 }

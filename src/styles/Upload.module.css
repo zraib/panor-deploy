@@ -198,16 +198,72 @@
 .existingFileInfo {
   margin-bottom: 12px;
   padding: 12px;
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: 8px;
-  color: #10b981;
-  font-size: 14px;
-  font-weight: 500;
+}
+
+/* POI Import Section */
+.poiImportSection {
+  margin-top: 24px;
+  padding: 24px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
+  border-left: 4px solid #3b82f6;
+}
+
+.sectionTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #e2e8f0;
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
+.poiImportControls {
+  margin-top: 16px;
+}
+
+.poiImportButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  margin-top: 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.poiImportButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.poiImportButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.messageInfo {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  border-left: 4px solid #3b82f6;
+}
+
+
 
 /* Enhanced Error and Validation Styles */
 .errorHeader {
@@ -1219,4 +1275,269 @@
   100% {
     transform: scale(1);
   }
+}
+
+/* POI File Manager Styles */
+.poiFileManager {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.poiFileManager .section {
+  margin-bottom: 24px;
+}
+
+.poiFileManager .section:last-child {
+  margin-bottom: 0;
+}
+
+.poiFileManager h3 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.poiFileManager h4 {
+  margin: 0 0 12px 0;
+  color: #444;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.poiFileManager h5 {
+  margin: 0 0 8px 0;
+  color: #555;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.poiFileManager p {
+  margin: 0 0 12px 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+.importOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.checkbox input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.dropZone {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #fafafa;
+}
+
+.dropZone:hover {
+  border-color: #007bff;
+  background: #f0f8ff;
+}
+
+.dropZone.dragActive {
+  border-color: #007bff;
+  background: #e3f2fd;
+  transform: scale(1.02);
+}
+
+.dropContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.uploadIcon {
+  font-size: 3rem;
+  opacity: 0.6;
+}
+
+.supportedFormats {
+  font-size: 0.85rem;
+  color: #888;
+  margin: 0;
+}
+
+.importing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.exportInfo {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+}
+
+.exportInfo ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.exportInfo li {
+  margin-bottom: 4px;
+  color: #555;
+}
+
+.exportInfo strong {
+  color: #333;
+}
+
+/* Export button styles for POI tables */
+.exportButton {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s;
+}
+
+.exportButton:hover {
+  background: #218838;
+}
+
+.exportButton:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Individual POI file indicator */
+.individualFileIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #007bff;
+  background: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+}
+
+/* Main file indicator */
+.mainFileIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #6c757d;
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+}
+
+/* Section header with file system info */
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.fileSystemInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.migrateButton {
+  background: #17a2b8;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s;
+}
+
+.migrateButton:hover {
+  background: #138496;
+}
+
+.migrateButton:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Message styles */
+.message {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  border-left: 4px solid;
+}
+
+.messageSuccess {
+  background: #d4edda;
+  color: #155724;
+  border-left-color: #28a745;
+}
+
+.messageError {
+  background: #f8d7da;
+  color: #721c24;
+  border-left-color: #dc3545;
+}
+
+/* POI table actions column */
+.poiActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.poiTable .tableHeader > div:last-child,
+.poiTable .tableRow > div:last-child {
+  min-width: 100px;
 }

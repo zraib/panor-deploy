@@ -25,10 +25,10 @@ export default async function handler(
   }
 
   try {
-    const { projectId, ...newPOI }: POIData & { projectId: string } = req.body;
+    const { projectId, useIndividual, ...newPOI }: POIData & { projectId: string; useIndividual?: boolean } = req.body;
 
     // Validate required fields
-    console.log('POI Save API - Received data:', { projectId, newPOI });
+    console.log('POI Save API - Received data:', { projectId, newPOI, useIndividual });
     
     if (!projectId) {
       console.log('Missing projectId');
@@ -72,7 +72,32 @@ export default async function handler(
       return res.status(400).json({ error: 'Invalid POI type' });
     }
 
-    // Get project-specific paths
+    // Add timestamps
+    const poiWithTimestamps = {
+      ...newPOI,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    // If using individual files, delegate to save-individual endpoint
+    if (useIndividual) {
+      const saveIndividualResponse = await fetch(`${req.headers.origin || 'http://localhost:3000'}/api/poi/save-individual`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ projectId, ...poiWithTimestamps })
+      });
+      
+      if (saveIndividualResponse.ok) {
+        const result = await saveIndividualResponse.json();
+        return res.status(201).json(result);
+      } else {
+        throw new Error('Failed to save individual POI file');
+      }
+    }
+
+    // Legacy: Save to single poi-data.json file
     const { dataFile } = getProjectPOIPath(projectId);
 
     // Read existing POIs
@@ -89,19 +114,19 @@ export default async function handler(
     }
 
     // Check for duplicate ID
-    if (existingPOIs.some(poi => poi.id === newPOI.id)) {
+    if (existingPOIs.some(poi => poi.id === poiWithTimestamps.id)) {
       return res.status(409).json({ error: 'POI with this ID already exists' });
     }
 
     // Add new POI
-    existingPOIs.push(newPOI);
+    existingPOIs.push(poiWithTimestamps);
 
     // Write back to file
     fs.writeFileSync(dataFile, JSON.stringify(existingPOIs, null, 2), 'utf8');
 
     res.status(201).json({
       success: true,
-      poi: newPOI
+      poi: poiWithTimestamps
     });
   } catch (error) {
     console.error('Save POI error:', error);
