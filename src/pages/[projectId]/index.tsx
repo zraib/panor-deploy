@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { ReactElement, useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from '@/styles/Welcome.module.css';
+import Logo from '@/components/ui/Logo';
 // ProjectManager moved to PanoramaViewer component
 
 // Dynamically import PanoramaViewer to avoid SSR issues with Marzipano
@@ -130,13 +131,7 @@ export default function ProjectViewer(): ReactElement {
   if (error) {
     return (
       <div className={styles.container}>
-        <div className={styles.logoContainer}>
-          <img
-            src='/assets/svg/primezone-logo.svg'
-            alt='PrimeZone Logo'
-            className={styles.logo}
-          />
-        </div>
+        <Logo variant="default" position="absolute" />
 
         <div className={styles.content}>
           <div className={styles.icon}>❌</div>

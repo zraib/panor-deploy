@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import styles from '@/styles/Upload.module.css';
 import poiStyles from '@/styles/POIManagement.module.css';
+import Logo from '@/components/ui/Logo';
 import { POIData } from '@/types/poi';
 import POIFileManager, { exportPOI } from '@/components/poi/POIFileManager';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
@@ -278,13 +279,7 @@ export default function POIManagement() {
   return (
     <div className={styles.container}>
       {/* Logo */}
-      <div className={styles.logoContainer}>
-        <img
-          src='/assets/svg/primezone-logo.svg'
-          alt='PrimeZone Logo'
-          className={styles.logo}
-        />
-      </div>
+      <Logo variant="default" position="absolute" />
 
       <div className={styles.content}>
         <div className={styles.header}>

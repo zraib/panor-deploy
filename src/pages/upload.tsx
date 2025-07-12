@@ -2,6 +2,7 @@ import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import styles from '@/styles/Upload.module.css';
+import Logo from '@/components/ui/Logo';
 
 export default function Upload() {
   const router = useRouter();
@@ -696,13 +697,7 @@ export default function Upload() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.logoContainer}>
-        <img
-          src='/assets/svg/primezone-logo.svg'
-          alt='PrimeZone Logo'
-          className={styles.logo}
-        />
-      </div>
+      <Logo variant="default" position="absolute" />
       <div className={styles.content}>
         <div className={styles.header}>
           <button

@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { ReactElement, useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from '@/styles/Welcome.module.css';
+import Logo from '@/components/ui/Logo';
 
 // Dynamically import PanoramaViewer to avoid SSR issues with Marzipano
 const PanoramaViewer = dynamic(() => import('@/components/viewer/PanoramaViewer'), {
@@ -134,13 +135,7 @@ export default function SceneViewer(): ReactElement {
   if (error) {
     return (
       <div className={styles.container}>
-        <div className={styles.logoContainer}>
-          <img
-            src='/assets/svg/primezone-logo.svg'
-            alt='PrimeZone Logo'
-            className={styles.logo}
-          />
-        </div>
+        <Logo variant="default" position="absolute" />
 
         <div className={styles.content}>
           <div className={styles.icon}>❌</div>
@@ -182,31 +177,7 @@ export default function SceneViewer(): ReactElement {
     return (
       <div>
         {/* Logo */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '20px',
-            left: '20px',
-            zIndex: 1100,
-            background: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            padding: '10px 10px',
-            borderRadius: '14px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
-            marginBottom: '10px',
-          }}
-        >
-          <img
-            src='/assets/svg/primezone-logo.svg'
-            alt='PrimeZone Logo'
-            style={{
-              height: '60px',
-              width: 'auto',
-              display: 'block',
-            }}
-          />
-        </div>
+        <Logo variant="default" position="absolute" />
 
         <PanoramaViewer
           projectId={projectId as string}
