@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SceneData } from '@/types/scenes';
 import styles from './MiniMap.module.css';
+import minimapStyles from '@/styles/MiniMap.module.css';
 
 interface MiniMapProps {
   scenes: SceneData[];
@@ -490,41 +491,41 @@ export default function MiniMap({
   const handleHotspotClick = useCallback(
     (sceneId: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      
+
       const now = Date.now();
       const timeSinceLastClick = now - lastClickTime;
-      
+
       // Prevent rapid clicking (debounce with 200ms)
-       if (timeSinceLastClick < 200) {
-         console.log('Hotspot click ignored: too rapid');
-         return;
-       }
-      
+      if (timeSinceLastClick < 200) {
+        console.log('Hotspot click ignored: too rapid');
+        return;
+      }
+
       // Prevent clicking if already navigating
       if (isNavigating) {
         console.log('Hotspot click ignored: navigation in progress');
         return;
       }
-      
+
       // Prevent clicking on current scene
       if (sceneId === currentScene.id) {
         console.log('Hotspot click ignored: already on this scene');
         return;
       }
-      
+
       setLastClickTime(now);
       setIsNavigating(true);
-      
+
       console.log(`MiniMap: Navigating to scene ${sceneId}`);
-      
+
       // Call the scene selection with error handling
       try {
         onSelectScene(sceneId);
-        
+
         // Reset navigation state after a delay
-         setTimeout(() => {
-           setIsNavigating(false);
-         }, 1200); // Reduced timeout to match scene transition
+        setTimeout(() => {
+          setIsNavigating(false);
+        }, 1200); // Reduced timeout to match scene transition
       } catch (error) {
         console.error('Scene selection failed:', error);
         setIsNavigating(false);
@@ -564,31 +565,16 @@ export default function MiniMap({
   return (
     <div
       ref={miniMapRef}
-      className={[
-        styles.minimap,
-        isDragging && styles.dragging,
-        isPanning && styles.panning,
-        isMinimized && styles.minimized,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      className={`${styles.minimap} ${minimapStyles.minimap} ${
+        isDragging ? minimapStyles.dragging : ''
+      } ${isHovered ? minimapStyles.hovered : ''} ${
+        isMinimized ? minimapStyles.minimized : ''
+      }`}
       style={{
-        position: 'fixed',
         right: `${position.x}px`,
         bottom: `${position.y}px`,
         width: isMinimized ? '60px' : `${mapSize}px`,
         height: isMinimized ? '60px' : `${mapSize}px`,
-        background: 'rgba(0, 0, 0, 0.8)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        borderRadius: '12px',
-        border: '2px solid rgba(255, 255, 255, 0.2)',
-        zIndex: 1400,
-        cursor: isDragging ? 'grabbing' : 'default',
-        transition: isHovered
-          ? 'width 0.3s ease, height 0.3s ease'
-          : 'width 0.3s ease, height 0.3s ease, transform 0.2s ease',
-        transform: isHovered ? 'scale(1.05)' : 'scale(1)',
       }}
       onMouseDown={handleMouseDown}
       onMouseEnter={() => setIsHovered(true)}
@@ -596,13 +582,9 @@ export default function MiniMap({
     >
       {/* Header with minimize button */}
       <div
-        className={`${styles.minimapHeader} minimap-header`}
-        style={{
-          borderBottom: isMinimized
-            ? 'none'
-            : '1px solid rgba(255, 255, 255, 0.1)',
-          cursor: 'move',
-        }}
+        className={`${styles.minimapHeader} ${minimapStyles.minimapHeader} minimap-header ${
+          isMinimized ? minimapStyles.minimized : minimapStyles.expanded
+        }`}
       >
         {!isMinimized && <span>Floor {currentScene.floor}</span>}
         <button
@@ -617,11 +599,10 @@ export default function MiniMap({
       {!isMinimized && (
         <div
           ref={contentRef}
-          className={`${styles.minimapContent} minimap-content`}
+          className={`${styles.minimapContent} ${minimapStyles.minimapContent} minimap-content ${
+            isPanning ? minimapStyles.panning : ''
+          }`}
           onDoubleClick={handleDoubleClick}
-          style={{
-            cursor: isPanning ? 'grabbing' : 'grab',
-          }}
         >
           {/* Map background grid */}
           <div className={styles.mapGrid} />
@@ -643,22 +624,31 @@ export default function MiniMap({
               <div
                 key={scene.id}
                 onClick={e => handleHotspotClick(scene.id, e)}
-                className={`${styles.sceneHotspot} scene-hotspot ${isCurrentScene ? styles.current : styles.other} ${hasPOIs && !isCurrentScene ? styles.poiPulse : ''}`}
+                className={`${styles.sceneHotspot} ${minimapStyles.sceneHotspot} scene-hotspot ${
+                  isCurrentScene
+                    ? `${styles.current} ${minimapStyles.current}`
+                    : `${styles.other} ${minimapStyles.other}`
+                } ${hasPOIs && !isCurrentScene ? styles.poiPulse : ''} ${
+                  isNavigating ? minimapStyles.navigating : ''
+                }`}
                 style={{
                   left: `${coords.x}%`,
                   top: `${coords.y}%`,
-                  transform: 'translate(-50%, -50%)',
                   visibility: isVisible ? 'visible' : 'hidden',
                   opacity: isVisible ? (isNavigating ? 0.5 : 1) : 0,
-                  transition: 'opacity 0.3s ease, transform 0.2s ease',
-                  zIndex: isCurrentScene ? 10 : 5,
-                  cursor: isNavigating ? 'not-allowed' : 'pointer',
-                  pointerEvents: isNavigating ? 'none' : 'auto',
                 }}
-                title={isNavigating ? 'Navigation in progress...' : `${scene.name} (Floor ${scene.floor})`}
+                title={
+                  isNavigating
+                    ? 'Navigation in progress...'
+                    : `${scene.name} (Floor ${scene.floor})`
+                }
                 tabIndex={isNavigating ? -1 : 0}
                 role='button'
-                aria-label={isNavigating ? 'Navigation in progress' : `Navigate to ${scene.name}`}
+                aria-label={
+                  isNavigating
+                    ? 'Navigation in progress'
+                    : `Navigate to ${scene.name}`
+                }
                 aria-disabled={isNavigating}
                 onKeyDown={e => {
                   if (!isNavigating && (e.key === 'Enter' || e.key === ' ')) {
@@ -672,7 +662,7 @@ export default function MiniMap({
 
           {/* Direction indicator */}
           <div
-            className={styles.directionIndicator}
+            className={`${styles.directionIndicator} ${minimapStyles.directionIndicator}`}
             style={{
               left: `${currentSceneCoords.x}%`,
               top: `${currentSceneCoords.y}%`,
@@ -691,7 +681,6 @@ export default function MiniMap({
                 currentSceneCoords.y < 120
                   ? 1
                   : 0,
-              transition: 'opacity 0.2s ease',
             }}
           >
             <div className={styles.directionArrow} />
@@ -700,17 +689,7 @@ export default function MiniMap({
           {/* Connection lines - only for current scene and visible targets */}
           {currentScene.linkHotspots &&
             currentScene.linkHotspots.length > 0 && (
-              <svg
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  pointerEvents: 'none',
-                  zIndex: 1,
-                }}
-              >
+              <svg className={minimapStyles.connectionLines}>
                 {currentScene.linkHotspots.map((hotspot, index) => {
                   const targetScene = scenes.find(s => s.id === hotspot.target);
                   if (!targetScene || targetScene.floor !== currentScene.floor)
@@ -742,13 +721,11 @@ export default function MiniMap({
                   return (
                     <line
                       key={`${currentScene.id}-${hotspot.target}-${index}`}
+                      className={minimapStyles.connectionLine}
                       x1={`${fromCoords.x}%`}
                       y1={`${fromCoords.y}%`}
                       x2={`${toCoords.x}%`}
                       y2={`${toCoords.y}%`}
-                      stroke='rgba(255, 255, 255, 0.3)'
-                      strokeWidth='1'
-                      opacity='0.6'
                     />
                   );
                 })}
@@ -783,8 +760,6 @@ export default function MiniMap({
           <div className={styles.hotspotCounter}>
             {visibleHotspots.length}/{currentFloorScenes.length}
           </div>
-
-
 
           {/* Scroll hint for better UX */}
           {isHovered && !isNavigating && (

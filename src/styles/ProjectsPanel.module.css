@@ -1,0 +1,139 @@
+/* Projects Panel Styles */
+
+.createButton {
+  margin-bottom: var(--spacing-xl);
+}
+
+.errorContainer {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--red-light);
+  border: 1px solid var(--red-medium);
+  border-radius: var(--radius-md);
+  color: var(--red-error-text);
+  font-size: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.retryButton {
+  margin-left: var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--bg-overlay-strong);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--white);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.loadingContainer {
+  padding: var(--spacing-lg);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.emptyContainer {
+  padding: var(--spacing-lg);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.projectsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.projectItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  background: var(--bg-overlay-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.projectItem.current {
+  background: var(--blue-panel);
+  border: 1px solid var(--blue-panel-border);
+}
+
+.projectItem.navigating {
+  cursor: wait;
+  opacity: var(--opacity-secondary);
+  pointer-events: none;
+}
+
+.projectItem:hover:not(.current):not(.navigating) {
+  background: var(--bg-overlay-strong);
+  border-color: var(--border-strong);
+  transform: translateX(2px);
+}
+
+.projectInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.projectName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--white);
+  margin-bottom: var(--spacing-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectMeta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.projectActions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.editButton {
+  background: var(--bg-overlay-strong);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deleteButton {
+  background: var(--red-soft-bg);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  cursor: pointer;
+  color: var(--red-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+}
+
+.deleteButton.deleting {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+.deletingSpinner {
+  width: var(--spacing-lg);
+  height: var(--spacing-lg);
+  font-size: 10px;
+}

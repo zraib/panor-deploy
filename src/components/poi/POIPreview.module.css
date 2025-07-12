@@ -470,6 +470,13 @@
   text-align: center;
 }
 
+.pdfIframe {
+  width: 100%;
+  height: 600px;
+  border: none;
+  border-radius: 8px;
+}
+
 .pdfActions {
   display: flex;
   justify-content: center;

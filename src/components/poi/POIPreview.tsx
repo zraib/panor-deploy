@@ -255,12 +255,6 @@ const POIPreview: React.FC<POIPreviewProps> = ({ poi, projectId, onClose, onEdit
                 title={`PDF: ${poi.name}`}
                 onLoad={handlePdfLoad}
                 onError={handlePdfError}
-                style={{
-                  width: '100%',
-                  height: '600px',
-                  border: 'none',
-                  borderRadius: '8px'
-                }}
               />
               <div className={styles.pdfActions}>
                 <a

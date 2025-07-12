@@ -15,6 +15,9 @@ interface Project {
   updatedAt: string;
   sceneCount: number;
   hasConfig: boolean;
+  firstSceneId?: string;
+  poiCount: number;
+  floorCount: number;
 }
 
 const ensureDirectoryExists = (dirPath: string) => {
@@ -36,12 +39,36 @@ const getProjectInfo = async (projectId: string): Promise<Project | null> => {
     const hasConfig = fs.existsSync(configPath);
     
     let sceneCount = 0;
+    let firstSceneId: string | undefined;
+    let poiCount = 0;
+    let floorCount = 0;
+    
     if (hasConfig) {
       try {
         const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         sceneCount = configData.scenes ? configData.scenes.length : 0;
+        firstSceneId = configData.scenes && configData.scenes.length > 0 ? configData.scenes[0].id : undefined;
+        
+        // Calculate floor count from unique floor values
+        if (configData.scenes) {
+          const floors = new Set(configData.scenes.map((scene: any) => scene.floor).filter((floor: any) => floor !== undefined));
+          floorCount = floors.size;
+        }
       } catch {
         sceneCount = 0;
+        firstSceneId = undefined;
+        floorCount = 0;
+      }
+    }
+    
+    // Count POIs
+    const poiDataPath = path.join(projectPath, 'data', 'poi', 'poi-data.json');
+    if (fs.existsSync(poiDataPath)) {
+      try {
+        const poiData = JSON.parse(fs.readFileSync(poiDataPath, 'utf8'));
+        poiCount = Array.isArray(poiData) ? poiData.length : 0;
+      } catch {
+        poiCount = 0;
       }
     }
     
@@ -51,7 +78,10 @@ const getProjectInfo = async (projectId: string): Promise<Project | null> => {
       createdAt: stats.birthtime.toISOString(),
       updatedAt: stats.mtime.toISOString(),
       sceneCount,
-      hasConfig
+      hasConfig,
+      firstSceneId,
+      poiCount,
+      floorCount
     };
   } catch (error) {
     console.error(`Error getting project info for ${projectId}:`, error);

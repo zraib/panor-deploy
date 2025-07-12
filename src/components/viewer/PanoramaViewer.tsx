@@ -97,6 +97,15 @@ export default function PanoramaViewer({
     closePanels: closePanelsFunc || undefined,
   });
 
+  // Add panorama-viewer class to body when component mounts
+  useEffect(() => {
+    document.body.classList.add('panorama-viewer');
+    
+    return () => {
+      document.body.classList.remove('panorama-viewer');
+    };
+  }, []);
+
   // Cleanup effect to properly destroy viewer when component unmounts
   useEffect(() => {
     return () => {

@@ -1,0 +1,252 @@
+/* POI Management Page Styles */
+
+.filtersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-2xl);
+  margin-bottom: var(--spacing-4xl);
+}
+
+.filterLabel {
+  font-size: var(--font-md);
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.actionButtons {
+  display: flex;
+  gap: var(--spacing-xl);
+  margin-top: var(--spacing-4xl);
+  margin-bottom: var(--spacing-4xl);
+  flex-wrap: wrap;
+}
+
+.loadingContainer {
+  text-align: center;
+  padding: var(--spacing-5xl);
+  color: var(--text-primary);
+}
+
+.loadingIcon {
+  font-size: 2rem;
+  margin-bottom: var(--spacing-xl);
+}
+
+.emptyContainer {
+  text-align: center;
+  padding: var(--spacing-5xl);
+  color: var(--text-primary);
+}
+
+.emptyIcon {
+  font-size: 2rem;
+  margin-bottom: var(--spacing-xl);
+}
+
+.emptySubtext {
+  font-size: var(--font-base);
+  margin-top: var(--spacing-md);
+  opacity: var(--opacity-secondary);
+}
+
+.projectContainer {
+  margin-bottom: var(--spacing-3xl);
+}
+
+.projectHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: var(--spacing-xl) 0;
+  border-bottom: 2px solid var(--border-medium);
+  margin-bottom: var(--spacing-2xl);
+  transition: var(--transition-fast);
+}
+
+.projectHeader:hover {
+  border-bottom-color: var(--blue-strong);
+}
+
+.projectTitle {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-xl);
+}
+
+.projectMeta {
+  font-size: var(--font-base);
+  color: var(--text-tertiary);
+  margin-top: var(--spacing-sm);
+}
+
+.projectActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.exportButton {
+  font-size: 0.85rem;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--green-light);
+  border-color: var(--green-medium);
+  color: var(--green-primary);
+}
+
+.viewProjectLink {
+  font-size: 0.85rem;
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.expandIcon {
+  color: var(--text-primary);
+  font-size: var(--font-xl);
+}
+
+.poisGrid {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+.poiCard {
+  background: var(--bg-overlay-medium);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-2xl);
+  transition: var(--transition-medium);
+  box-shadow: var(--shadow-md);
+}
+
+.poiCard:hover {
+  background: var(--bg-overlay-hover);
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
+}
+
+.poiHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-lg);
+}
+
+.poiContent {
+  flex: 1;
+}
+
+.poiTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.poiIcon {
+  font-size: var(--font-xl);
+}
+
+.poiTitle {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-md);
+}
+
+.poiTypeBadge {
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-xs);
+  font-weight: 600;
+}
+
+.poiTypeBadge.file {
+  background: var(--green-light);
+  color: var(--green-secondary);
+}
+
+.poiTypeBadge.link {
+  background: var(--blue-light);
+  color: var(--blue-primary);
+}
+
+.poiDescription {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-secondary);
+  font-size: var(--font-base);
+}
+
+.poiMeta {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+}
+
+.poiActions {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-left: var(--spacing-xl);
+  flex-wrap: wrap;
+}
+
+.viewButton {
+  font-size: var(--font-base);
+  padding: 10px 18px;
+  border-radius: var(--radius-lg);
+  transition: var(--transition-fast);
+  box-shadow: var(--shadow-sm) rgba(16, 185, 129, 0.3);
+}
+
+.viewButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg) rgba(16, 185, 129, 0.4);
+}
+
+.exportPOIButton {
+  background: linear-gradient(135deg, var(--blue-primary) 0%, var(--blue-secondary) 100%);
+  color: var(--white);
+  border: none;
+  padding: 10px 18px;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  box-shadow: var(--shadow-sm) var(--blue-light);
+}
+
+.exportPOIButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg) var(--blue-strong);
+}
+
+.deleteButton {
+  background: linear-gradient(135deg, var(--red-primary) 0%, var(--red-secondary) 100%);
+  color: var(--white);
+  border: none;
+  padding: 10px 18px;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  box-shadow: var(--shadow-sm) rgba(239, 68, 68, 0.3);
+}
+
+.deleteButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg) rgba(239, 68, 68, 0.4);
+}
+
+.deleteButton:disabled {
+  background: rgba(107, 114, 128, 0.5);
+  cursor: not-allowed;
+  opacity: var(--opacity-muted);
+  box-shadow: none;
+}
+
+.deleteButton:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}

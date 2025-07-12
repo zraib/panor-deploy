@@ -901,8 +901,7 @@ export default function Upload() {
                         : poiImportMessage.includes('✅')
                         ? styles.messageSuccess
                         : styles.messageInfo
-                    }`}
-                    style={{ marginTop: '12px', fontSize: '0.9rem' }}
+                    } ${styles.poiImportMessage}`}
                   >
                     {poiImportMessage}
                   </div>

@@ -34,6 +34,9 @@ interface Project {
   updatedAt: string;
   sceneCount: number;
   hasConfig: boolean;
+  firstSceneId?: string;
+  poiCount: number;
+  floorCount: number;
 }
 
 export default function Home(): ReactElement {
@@ -44,6 +47,7 @@ export default function Home(): ReactElement {
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showProjects, setShowProjects] = useState<boolean>(false);
 
   const loadProjects = async () => {
     try {
@@ -194,54 +198,141 @@ export default function Home(): ReactElement {
             />
           </div>
 
-          <div className={styles.content}>
-            <div className={styles.icon}>🏢</div>
+          <div className={`${styles.content} ${hasProjects && showProjects ? styles.contentWithProjects : ''}`}>
+            {/* Hero Section */}
+            <div className={styles.heroSection}>
+              <div className={styles.icon}>🏢</div>
+              <h1 className={styles.title}>Welcome to PrimeZone</h1>
+              <p className={styles.subtitle}>
+                Experience immersive 360° panoramic tours of your spaces
+              </p>
+              <p className={styles.description}>
+                {hasProjects
+                  ? `You have ${projects.length} project${projects.length !== 1 ? 's' : ''}. Select one to get started or create a new one.`
+                  : 'Get started by creating your first project and uploading panoramic images.'}
+              </p>
+            </div>
 
-            <h1 className={styles.title}>Welcome to PrimeZone</h1>
-
-            <p className={styles.description}>
-              {hasProjects
-                ? `You have ${projects.length} project${projects.length !== 1 ? 's' : ''}. Select one to get started.`
-                : 'Experience immersive 360° panoramic tours of your spaces.'}
-            </p>
-
+            {/* Action Buttons */}
             <div className={styles.actionButtons}>
               <Link href='/upload' className={styles.uploadButton}>
-                <span className={styles.uploadIcon}>📁</span>
-                {hasProjects ? 'Upload to New Project' : 'Create First Project'}
+                <div className={styles.buttonTitle}>
+                  {hasProjects ? 'New Project' : 'Create Project'}
+                </div>
               </Link>
-              
+
               {hasProjects && (
-                <Link href='/poi-management' className={styles.poiButton}>
-                  <span className={styles.uploadIcon}>📍</span>
-                  Manage POIs
-                </Link>
+                <button
+                  className={styles.projectsIndicator}
+                  onClick={() => setShowProjects(!showProjects)}
+                >
+                  <div className={styles.indicatorIcon}>
+                    <span className={styles.projectCount}>
+                      {projects.length}
+                    </span>
+                    <svg
+                      width='24'
+                      height='24'
+                      viewBox='0 0 24 24'
+                      fill='none'
+                      style={{
+                        transform: showProjects
+                          ? 'rotate(180deg)'
+                          : 'rotate(0deg)',
+                      }}
+                    >
+                      <path
+                        d='M19 9L12 16L5 9'
+                        stroke='currentColor'
+                        strokeWidth='2'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      />
+                    </svg>
+                  </div>
+                  <div className={styles.buttonTitle}>
+                    {showProjects ? 'Hide Projects' : 'View Projects'}
+                  </div>
+                </button>
               )}
             </div>
 
-            <div className={styles.supportInfo}>
-              Supported formats: JPG, PNG • CSV file with poses required
-            </div>
-
-            {hasProjects && (
-              <div className={styles.projectList}>
-                {projects.map(project => (
-                  <div
-                    key={project.id}
-                    className={styles.projectCard}
-                    onClick={() => handleProjectSelect(project.id)}
-                  >
-                    <div className={styles.projectName}>{project.name}</div>
-                    <div className={styles.projectInfo}>
-                      {project.sceneCount} scene
-                      {project.sceneCount !== 1 ? 's' : ''}
+            {/* Projects Section */}
+            {hasProjects && showProjects && (
+              <div className={styles.projectsSection}>
+                <div className={styles.projectsHeader}>
+                  <h2 className={styles.projectsTitle}>Your Projects</h2>
+                  <p className={styles.projectsSubtitle}>
+                    Click on any project to start exploring
+                  </p>
+                </div>
+                <div className={styles.projectList}>
+                  {projects.map(project => (
+                    <div
+                      key={project.id}
+                      className={styles.projectCard}
+                      onClick={() => handleProjectSelect(project.id)}
+                    >
+                      <div className={styles.projectThumbnail}>
+                        {project.firstSceneId ? (
+                          <img
+                            src={`/${project.id}/images/${project.firstSceneId}-pano.jpg`}
+                            alt={`${project.name} thumbnail`}
+                            className={styles.projectThumbnailImage}
+                            onError={e => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const placeholder =
+                                target.nextElementSibling as HTMLElement;
+                              if (placeholder)
+                                placeholder.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={styles.projectThumbnailPlaceholder}
+                          style={{
+                            display: project.firstSceneId ? 'none' : 'flex',
+                          }}
+                        >
+                          🏢
+                        </div>
+                      </div>
+                      <div className={styles.projectContent}>
+                        <div className={styles.projectCardHeader}>
+                          <div className={styles.projectIcon}>🏢</div>
+                          <h3 className={styles.projectName}>{project.name}</h3>
+                        </div>
+                        <div className={styles.projectMeta}>
+                          <div className={styles.projectInfo}>
+                            Updated{' '}
+                            {new Date(project.updatedAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className={styles.projectStats}>
+                          <div className={styles.statItem}>
+                            <span className={styles.statValue}>
+                              {project.sceneCount}
+                            </span>
+                            <span className={styles.statLabel}>Scenes</span>
+                          </div>
+                          <div className={styles.statItem}>
+                            <span className={styles.statValue}>
+                              {project.poiCount}
+                            </span>
+                            <span className={styles.statLabel}>POIs</span>
+                          </div>
+                          <div className={styles.statItem}>
+                            <span className={styles.statValue}>
+                              {project.floorCount || 1}
+                            </span>
+                            <span className={styles.statLabel}>Floors</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className={styles.projectInfo}>
-                      Updated:{' '}
-                      {new Date(project.updatedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </div>

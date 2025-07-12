@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import styles from '../ControlPanel.module.css';
+import poiPanelStyles from '@/styles/POIManagementPanel.module.css';
 import { POIData } from '@/types/poi';
 import ConfirmationModal from '../ConfirmationModal';
 
@@ -269,41 +270,24 @@ export const POIManagementPanel = React.forwardRef<
           </p>
 
           {/* Search Bar */}
-          <div style={{ marginBottom: '16px' }}>
+          <div className={poiPanelStyles.searchContainer}>
             <input
               type='text'
               placeholder='Search POIs by name or description...'
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '6px',
-                color: 'white',
-                fontSize: '13px',
-                outline: 'none',
-              }}
+              className={poiPanelStyles.searchInput}
             />
           </div>
 
           {loading && (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '20px',
-                color: 'rgba(255, 255, 255, 0.7)',
-              }}
-            >
+            <div className={poiPanelStyles.loadingContainer}>
               Loading POIs...
             </div>
           )}
 
           {error && (
-            <div
-              style={{ color: '#ff6b6b', padding: '10px', fontSize: '13px' }}
-            >
+            <div className={poiPanelStyles.errorContainer}>
               {error}
             </div>
           )}
@@ -312,16 +296,7 @@ export const POIManagementPanel = React.forwardRef<
             <>
               {/* POI Count Info */}
               {allPois.length > 0 && (
-                <div
-                  style={{
-                    fontSize: '12px',
-                    color: 'rgba(255, 255, 255, 0.6)',
-                    marginBottom: '12px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
+                <div className={poiPanelStyles.poiCountInfo}>
                   <span>
                     {searchTerm
                       ? `${filteredPois.length} of ${allPois.length} POIs`
@@ -330,14 +305,7 @@ export const POIManagementPanel = React.forwardRef<
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm('')}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'rgba(255, 255, 255, 0.6)',
-                        cursor: 'pointer',
-                        fontSize: '11px',
-                        textDecoration: 'underline',
-                      }}
+                      className={poiPanelStyles.clearSearchButton}
                     >
                       Clear search
                     </button>
@@ -346,13 +314,7 @@ export const POIManagementPanel = React.forwardRef<
               )}
 
               {filteredPois.length === 0 ? (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    padding: '20px',
-                    color: 'rgba(255, 255, 255, 0.5)',
-                  }}
-                >
+                <div className={poiPanelStyles.emptyContainer}>
                   {searchTerm ? (
                     <>
                       No POIs found matching "{searchTerm}".
@@ -370,98 +332,36 @@ export const POIManagementPanel = React.forwardRef<
                   )}
                 </div>
               ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                  }}
-                >
+                <div className={poiPanelStyles.poisContainer}>
                   {filteredPois.map(poi => (
                     <div
                       key={poi.id}
                       onClick={() => handleNavigateToPOI(poi)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '8px',
-                        background:
-                          poi.panoramaId === currentPanoramaId
-                            ? 'rgba(74, 144, 226, 0.2)'
-                            : 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: '6px',
-                        border:
-                          poi.panoramaId === currentPanoramaId
-                            ? '1px solid rgba(74, 144, 226, 0.4)'
-                            : '1px solid rgba(255, 255, 255, 0.1)',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                      }}
-                      onMouseEnter={e => {
-                        if (poi.panoramaId !== currentPanoramaId) {
-                          e.currentTarget.style.background =
-                            'rgba(255, 255, 255, 0.1)';
-                          e.currentTarget.style.borderColor =
-                            'rgba(255, 255, 255, 0.2)';
-                        }
-                      }}
-                      onMouseLeave={e => {
-                        if (poi.panoramaId !== currentPanoramaId) {
-                          e.currentTarget.style.background =
-                            'rgba(255, 255, 255, 0.05)';
-                          e.currentTarget.style.borderColor =
-                            'rgba(255, 255, 255, 0.1)';
-                        }
-                      }}
+                      className={`${poiPanelStyles.poiItem} ${
+                        poi.panoramaId === currentPanoramaId
+                          ? poiPanelStyles.current
+                          : poiPanelStyles.other
+                      }`}
                       title={`Click to navigate to ${poi.name} in scene ${poi.panoramaId}`}
                     >
-                      <div style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      <div className={poiPanelStyles.poiIcon}>
                         {getPOITypeIcon(poi.type)}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontSize: '13px',
-                            fontWeight: '500',
-                            color: 'white',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
+                      <div className={poiPanelStyles.poiContent}>
+                        <div className={poiPanelStyles.poiName}>
                           {poi.name}
                         </div>
-                        <div
-                          style={{
-                            fontSize: '11px',
-                            color: 'rgba(255, 255, 255, 0.5)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            marginBottom: '2px',
-                          }}
-                        >
+                        <div className={poiPanelStyles.poiScene}>
                           Scene: {poi.panoramaId}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '4px' }}>
+                      <div className={poiPanelStyles.poiActions}>
                         <button
                           onClick={e => {
                             e.stopPropagation();
                             handleEditPOI(poi);
                           }}
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            border: 'none',
-                            borderRadius: '4px',
-                            padding: '4px',
-                            cursor: 'pointer',
-                            color: 'rgba(255, 255, 255, 0.7)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
+                          className={poiPanelStyles.actionButton}
                           title='Edit POI'
                         >
                           <svg
@@ -469,6 +369,7 @@ export const POIManagementPanel = React.forwardRef<
                             height='12'
                             viewBox='0 0 24 24'
                             fill='none'
+                            className={poiPanelStyles.actionIcon}
                           >
                             <path
                               d='M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13'
@@ -488,17 +389,7 @@ export const POIManagementPanel = React.forwardRef<
                         </button>
                         <button
                           onClick={e => handleDeletePOI(e, poi)}
-                          style={{
-                            background: 'rgba(255, 107, 107, 0.2)',
-                            border: 'none',
-                            borderRadius: '4px',
-                            padding: '4px',
-                            cursor: 'pointer',
-                            color: '#ff6b6b',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
+                          className={`${poiPanelStyles.actionButton} ${poiPanelStyles.deleteButton}`}
                           title='Delete POI'
                         >
                           <svg
@@ -506,6 +397,7 @@ export const POIManagementPanel = React.forwardRef<
                             height='12'
                             viewBox='0 0 24 24'
                             fill='none'
+                            className={poiPanelStyles.actionIcon}
                           >
                             <path
                               d='M3 6H5H21'

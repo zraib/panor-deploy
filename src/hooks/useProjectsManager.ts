@@ -11,6 +11,9 @@ interface Project {
   updatedAt: string;
   sceneCount: number;
   hasConfig: boolean;
+  firstSceneId?: string;
+  poiCount: number;
+  floorCount: number;
 }
 
 export function useProjectsManager() {

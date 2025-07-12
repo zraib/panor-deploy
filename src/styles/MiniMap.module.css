@@ -1,0 +1,89 @@
+/* MiniMap Component Styles */
+
+.minimap {
+  position: fixed;
+  background: var(--bg-black-overlay);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--radius-xl);
+  border: 2px solid var(--border-strong);
+  z-index: var(--z-minimap);
+  transition: width 0.3s ease, height 0.3s ease, transform 0.2s ease;
+}
+
+.minimap.dragging {
+  cursor: grabbing;
+}
+
+.minimap.hovered {
+  transform: scale(1.05);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.minimap.minimized {
+  width: 60px !important;
+  height: 60px !important;
+}
+
+.minimapHeader {
+  cursor: move;
+}
+
+.minimapHeader.minimized {
+  border-bottom: none;
+}
+
+.minimapHeader.expanded {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.minimapContent {
+  cursor: grab;
+}
+
+.minimapContent.panning {
+  cursor: grabbing;
+}
+
+.sceneHotspot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+
+.sceneHotspot.current {
+  z-index: 10;
+}
+
+.sceneHotspot.other {
+  z-index: 5;
+}
+
+.sceneHotspot.navigating {
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
+.directionIndicator {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.2s ease;
+}
+
+.connectionLines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.connectionLine {
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1;
+  opacity: var(--opacity-muted);
+}
