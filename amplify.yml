@@ -5,12 +5,6 @@ frontend:
       commands:
         # Install dependencies
         - npm ci
-        # Install Python dependencies for config generation
-        - python -m pip install --upgrade pip
-        - python -m pip install numpy
-        # Verify Python installation
-        - python --version
-        - python -c "import numpy; print('NumPy version:', numpy.__version__)"
     build:
       commands:
         # Build the Next.js application
@@ -26,8 +20,6 @@ frontend:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
-      # Cache Python packages
-      - ~/.cache/pip/**/*
 
 # Backend configuration for API routes
 backend:
