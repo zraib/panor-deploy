@@ -49,8 +49,8 @@ describe('POIComponent', () => {
   });
 
   it('renders without crashing', () => {
-    render(<POIComponent {...defaultProps} />);
-    expect(screen.getByRole('generic')).toBeInTheDocument();
+    const { container } = render(<POIComponent {...defaultProps} />);
+    expect(container.firstChild).toBeInTheDocument();
   });
 
   it('loads POIs on mount', async () => {
@@ -75,7 +75,7 @@ describe('POIComponent', () => {
 
     render(<POIComponent {...defaultProps} />);
 
-    expect(fetch).toHaveBeenCalledWith('/pano-app/data/poi/poi-data.json');
+    expect(fetch).toHaveBeenCalledWith('/api/poi/load?projectId=test-project&panoramaId=test-panorama');
   });
 
   it('handles right-click events', () => {
@@ -98,7 +98,7 @@ describe('POIComponent', () => {
       viewerRef: { current: null },
     };
 
-    render(<POIComponent {...propsWithoutViewer} />);
-    expect(screen.getByRole('generic')).toBeInTheDocument();
+    const { container } = render(<POIComponent {...propsWithoutViewer} />);
+    expect(container.firstChild).toBeInTheDocument();
   });
 });

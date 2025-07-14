@@ -26,15 +26,25 @@ export async function checkConfigExists(url: string = '/config.json'): Promise<b
 /**
  * Get the status of the configuration
  */
-export async function getConfigStatus(url: string = '/config.json'): Promise<string> {
+export async function getConfigStatus(url: string = '/config.json'): Promise<any> {
   try {
     const response = await fetch(url, { method: 'HEAD' });
     if (response.ok) {
-      return 'available';
+      return {
+        exists: true,
+        lastModified: response.headers.get('last-modified'),
+        size: response.headers.get('content-length'),
+      };
     }
-    return `error: ${response.status}`;
+    return {
+      exists: false,
+      error: `HTTP ${response.status}`,
+    };
   } catch (error) {
-    return 'error: network';
+    return {
+      exists: false,
+      error: error instanceof Error ? error.message : 'Network error',
+    };
   }
 }
 
