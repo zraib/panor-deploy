@@ -5,40 +5,52 @@
 
 ## ⚠️ IMMEDIATE ACTION REQUIRED
 
-You **MUST** manually configure environment variables in the AWS Amplify Console. The build configuration alone is insufficient.
+The persistent **500 Internal Server Error** is due to missing IAM permissions for AWS Amplify to access S3. The code implementation is correct, but AWS Amplify requires manual configuration of a Compute Role for secure S3 access.
 
-### Step-by-Step Instructions
+### Step 1: Create IAM Compute Role (One-time setup)
 
-#### 1. Access AWS Amplify Console
-1. Go to [AWS Amplify Console](https://console.aws.amazon.com/amplify/)
-2. Select your app: `main.dqpveyq49jtde.amplifyapp.com`
-3. Navigate to **"App settings"** → **"Environment variables"**
+1. **Navigate to AWS IAM Console**:
+   - Go to: https://console.aws.amazon.com/iam/
+   - Click **Roles** → **Create role**
+   - Select **Custom trust policy**
 
-#### 2. Add Required Environment Variables
-Click **"Manage variables"** and add these **exact** variables:
+2. **Add Trust Policy**:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Principal": {
+           "Service": "amplify.amazonaws.com"
+         },
+         "Action": "sts:AssumeRole"
+       }
+     ]
+   }
+   ```
 
-```
-CLOUD_REGION = us-east-1
-CLOUD_ACCESS_KEY_ID = [Your AWS Access Key ID]
-CLOUD_SECRET_ACCESS_KEY = [Your AWS Secret Access Key]
-S3_BUCKET_NAME = [Your S3 Bucket Name]
-```
+3. **Attach S3 Permissions**:
+   - Add **AmazonS3FullAccess** policy (or create custom S3 policy)
+   - Name the role: `amplify-s3-compute-role`
+   - Create the role
 
-**⚠️ SECURITY NOTE**: Use IAM credentials with minimal S3 permissions only.
+### Step 2: Configure Compute Role in AWS Amplify Console
 
-#### 3. Alternative AWS Format (if needed)
-If the above doesn't work, also add:
-```
-AWS_REGION = us-east-1
-AWS_ACCESS_KEY_ID = [Your AWS Access Key ID]
-AWS_SECRET_ACCESS_KEY = [Your AWS Secret Access Key]
-AWS_S3_BUCKET_NAME = [Your S3 Bucket Name]
-```
+1. **Navigate to AWS Amplify Console**:
+   - Go to: https://console.aws.amazon.com/amplify/
+   - Select your application
+   - Go to **App settings** → **IAM roles**
 
-#### 4. Save and Redeploy
-1. Click **"Save"**
-2. Go to **"App settings"** → **"Rewrites and redirects"**
-3. Click **"Actions"** → **"Redeploy this version"**
+2. **Configure Compute Role**:
+   - In the **Compute role** section (separate from Service role)
+   - Click **Edit** next to "Default role"
+   - Select: `amplify-s3-compute-role`
+   - Click **Save**
+
+3. **Redeploy Application**:
+   - Save and redeploy your application
+   - This will trigger a new deployment with secure S3 access
 
 ## Why This Is Critical
 

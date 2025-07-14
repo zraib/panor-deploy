@@ -73,8 +73,8 @@ AWS Amplify Next.js API routes run as Lambda functions that require explicit IAM
    - Select your application
 
 2. **Configure Compute Role**
-   - Navigate to **App settings** → **Environment variables**
-   - Scroll down to **Compute settings** section
+   - Navigate to **App settings** → **IAM roles**
+   - Look for "Compute role" section (separate from Service role)
    - Select **Compute role**: `amplify-s3-compute-role`
    - Click **Save**
 
