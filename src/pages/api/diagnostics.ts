@@ -20,14 +20,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       nodeVersion: process.version,
       cwd: process.cwd(),
     },
-    python: {
-      available: false,
-      version: null as string | null,
-      error: null as string | null,
-    },
-    numpy: {
-      available: false,
-      version: null as string | null,
+    nodejs: {
+      available: true,
+      version: process.version,
       error: null as string | null,
     },
     directories: {
@@ -46,38 +41,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           exists: false,
           path: '',
         },
-        pythonScript: {
-          exists: false,
-          path: '',
-        },
       },
     },
     recommendations: [] as string[],
   };
 
-  // Check Python availability
-  try {
-    const pythonCmd = os.platform() === 'win32' ? 'python' : 'python3';
-    const { stdout } = await execAsync(`${pythonCmd} --version`);
-    diagnostics.python.available = true;
-    diagnostics.python.version = stdout.trim();
-  } catch (error: any) {
-    diagnostics.python.error = error.message;
-    diagnostics.recommendations.push('Install Python 3.7 or higher');
-  }
-
-  // Check numpy availability
-  if (diagnostics.python.available) {
-    try {
-      const pythonCmd = os.platform() === 'win32' ? 'python' : 'python3';
-      const { stdout } = await execAsync(`${pythonCmd} -c "import numpy; print(numpy.__version__)"`); 
-      diagnostics.numpy.available = true;
-      diagnostics.numpy.version = stdout.trim();
-    } catch (error: any) {
-      diagnostics.numpy.error = error.message;
-      diagnostics.recommendations.push('Install numpy: pip install numpy');
-    }
-  }
+  // Node.js is always available in this context
+  diagnostics.nodejs.available = true;
+  diagnostics.nodejs.version = process.version;
 
   // Check directories
   const publicDir = path.join(process.cwd(), 'public');
@@ -121,31 +92,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     diagnostics.recommendations.push('Node.js configuration script is missing');
   }
 
-  const pythonScriptPath = path.join(process.cwd(), 'scripts', 'python', 'generate_marzipano_config.py');
-  diagnostics.directories.scripts.pythonScript.path = pythonScriptPath;
-  diagnostics.directories.scripts.pythonScript.exists = fs.existsSync(pythonScriptPath);
-  
-  if (!diagnostics.directories.scripts.pythonScript.exists) {
-    diagnostics.recommendations.push('Python configuration script is missing');
-  }
+  // Python scripts are no longer required - using Node.js modules only
 
-  // Overall health check
+  // Overall health check - Node.js only requirements
   const isHealthy = 
-    diagnostics.python.available &&
-    diagnostics.numpy.available &&
+    diagnostics.nodejs.available &&
     diagnostics.directories.public.exists &&
     diagnostics.directories.public.writable &&
-    diagnostics.directories.scripts.nodeScript.exists &&
-    diagnostics.directories.scripts.pythonScript.exists;
+    diagnostics.directories.scripts.nodeScript.exists;
 
   res.status(200).json({
     healthy: isHealthy,
     diagnostics,
     summary: {
-      python: diagnostics.python.available ? '✅ Available' : '❌ Not available',
-      numpy: diagnostics.numpy.available ? '✅ Available' : '❌ Not available', 
+      nodejs: diagnostics.nodejs.available ? '✅ Available' : '❌ Not available',
       publicDir: diagnostics.directories.public.writable ? '✅ Writable' : '❌ Not writable',
-      scripts: (diagnostics.directories.scripts.nodeScript.exists && diagnostics.directories.scripts.pythonScript.exists) ? '✅ Available' : '❌ Missing',
+      scripts: diagnostics.directories.scripts.nodeScript.exists ? '✅ Available' : '❌ Missing',
     },
   });
 }
