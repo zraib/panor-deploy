@@ -1,0 +1,293 @@
+.container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.dropzone {
+  border: 2px dashed #cbd5e0;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #f7fafc;
+  margin-bottom: 20px;
+}
+
+.dropzone:hover,
+.dropzone.active {
+  border-color: #4299e1;
+  background-color: #ebf8ff;
+}
+
+.dropzoneContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.uploadIcon {
+  font-size: 48px;
+  opacity: 0.6;
+}
+
+.dropzoneText {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+}
+
+.dropzoneSubtext {
+  font-size: 14px;
+  color: #718096;
+  margin: 0;
+}
+
+.fileList {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.fileListHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: #f7fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.fileListHeader h3 {
+  margin: 0;
+  color: #2d3748;
+  font-size: 18px;
+}
+
+.uploadButton {
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.uploadButton:hover:not(:disabled) {
+  background-color: #3182ce;
+}
+
+.uploadButton:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.progressBar {
+  position: relative;
+  height: 8px;
+  background-color: #e2e8f0;
+  margin: 0 20px 20px 20px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: #48bb78;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.progressText {
+  position: absolute;
+  top: -25px;
+  right: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.files {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  transition: background-color 0.2s;
+}
+
+.fileItem:hover {
+  background-color: #f7fafc;
+}
+
+.fileItem:last-child {
+  border-bottom: none;
+}
+
+.fileInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.fileIcon {
+  font-size: 24px;
+  width: 32px;
+  text-align: center;
+}
+
+.fileDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fileName {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 14px;
+}
+
+.fileSize {
+  font-size: 12px;
+  color: #718096;
+}
+
+.fileStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusText {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a5568;
+  min-width: 60px;
+  text-align: right;
+}
+
+.errorText {
+  font-size: 11px;
+  color: #e53e3e;
+  margin-top: 2px;
+  max-width: 150px;
+  word-wrap: break-word;
+}
+
+.removeButton {
+  background: none;
+  border: none;
+  color: #e53e3e;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  margin-left: 8px;
+}
+
+.removeButton:hover {
+  background-color: #fed7d7;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+  
+  .dropzone {
+    padding: 30px 15px;
+  }
+  
+  .fileListHeader {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .fileItem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .fileInfo {
+    justify-content: flex-start;
+  }
+  
+  .fileStatus {
+    justify-content: space-between;
+  }
+  
+  .statusText {
+    text-align: left;
+  }
+}
+
+/* Animation for file additions */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fileItem {
+  animation: slideIn 0.3s ease;
+}
+
+/* Loading states */
+.uploadButton:disabled {
+  position: relative;
+}
+
+.uploadButton:disabled::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: auto;
+  border: 2px solid transparent;
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

@@ -1,6 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone', // Required for AWS Amplify serverless deployment
+  
+  // Optimize for production deployment
+  experimental: {
+    outputFileTracingRoot: undefined,
+  },
+  
+  // Configure for AWS Amplify
+  trailingSlash: false,
+  
   // API configuration should be handled in individual API route files
   // Body parser and response limits are configured per route
   webpack: (config, { isServer }) => {
@@ -22,6 +32,11 @@ const nextConfig = {
     });
     
     return config;
+  },
+  
+  // Environment variables for build time
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
 };
 
