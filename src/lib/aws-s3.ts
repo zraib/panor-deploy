@@ -4,24 +4,23 @@ import { pipeline } from 'stream/promises';
 import { Readable } from 'stream';
 import path from 'path';
 
-// Extract environment variables (avoiding AWS prefix restriction)
-const CLOUD_REGION = process.env.CLOUD_REGION;
-const CLOUD_ACCESS_KEY_ID = process.env.CLOUD_ACCESS_KEY_ID;
-const CLOUD_SECRET_ACCESS_KEY = process.env.CLOUD_SECRET_ACCESS_KEY;
+// Extract environment variables
+const CLOUD_REGION = process.env.CLOUD_REGION || 'us-east-1';
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
-// Check if all required environment variables are present
-if (!CLOUD_REGION || !CLOUD_ACCESS_KEY_ID || !CLOUD_SECRET_ACCESS_KEY || !S3_BUCKET_NAME) {
-  throw new Error('Missing required environment variables: CLOUD_REGION, CLOUD_ACCESS_KEY_ID, CLOUD_SECRET_ACCESS_KEY, S3_BUCKET_NAME');
+// Check if required environment variables are present
+if (!S3_BUCKET_NAME) {
+  throw new Error('Missing required environment variable: S3_BUCKET_NAME');
 }
 
-// Initialize S3 client
+// Initialize S3 client using default credential provider chain
+// This will automatically use IAM roles when deployed on AWS Amplify
 const s3Client = new S3Client({
   region: CLOUD_REGION,
-  credentials: {
-    accessKeyId: CLOUD_ACCESS_KEY_ID,
-    secretAccessKey: CLOUD_SECRET_ACCESS_KEY,
-  },
+  // credentials will be automatically provided by AWS SDK default chain:
+  // 1. Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+  // 2. IAM roles (when deployed on AWS Amplify with compute role)
+  // 3. Instance metadata service
 });
 
 // File type configurations
