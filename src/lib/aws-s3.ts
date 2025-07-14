@@ -4,23 +4,23 @@ import { pipeline } from 'stream/promises';
 import { Readable } from 'stream';
 import path from 'path';
 
-// Extract environment variables
-const AWS_REGION = process.env.AWS_REGION;
-const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
-const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
+// Extract environment variables (avoiding AWS prefix restriction)
+const CLOUD_REGION = process.env.CLOUD_REGION;
+const CLOUD_ACCESS_KEY_ID = process.env.CLOUD_ACCESS_KEY_ID;
+const CLOUD_SECRET_ACCESS_KEY = process.env.CLOUD_SECRET_ACCESS_KEY;
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
 // Check if all required environment variables are present
-if (!AWS_REGION || !AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY || !S3_BUCKET_NAME) {
-  throw new Error('Missing required AWS environment variables: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME');
+if (!CLOUD_REGION || !CLOUD_ACCESS_KEY_ID || !CLOUD_SECRET_ACCESS_KEY || !S3_BUCKET_NAME) {
+  throw new Error('Missing required environment variables: CLOUD_REGION, CLOUD_ACCESS_KEY_ID, CLOUD_SECRET_ACCESS_KEY, S3_BUCKET_NAME');
 }
 
 // Initialize S3 client
 const s3Client = new S3Client({
-  region: AWS_REGION,
+  region: CLOUD_REGION,
   credentials: {
-    accessKeyId: AWS_ACCESS_KEY_ID,
-    secretAccessKey: AWS_SECRET_ACCESS_KEY,
+    accessKeyId: CLOUD_ACCESS_KEY_ID,
+    secretAccessKey: CLOUD_SECRET_ACCESS_KEY,
   },
 });
 
@@ -130,7 +130,7 @@ export async function uploadToS3(
     
     await s3Client.send(command);
     
-    const url = `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${key}`;
+    const url = `https://${S3_BUCKET_NAME}.s3.${CLOUD_REGION}.amazonaws.com/${key}`;
     
     return {
       success: true,
@@ -164,7 +164,7 @@ export async function listProjectFiles(
       key: obj.Key!,
       size: obj.Size!,
       lastModified: obj.LastModified!,
-      url: `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${obj.Key}`
+      url: `https://${S3_BUCKET_NAME}.s3.${CLOUD_REGION}.amazonaws.com/${obj.Key}`
     }));
   } catch (error) {
     console.error('S3 list error:', error);
@@ -234,7 +234,7 @@ export async function copyInS3(
 // Get signed URL for temporary access
 export async function getSignedUrl(key: string): Promise<string> {
   // For public buckets, return direct URL
-  return `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${key}`;
+  return `https://${S3_BUCKET_NAME}.s3.${CLOUD_REGION}.amazonaws.com/${key}`;
 }
 
 // Batch upload multiple files

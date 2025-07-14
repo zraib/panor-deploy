@@ -185,9 +185,9 @@ This comprehensive guide will walk you through deploying your panorama viewer ap
 
    | Variable Name | Value | Description |
    |---------------|-------|-------------|
-   | `AWS_REGION` | `us-east-1` | Your S3 bucket region |
-   | `AWS_ACCESS_KEY_ID` | `[Your Access Key]` | IAM user access key |
-   | `AWS_SECRET_ACCESS_KEY` | `[Your Secret Key]` | IAM user secret key |
+   | `CLOUD_REGION` | `us-east-1` | Your S3 bucket region |
+   | `CLOUD_ACCESS_KEY_ID` | `[Your Access Key]` | IAM user access key |
+   | `CLOUD_SECRET_ACCESS_KEY` | `[Your Secret Key]` | IAM user secret key |
    | `S3_BUCKET_NAME` | `your-panorama-app-bucket-[suffix]` | Your S3 bucket name |
    | `PANORAMA_CONFIG_MODE` | `standard` | Panorama configuration mode |
    | `PANORAMA_YAW_OFFSET` | `0` | Default yaw offset |
