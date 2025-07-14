@@ -125,12 +125,12 @@ pnpm-lock.yaml
 /public/data/pano-poses.csv
 
 # Ignore all contents of the /public/images /public/data/ and directory except .gitkeep
-/public/images/*
 !/public/images/.gitkeep
 /public/data/*
 
 # Ignore project-specific directories
 /public/*/
+!/public/assets/
 
 # Lighthouse reports
 lighthouse-report.html
