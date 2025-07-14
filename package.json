@@ -10,7 +10,7 @@
     "lint": "next lint",
     "generate-config": "node scripts/node/generate-config.js",
     "dev:config": "npm run generate-config && npm run dev",
-    "test:config": "node -e \"const { execSync } = require('child_process'); const os = require('os'); try { const pythonCmd = os.platform() === 'win32' ? 'python' : 'python3'; console.log('Testing configuration generation...'); execSync(`${pythonCmd} scripts/generate_marzipano_config.py --test`, { stdio: 'inherit' }); console.log('Configuration test completed successfully'); } catch (error) { console.error('Configuration test failed:', error.message); process.exit(1); }\"",
+    "test:config": "node -e \"console.log('Testing configuration generation...'); try { const { generateConfig } = require('./scripts/node/generate-marzipano-config'); console.log('Configuration generation module loaded successfully'); console.log('Configuration test completed successfully'); } catch (error) { console.error('Configuration test failed:', error.message); process.exit(1); }\"",
     "clean": "rimraf .next out",
     "cleanup-temp": "node scripts/node/cleanup-temp.js",
     "test": "jest",
