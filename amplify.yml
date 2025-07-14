@@ -84,7 +84,7 @@ test:
         - npm run test:config
     test:
       commands:
-        - npm run test
+        - npm run test:coverage
   artifacts:
     baseDirectory: coverage
     files:
