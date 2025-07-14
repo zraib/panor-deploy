@@ -34,13 +34,13 @@ interface FileTypeConfig {
 const FILE_TYPE_CONFIGS: Record<string, FileTypeConfig> = {
   panorama: {
     contentType: 'image/jpeg',
-    folder: 'panoramas',
+    folder: 'images',
     maxSize: 50 * 1024 * 1024, // 50MB
     allowedExtensions: ['.jpg', '.jpeg', '.png']
   },
   csv: {
     contentType: 'text/csv',
-    folder: 'data',
+    folder: 'csv',
     maxSize: 10 * 1024 * 1024, // 10MB
     allowedExtensions: ['.csv']
   },
