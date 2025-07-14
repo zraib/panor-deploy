@@ -4,8 +4,16 @@ import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { uploadToS3, batchUploadToS3 } from '@/lib/aws-s3';
 
 const execAsync = promisify(exec);
+
+// Check if S3 is configured
+function isS3Configured(): boolean {
+  return !!(process.env.CLOUD_REGION && 
+           process.env.S3_BUCKET_NAME && 
+           (process.env.CLOUD_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID));
+}
 
 export const config = {
   api: {
@@ -109,22 +117,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const csvFile = Array.isArray(files.csv) ? files.csv[0] : files.csv;
     const existingCsv = fields.existing_csv ? fields.existing_csv[0] : null;
     let csvDestPath = '';
+    let csvUploadResult = null;
 
     if (csvFile) {
       tempFilesToCleanup.push(csvFile);
-      csvDestPath = path.join(dataDir, 'pano-poses.csv');
-      await moveFile(csvFile.filepath, csvDestPath);
+      
+      if (isS3Configured()) {
+        // Upload CSV to S3
+        const csvBuffer = fs.readFileSync(csvFile.filepath);
+        csvUploadResult = await uploadToS3(csvBuffer, 'pano-poses.csv', projectId, 'csv');
+        console.log(`CSV file successfully uploaded to S3: ${csvUploadResult.key}`);
+      } else {
+        // Local file storage
+        csvDestPath = path.join(dataDir, 'pano-poses.csv');
+        await moveFile(csvFile.filepath, csvDestPath);
+        
+        // Verify CSV file was moved successfully
+        if (!fs.existsSync(csvDestPath)) {
+          throw new Error(`Failed to move CSV file to ${csvDestPath}`);
+        }
+        console.log(`CSV file successfully moved to: ${csvDestPath}`);
+      }
     } else if (existingCsv) {
-      csvDestPath = path.join(dataDir, existingCsv);
+      if (!isS3Configured()) {
+        csvDestPath = path.join(dataDir, existingCsv);
+      }
     } else {
       return res.status(400).json({ error: 'CSV file is required' });
     }
-    
-    // Verify CSV file was moved successfully
-    if (!fs.existsSync(csvDestPath)) {
-      throw new Error(`Failed to move CSV file to ${csvDestPath}`);
-    }
-    console.log(`CSV file successfully moved to: ${csvDestPath}`);
 
     // Handle image files
     const imageFiles = Array.isArray(files.images) ? files.images : (files.images ? [files.images] : []);
@@ -165,36 +185,73 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const movedImages: string[] = [];
-    for (const imageFile of imageFiles) {
-      if (imageFile && imageFile.originalFilename) {
-        const imageDestPath = path.join(imagesDir, imageFile.originalFilename);
-        await moveFile(imageFile.filepath, imageDestPath);
+    let imageUploadResults = [];
+    
+    if (imageFiles.length > 0) {
+      if (isS3Configured()) {
+        // Upload images to S3
+        const filesToUpload = imageFiles
+          .filter(file => file && file.originalFilename)
+          .map(file => ({
+            buffer: fs.readFileSync(file.filepath),
+            filename: file.originalFilename!,
+            fileType: 'panorama' as const
+          }));
         
-        // Verify image file was moved successfully
-        if (!fs.existsSync(imageDestPath)) {
-          throw new Error(`Failed to move image file to ${imageDestPath}`);
+        imageUploadResults = await batchUploadToS3(filesToUpload, projectId);
+        
+        // Track successful uploads
+        imageUploadResults.forEach(result => {
+          if (result.success) {
+            movedImages.push(result.filename);
+          }
+        });
+        
+        console.log(`Successfully uploaded ${movedImages.length} image files to S3:`, movedImages);
+      } else {
+        // Local file storage
+        for (const imageFile of imageFiles) {
+          if (imageFile && imageFile.originalFilename) {
+            const imageDestPath = path.join(imagesDir, imageFile.originalFilename);
+            await moveFile(imageFile.filepath, imageDestPath);
+            
+            // Verify image file was moved successfully
+            if (!fs.existsSync(imageDestPath)) {
+              throw new Error(`Failed to move image file to ${imageDestPath}`);
+            }
+            movedImages.push(imageFile.originalFilename);
+          }
         }
-        movedImages.push(imageFile.originalFilename);
+        console.log(`Successfully moved ${movedImages.length} image files:`, movedImages);
       }
     }
+    
     // Add existing images to the list of moved images
     existingImages.forEach((imageName: string) => movedImages.push(imageName));
-    
-    console.log(`Successfully moved ${movedImages.length} image files:`, movedImages);
 
     // Add a small delay to ensure all file operations are completed
     await new Promise(resolve => setTimeout(resolve, 100));
     
     // Final verification before running config script
     console.log(`Final verification for project ${projectId}:`);
-    console.log(`- CSV exists: ${fs.existsSync(csvDestPath)}`);
-    console.log(`- Images directory exists: ${fs.existsSync(imagesDir)}`);
-    console.log(`- Images in directory: ${fs.readdirSync(imagesDir).length}`);
+    if (isS3Configured()) {
+      console.log(`- Using S3 storage`);
+      console.log(`- CSV uploaded: ${!!csvUploadResult}`);
+      console.log(`- Images uploaded: ${movedImages.length}`);
+    } else {
+      console.log(`- Using local storage`);
+      console.log(`- CSV exists: ${fs.existsSync(csvDestPath)}`);
+      console.log(`- Images directory exists: ${fs.existsSync(imagesDir)}`);
+      console.log(`- Images in directory: ${fs.readdirSync(imagesDir).length}`);
+    }
     
     // Run the configuration generation script for this specific project
     try {
       console.log(`Starting configuration generation for project: ${projectId}`);
-      const { stdout, stderr } = await execAsync(`node scripts/node/generate-config.js --project "${projectId}"`, {
+      
+      // Use S3-aware script if S3 is configured, otherwise use regular script
+      const scriptName = isS3Configured() ? 'generate-config-s3.js' : 'generate-config.js';
+      const { stdout, stderr } = await execAsync(`node scripts/node/${scriptName} --project "${projectId}"`, {
         cwd: process.cwd(),
       });
       
@@ -203,10 +260,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.warn('Script warnings:', stderr);
       }
 
+      const storageType = isS3Configured() ? 'S3' : 'local storage';
       res.status(200).json({ 
-        message: `Files uploaded successfully to project "${projectId}" and configuration generated!`,
+        message: `Files uploaded successfully to ${storageType} for project "${projectId}" and configuration generated!`,
         projectId,
-        scriptOutput: stdout
+        scriptOutput: stdout,
+        storageType,
+        uploadResults: isS3Configured() ? {
+          csv: csvUploadResult,
+          images: imageUploadResults
+        } : undefined
       });
     } catch (scriptError: any) {
       console.error('Script execution error:', scriptError);
@@ -225,12 +288,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
       
+      const storageType = isS3Configured() ? 'S3' : 'local storage';
       res.status(500).json({ 
         error: 'Configuration generation failed',
-        message: `Files uploaded successfully to project "${projectId}", but configuration generation failed: ${errorDetails}`,
+        message: `Files uploaded successfully to ${storageType} for project "${projectId}", but configuration generation failed: ${errorDetails}`,
         projectId,
         details: process.env.NODE_ENV === 'development' ? scriptError.message : undefined,
-        manualCommand: `node scripts/node/generate-config.js --project "${projectId}"`
+        manualCommand: `node scripts/node/${isS3Configured() ? 'generate-config-s3.js' : 'generate-config.js'} --project "${projectId}"`,
+        storageType,
+        uploadResults: isS3Configured() ? {
+          csv: csvUploadResult,
+          images: imageUploadResults
+        } : undefined
       });
     }
 
