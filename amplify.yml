@@ -7,6 +7,10 @@ frontend:
         - npm ci
     build:
       commands:
+        # Set environment variables for Next.js
+        - env | grep -e CLOUD_ACCESS_KEY_ID -e CLOUD_SECRET_ACCESS_KEY -e CLOUD_REGION -e S3_BUCKET_NAME >> .env.production
+        - env | grep -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_REGION -e AWS_S3_BUCKET_NAME >> .env.production
+        - env | grep -e NEXT_PUBLIC_ >> .env.production
         # Build the Next.js application
         - npm run build
         # Generate initial configuration if needed
