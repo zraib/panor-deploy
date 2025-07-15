@@ -2,14 +2,41 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { listProjectFiles, uploadToS3 } from '@/lib/aws-s3';
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
-// Initialize S3 client for direct operations
-const s3Client = new S3Client({
-  region: process.env.CLOUD_REGION!,
-  credentials: {
-    accessKeyId: process.env.CLOUD_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.CLOUD_SECRET_ACCESS_KEY!,
-  },
-});
+// Check if S3 is configured
+function isS3Configured(): boolean {
+  // Check if S3 bucket name is configured and not a placeholder
+  const bucketName = process.env.S3_BUCKET_NAME;
+  const region = process.env.CLOUD_REGION;
+  
+  if (!bucketName || !region) {
+    return false;
+  }
+  
+  // Check if bucket name is not a placeholder value
+  if (bucketName.includes('your-') || bucketName === 'your_bucket_name' || bucketName === 'your-panorama-app-bucket') {
+    return false;
+  }
+  
+  // For AWS Amplify deployment, IAM roles are used automatically
+  // For local development, explicit credentials are required
+  const hasExplicitCredentials = !!(process.env.CLOUD_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID);
+  const isAmplifyDeployment = !!(process.env.AWS_REGION || process.env.AWS_LAMBDA_FUNCTION_NAME);
+  
+  return hasExplicitCredentials || isAmplifyDeployment;
+}
+
+// Initialize S3 client for direct operations (only if configured)
+let s3Client: S3Client | null = null;
+
+if (isS3Configured()) {
+  s3Client = new S3Client({
+    region: process.env.CLOUD_REGION!,
+    credentials: process.env.CLOUD_ACCESS_KEY_ID ? {
+      accessKeyId: process.env.CLOUD_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.CLOUD_SECRET_ACCESS_KEY!,
+    } : undefined, // Use IAM roles if no explicit credentials
+  });
+}
 
 interface Project {
   id: string;
@@ -102,6 +129,10 @@ const getProjectInfo = async (projectId: string): Promise<Project | null> => {
 };
 
 const deleteProjectFromS3 = async (projectId: string): Promise<void> => {
+  if (!s3Client) {
+    throw new Error('S3 is not configured');
+  }
+  
   try {
     const files = await listProjectFiles(projectId);
     
@@ -123,6 +154,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { method } = req;
   
   try {
+    // Check if S3 is configured before proceeding
+    if (!s3Client) {
+      return res.status(500).json({ error: 'S3 storage is not configured' });
+    }
+    
     switch (method) {
       case 'GET':
         // List all projects from S3
@@ -132,7 +168,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           Delimiter: '/'
         });
         
-        const response = await s3Client.send(listCommand);
+        const response = await s3Client!.send(listCommand);
         const projects: Project[] = [];
         
         // Extract project IDs from common prefixes
