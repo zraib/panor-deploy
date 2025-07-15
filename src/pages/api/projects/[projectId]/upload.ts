@@ -9,10 +9,26 @@ import { uploadToS3, batchUploadToS3 } from '@/lib/aws-s3';
 const execAsync = promisify(exec);
 
 // Check if S3 is configured
-function isS3Configured(): boolean {
-  return !!(process.env.CLOUD_REGION && 
-           process.env.S3_BUCKET_NAME && 
-           (process.env.CLOUD_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID));
+un defunction isS3Configured(): boolean {
+  // Check if S3 bucket name is configured and not a placeholder
+  const bucketName = process.env.S3_BUCKET_NAME;
+  const region = process.env.CLOUD_REGION;
+  
+  if (!bucketName || !region) {
+    return false;
+  }
+  
+  // Check if bucket name is not a placeholder value
+  if (bucketName.includes('your-') || bucketName === 'your_bucket_name' || bucketName === 'your-panorama-app-bucket') {
+    return false;
+  }
+  
+  // For AWS Amplify deployment, IAM roles are used automatically
+  // For local development, explicit credentials are required
+  const hasExplicitCredentials = !!(process.env.CLOUD_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID);
+  const isAmplifyDeployment = !!(process.env.AWS_REGION || process.env.AWS_LAMBDA_FUNCTION_NAME);
+  
+  return hasExplicitCredentials || isAmplifyDeployment;
 }
 
 export const config = {
@@ -146,6 +162,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         csvUploadResult = await uploadToS3(csvBuffer, 'pano-poses.csv', projectId, 'csv');
         console.log(`CSV file successfully uploaded to S3: ${csvUploadResult.key}`);
       } else {
+        console.log('S3 is not configured, using local file storage...');
+        console.log('S3 Config check:', {
+          bucketName: process.env.S3_BUCKET_NAME,
+          region: process.env.CLOUD_REGION,
+          hasCredentials: !!(process.env.CLOUD_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID),
+          isAmplify: !!(process.env.AWS_REGION || process.env.AWS_LAMBDA_FUNCTION_NAME)
+        });
         // Local file storage
         csvDestPath = path.join(dataDir, 'pano-poses.csv');
         await moveFile(csvFile.filepath, csvDestPath);
@@ -222,6 +245,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     if (imageFiles.length > 0) {
       if (isS3Configured()) {
+        console.log('S3 is configured, uploading images to S3...');
         // Upload images to S3
         const filesToUpload = imageFiles
           .filter((file: File) => file && file.originalFilename)
@@ -363,6 +387,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error: any) {
     console.error('Upload error:', error);
+    
+    // Check if this is an S3 configuration issue
+    if (!isS3Configured() && process.env.NODE_ENV === 'production') {
+      console.error('S3 not configured in production environment');
+      clearTimeout(timeoutId);
+      if (!hasResponded) {
+        hasResponded = true;
+        return res.status(500).json({
+          error: 'Storage configuration error',
+          message: 'File storage is not properly configured. Please contact the administrator.',
+          details: process.env.NODE_ENV === 'development' ? 'S3 credentials or bucket name not configured' : undefined
+        });
+      }
+      return;
+    }
     
     // Provide more specific error messages
     let errorMessage = 'Internal server error during file upload';

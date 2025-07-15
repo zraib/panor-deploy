@@ -76,9 +76,25 @@ async function downloadFromS3(key, localPath) {
 
 // Check if S3 is configured
 function isS3Configured() {
-  return !!(process.env.CLOUD_REGION && 
-           process.env.S3_BUCKET_NAME && 
-           (process.env.CLOUD_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID));
+  // Check if S3 bucket name is configured and not a placeholder
+  const bucketName = process.env.S3_BUCKET_NAME;
+  const region = process.env.CLOUD_REGION;
+  
+  if (!bucketName || !region) {
+    return false;
+  }
+  
+  // Check if bucket name is not a placeholder value
+  if (bucketName.includes('your-') || bucketName === 'your_bucket_name' || bucketName === 'your-panorama-app-bucket') {
+    return false;
+  }
+  
+  // For AWS Amplify deployment, IAM roles are used automatically
+  // For local development, explicit credentials are required
+  const hasExplicitCredentials = !!(process.env.CLOUD_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID);
+  const isAmplifyDeployment = !!(process.env.AWS_REGION || process.env.AWS_LAMBDA_FUNCTION_NAME);
+  
+  return hasExplicitCredentials || isAmplifyDeployment;
 }
 
 // Parse command line arguments
