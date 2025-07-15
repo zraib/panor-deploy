@@ -20,6 +20,8 @@ export const config = {
     bodyParser: false,
     responseLimit: false,
     externalResolver: true,
+    // Increase timeout for large file uploads
+    timeout: 300000, // 5 minutes
   },
 };
 
@@ -55,6 +57,10 @@ const cleanupTempFiles = async (tempFiles: (File | File[])[]) => {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Set response headers to prevent caching and ensure proper JSON response
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -66,6 +72,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   let tempFilesToCleanup: (File | File[])[] = [];
+  let hasResponded = false;
+  
+  // Set up timeout handler
+  const timeoutId = setTimeout(() => {
+    if (!hasResponded) {
+      hasResponded = true;
+      res.status(408).json({ 
+        error: 'Request timeout',
+        message: 'Upload operation timed out. Please try with fewer or smaller files.'
+      });
+    }
+  }, 280000); // 4 minutes 40 seconds (before the 5-minute API timeout)
 
   try {
     // Ensure tmp directory exists
@@ -79,10 +97,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       uploadDir: tmpDir,
       keepExtensions: true,
       multiples: true,
-      // Remove all size limitations
-      maxFileSize: Infinity,
-      maxTotalFileSize: Infinity,
-      maxFieldsSize: Infinity,
+      // Set reasonable size limits to prevent timeouts
+      maxFileSize: 100 * 1024 * 1024, // 100MB per file
+      maxTotalFileSize: 500 * 1024 * 1024, // 500MB total
+      maxFieldsSize: 20 * 1024 * 1024, // 20MB for fields
     });
     
     const { fields, files } = await new Promise<{ fields: any; files: any }>((resolve, reject) => {
@@ -143,7 +161,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         csvDestPath = path.join(dataDir, existingCsv);
       }
     } else {
-      return res.status(400).json({ error: 'CSV file is required' });
+      clearTimeout(timeoutId);
+      if (!hasResponded) {
+        hasResponded = true;
+        return res.status(400).json({ error: 'CSV file is required' });
+      }
+      return;
     }
 
     // Handle image files
@@ -151,7 +174,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const existingImages = fields.existing_images ? (Array.isArray(fields.existing_images) ? fields.existing_images : [fields.existing_images]) : [];
 
     if (imageFiles.length === 0 && existingImages.length === 0) {
-      return res.status(400).json({ error: 'At least one image file is required' });
+      clearTimeout(timeoutId);
+      if (!hasResponded) {
+        hasResponded = true;
+        return res.status(400).json({ error: 'At least one image file is required' });
+      }
+      return;
     }
     if (imageFiles.length > 0) {
         tempFilesToCleanup.push(files.images);
@@ -176,11 +204,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // If duplicates found, return warning
       if (duplicateFiles.length > 0) {
         await cleanupTempFiles(tempFilesToCleanup);
-        return res.status(409).json({ 
-          error: 'Duplicate file names detected',
-          duplicates: duplicateFiles,
-          message: `The following files already exist: ${duplicateFiles.join(', ')}. Please rename them or choose different files.`
-        });
+        clearTimeout(timeoutId);
+        if (!hasResponded) {
+          hasResponded = true;
+          return res.status(409).json({ 
+            error: 'Duplicate file names detected',
+            duplicates: duplicateFiles,
+            message: `The following files already exist: ${duplicateFiles.join(', ')}. Please rename them or choose different files.`
+          });
+        }
+        return;
       }
     }
 
@@ -198,16 +231,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             fileType: 'panorama' as const
           }));
         
+        console.log(`Starting S3 upload for ${filesToUpload.length} files...`);
+        const startTime = Date.now();
+        
         imageUploadResults = await batchUploadToS3(filesToUpload, projectId);
         
+        const uploadTime = Date.now() - startTime;
+        console.log(`S3 upload completed in ${uploadTime}ms`);
+        
         // Track successful uploads
-        imageUploadResults.forEach(result => {
-          if (result.success && result.key) {
-            movedImages.push(result.filename);
-          }
+        const successfulUploads = imageUploadResults.filter(result => result.success && result.key);
+        const failedUploads = imageUploadResults.filter(result => !result.success);
+        
+        successfulUploads.forEach(result => {
+          movedImages.push(result.filename);
         });
         
-        console.log(`Successfully uploaded ${movedImages.length} image files to S3:`, movedImages);
+        console.log(`Successfully uploaded ${successfulUploads.length}/${filesToUpload.length} image files to S3`);
+        if (failedUploads.length > 0) {
+          console.warn(`Failed uploads:`, failedUploads.map(f => `${f.filename}: ${f.error}`));
+        }
       } else {
         // Local file storage
         for (const imageFile of imageFiles) {
@@ -261,16 +304,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const storageType = isS3Configured() ? 'S3' : 'local storage';
-      res.status(200).json({ 
-        message: `Files uploaded successfully to ${storageType} for project "${projectId}" and configuration generated!`,
-        projectId,
-        scriptOutput: stdout,
-        storageType,
-        uploadResults: isS3Configured() ? {
-          csv: csvUploadResult,
-          images: imageUploadResults
-        } : undefined
-      });
+      
+      // Clear timeout and send success response
+      clearTimeout(timeoutId);
+      if (!hasResponded) {
+        hasResponded = true;
+        res.status(200).json({ 
+          message: `Files uploaded successfully to ${storageType} for project "${projectId}" and configuration generated!`,
+          projectId,
+          scriptOutput: stdout,
+          storageType,
+          uploadResults: isS3Configured() ? {
+            csv: csvUploadResult,
+            images: imageUploadResults
+          } : undefined
+        });
+      }
     } catch (scriptError: any) {
       console.error('Script execution error:', scriptError);
       
@@ -289,18 +338,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       
       const storageType = isS3Configured() ? 'S3' : 'local storage';
-      res.status(500).json({ 
-        error: 'Configuration generation failed',
-        message: `Files uploaded successfully to ${storageType} for project "${projectId}", but configuration generation failed: ${errorDetails}`,
-        projectId,
-        details: process.env.NODE_ENV === 'development' ? scriptError.message : undefined,
-        manualCommand: `node scripts/node/${isS3Configured() ? 'generate-config-s3.js' : 'generate-config.js'} --project "${projectId}"`,
-        storageType,
-        uploadResults: isS3Configured() ? {
-          csv: csvUploadResult,
-          images: imageUploadResults
-        } : undefined
-      });
+      
+      // Clear timeout and send error response
+      clearTimeout(timeoutId);
+      if (!hasResponded) {
+        hasResponded = true;
+        res.status(500).json({ 
+          error: 'Configuration generation failed',
+          message: `Files uploaded successfully to ${storageType} for project "${projectId}", but configuration generation failed: ${errorDetails}`,
+          projectId,
+          details: process.env.NODE_ENV === 'development' ? scriptError.message : undefined,
+          manualCommand: `node scripts/node/${isS3Configured() ? 'generate-config-s3.js' : 'generate-config.js'} --project "${projectId}"`,
+          storageType,
+          uploadResults: isS3Configured() ? {
+            csv: csvUploadResult,
+            images: imageUploadResults
+          } : undefined
+        });
+      }
     }
 
     // Clean up temp files after successful processing
@@ -330,10 +385,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       statusCode = 400;
     }
     
-    res.status(statusCode).json({ 
-      error: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    // Clear timeout and send error response
+    clearTimeout(timeoutId);
+    if (!hasResponded) {
+      hasResponded = true;
+      res.status(statusCode).json({ 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
 
     // Clean up temp files even on error
     try {

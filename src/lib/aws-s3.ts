@@ -236,28 +236,42 @@ export async function getSignedUrl(key: string): Promise<string> {
   return `https://${S3_BUCKET_NAME}.s3.${CLOUD_REGION}.amazonaws.com/${key}`;
 }
 
-// Batch upload multiple files
+// Batch upload multiple files with concurrency control
 export async function batchUploadToS3(
   files: Array<{ buffer: Buffer; filename: string; fileType?: string }>,
-  projectId: string
+  projectId: string,
+  concurrency: number = 3
 ): Promise<Array<{ success: boolean; filename: string; url?: string; key?: string; error?: string }>> {
-  const results = [];
+  const results: Array<{ success: boolean; filename: string; url?: string; key?: string; error?: string }> = [];
   
-  for (const file of files) {
-    try {
-      const result = await uploadToS3(file.buffer, file.filename, projectId, file.fileType);
-      results.push({
-        success: true,
-        filename: file.filename,
-        url: result.url,
-        key: result.key
-      });
-    } catch (error) {
-      results.push({
-        success: false,
-        filename: file.filename,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+  // Process files in batches to prevent overwhelming the server
+  for (let i = 0; i < files.length; i += concurrency) {
+    const batch = files.slice(i, i + concurrency);
+    
+    const batchPromises = batch.map(async (file) => {
+      try {
+        const result = await uploadToS3(file.buffer, file.filename, projectId, file.fileType);
+        return {
+          success: true,
+          filename: file.filename,
+          url: result.url,
+          key: result.key
+        };
+      } catch (error) {
+        return {
+          success: false,
+          filename: file.filename,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
+    
+    // Add a small delay between batches to prevent rate limiting
+    if (i + concurrency < files.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
   

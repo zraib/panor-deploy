@@ -621,14 +621,26 @@ export default function Upload() {
         setCreatedProjectId(projectId);
       }
 
-      // Upload files to the project
+      // Upload files to the project with timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 300000); // 5 minutes timeout
+      
       const response = await fetch(
         `/api/projects/${encodeURIComponent(projectId)}/upload`,
         {
           method: 'POST',
           body: formData,
+          signal: controller.signal,
+          // Add headers to help with timeout detection
+          headers: {
+            'X-Upload-Timeout': '300000',
+          },
         }
       );
+      
+      clearTimeout(timeoutId);
 
       clearInterval(progressInterval);
       setUploadProgress(100);
@@ -680,13 +692,29 @@ export default function Upload() {
     } catch (error: any) {
       setUploadProgress(0);
       if (error.name === 'AbortError') {
-        setMessage('Upload was cancelled.');
+        setMessage(
+          '⏱️ Upload timeout: The upload took too long and was cancelled.\n\n' +
+          '💡 Try these solutions:\n' +
+          '• Upload fewer files at once\n' +
+          '• Reduce image file sizes\n' +
+          '• Check your internet connection\n' +
+          '• Try again during off-peak hours'
+        );
       } else if (error.message.includes('Failed to fetch')) {
         setMessage(
-          'Network error. Please check your connection and try again.'
+          '🌐 Network error: Unable to connect to the server.\n\n' +
+          '💡 Please check your internet connection and try again.'
+        );
+      } else if (error.message.includes('timeout')) {
+        setMessage(
+          '⏱️ Request timeout: The server took too long to respond.\n\n' +
+          '💡 Try uploading fewer or smaller files.'
         );
       } else {
-        setMessage('An error occurred during upload. Please try again.');
+        setMessage(
+          '❌ Upload failed: An unexpected error occurred.\n\n' +
+          '💡 Please try again or contact support if the problem persists.'
+        );
       }
       console.error('Upload error:', error);
     } finally {
