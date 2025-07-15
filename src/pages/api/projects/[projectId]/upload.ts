@@ -73,17 +73,25 @@ const cleanupTempFiles = async (tempFiles: (File | File[])[]) => {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('=== UPLOAD ENDPOINT CALLED ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Query:', req.query);
+  
   // Set response headers to prevent caching and ensure proper JSON response
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   
   if (req.method !== 'POST') {
+    console.log('Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { projectId } = req.query;
+  console.log('Project ID from query:', projectId);
   
   if (!projectId || typeof projectId !== 'string') {
+    console.log('Invalid project ID:', projectId);
     return res.status(400).json({ error: 'Project ID is required' });
   }
 
@@ -156,7 +164,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (csvFile) {
       tempFilesToCleanup.push(csvFile);
       
+      console.log(`Processing CSV file for project: ${projectId}`);
+      console.log(`CSV file details:`, {
+        originalFilename: csvFile.originalFilename,
+        filepath: csvFile.filepath,
+        size: csvFile.size
+      });
+      
       if (isS3Configured()) {
+        console.log('S3 is configured, uploading CSV to S3...');
         // Upload CSV to S3
         const csvBuffer = fs.readFileSync(csvFile.filepath);
         csvUploadResult = await uploadToS3(csvBuffer, 'pano-poses.csv', projectId, 'csv');
@@ -169,8 +185,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           hasCredentials: !!(process.env.CLOUD_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID),
           isAmplify: !!(process.env.AWS_REGION || process.env.AWS_LAMBDA_FUNCTION_NAME)
         });
+        console.log(`Creating project directories:`);
+        console.log(`- Project dir: ${projectDir}`);
+        console.log(`- Data dir: ${dataDir}`);
+        console.log(`- Images dir: ${imagesDir}`);
+        
         // Local file storage
         csvDestPath = path.join(dataDir, 'pano-poses.csv');
+        console.log(`Moving CSV from ${csvFile.filepath} to ${csvDestPath}`);
         await moveFile(csvFile.filepath, csvDestPath);
         
         // Verify CSV file was moved successfully
