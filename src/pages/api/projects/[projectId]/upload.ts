@@ -37,7 +37,7 @@ export const config = {
     responseLimit: false,
     externalResolver: true,
     // Increase timeout for large file uploads
-    timeout: 300000, // 5 minutes
+    timeout: 900000, // 15 minutes
   },
 };
 
@@ -107,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: 'Upload operation timed out. Please try with fewer or smaller files.'
       });
     }
-  }, 280000); // 4 minutes 40 seconds (before the 5-minute API timeout)
+  }, 880000); // 14 minutes 40 seconds
 
   try {
     // Ensure tmp directory exists
