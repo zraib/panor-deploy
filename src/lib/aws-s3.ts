@@ -98,6 +98,9 @@ export async function uploadToS3(
   projectId: string,
   fileType?: string
 ): Promise<{ success: boolean; url: string; key: string }> {
+  console.log(`Starting S3 upload for filename: ${filename}, projectId: ${projectId}`);
+  console.log(`Using S3 Bucket: ${S3_BUCKET_NAME}, Region: ${CLOUD_REGION}`);
+
   try {
     const detectedFileType = fileType || getFileType(filename);
     const config = FILE_TYPE_CONFIGS[detectedFileType];
@@ -114,7 +117,10 @@ export async function uploadToS3(
     
     // Create S3 key with proper organization
     const key = `projects/${projectId}/${config.folder}/${filename}`;
-    
+    console.log(`Generated S3 key: ${key}`);
+    console.log(`Content-Type: ${getContentType(filename)}`);
+    console.log(`File size: ${file.length} bytes`);
+
     const command = new PutObjectCommand({
       Bucket: S3_BUCKET_NAME,
       Key: key,
@@ -130,6 +136,7 @@ export async function uploadToS3(
     await s3Client.send(command);
     
     const url = `https://${S3_BUCKET_NAME}.s3.${CLOUD_REGION}.amazonaws.com/${key}`;
+    console.log(`Successfully uploaded to S3. URL: ${url}`);
     
     return {
       success: true,
@@ -138,6 +145,9 @@ export async function uploadToS3(
     };
   } catch (error) {
     console.error('S3 upload error:', error);
+    if (error instanceof Error) {
+      console.error(`Error name: ${error.name}, message: ${error.message}, stack: ${error.stack}`);
+    }
     throw error;
   }
 }
