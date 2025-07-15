@@ -9,7 +9,7 @@ import { uploadToS3, batchUploadToS3 } from '@/lib/aws-s3';
 const execAsync = promisify(exec);
 
 // Check if S3 is configured
-un defunction isS3Configured(): boolean {
+function isS3Configured(): boolean {
   // Check if S3 bucket name is configured and not a placeholder
   const bucketName = process.env.S3_BUCKET_NAME;
   const region = process.env.CLOUD_REGION;
@@ -371,7 +371,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           error: 'Configuration generation failed',
           message: `Files uploaded successfully to ${storageType} for project "${projectId}", but configuration generation failed: ${errorDetails}`,
           projectId,
-          details: process.env.NODE_ENV === 'development' ? scriptError.message : undefined,
+          details: process.env.NODE_ENV === 'development' ? String(scriptError.message) : undefined,
           manualCommand: `node scripts/node/${isS3Configured() ? 'generate-config-s3.js' : 'generate-config.js'} --project "${projectId}"`,
           storageType,
           uploadResults: isS3Configured() ? {
@@ -389,7 +389,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Upload error:', error);
     
     // Check if this is an S3 configuration issue
-    if (!isS3Configured() && process.env.NODE_ENV === 'production') {
+    if (!isS3Configured() && String(process.env.NODE_ENV) === 'production') {
       console.error('S3 not configured in production environment');
       clearTimeout(timeoutId);
       if (!hasResponded) {
@@ -397,7 +397,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({
           error: 'Storage configuration error',
           message: 'File storage is not properly configured. Please contact the administrator.',
-          details: process.env.NODE_ENV === 'development' ? 'S3 credentials or bucket name not configured' : undefined
+          details: String(process.env.NODE_ENV) === 'development' ? 'S3 credentials or bucket name not configured' : undefined
         });
       }
       return;
@@ -430,7 +430,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       hasResponded = true;
       res.status(statusCode).json({ 
         error: errorMessage,
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === 'development' ? String(error.message) : undefined
       });
     }
 
