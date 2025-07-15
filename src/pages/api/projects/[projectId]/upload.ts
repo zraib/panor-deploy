@@ -185,14 +185,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const movedImages: string[] = [];
-    let imageUploadResults = [];
+    let imageUploadResults: { success: boolean; filename: string; url?: string; key?: string; error?: string }[] = [];
     
     if (imageFiles.length > 0) {
       if (isS3Configured()) {
         // Upload images to S3
         const filesToUpload = imageFiles
-          .filter(file => file && file.originalFilename)
-          .map(file => ({
+          .filter((file: File) => file && file.originalFilename)
+          .map((file: File) => ({
             buffer: fs.readFileSync(file.filepath),
             filename: file.originalFilename!,
             fileType: 'panorama' as const
@@ -202,7 +202,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         // Track successful uploads
         imageUploadResults.forEach(result => {
-          if (result.success) {
+          if (result.success && result.key) {
             movedImages.push(result.filename);
           }
         });
